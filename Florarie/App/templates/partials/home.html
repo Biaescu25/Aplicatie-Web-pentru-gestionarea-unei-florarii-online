@@ -1,18 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HTMX + Django</title>
     <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+    {% load static %}
+    <link href="{% static 'output.css' %}" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-100 p-10 flex justify-center items-center min-h-screen">
     <h1>Hello, HTMX!</h1>
     
     <button hx-get="{% url 'load_more' %}" hx-target="#content">
         Load More Content
     </button>
-    
-    <div id="content"></div>
+
+    <div id="content">
+        <!-- Content loaded via HTMX will be inserted here -->
+    </div>
+
+    <div class="card w-96 bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">Welcome to DaisyUI! 🎉</h2>
+            <p>Now you can use beautiful Tailwind components effortlessly.</p>
+            <div class="card-actions justify-end">
+                <button class="btn btn-primary">Get Started</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
