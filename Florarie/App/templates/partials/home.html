@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
 
@@ -18,7 +18,7 @@
     </button>
 
     <div id="content">
-        <!-- Content loaded via HTMX will be inserted here -->
+        #Content loaded via HTMX will be inserted here 
     </div>
 
     <div class="card w-96 bg-base-100 shadow-xl">
@@ -30,5 +30,82 @@
             </div>
         </div>
     </div>
+</body>
+</html> -->
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Flower Shop</title>
+    <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+
+    <link href="{% static 'output.css' %}" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="#" class="text-2xl font-bold text-green-600">Your Flower Shop</a>
+            <div>
+                <a href="#" class="text-gray-700 mx-2">Home</a>
+                <a href="#" class="text-gray-700 mx-2">Collections</a>
+                <a href="#" class="text-gray-700 mx-2">Events</a>
+                <a href="#" class="text-gray-700 mx-2">Contact</a>
+                <a href="#" class="text-gray-700 mx-2">About</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="bg-cover bg-center h-96" style="background-image: url('path-to-your-hero-image.jpg');">
+        <div class="bg-black bg-opacity-50 h-full flex items-center justify-center">
+            <h1 class="text-white text-4xl md:text-6xl font-bold">Fresh Flowers Delivered Daily</h1>
+        </div>
+    </section>
+
+    <!-- Product Showcase -->
+    <section class="container mx-auto px-4 py-16">
+        <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Our Collections</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Example Product Card -->
+            {% for product in products %}
+            <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                <figure><img src="{{ product.image.url }}" alt="{{ product.name }}" class="h-48 w-full object-cover"></figure>
+                <div class="p-4">
+                    <h3 class="text-xl font-bold text-gray-800">{{ product.name }}</h3>
+                    <p class="text-gray-600 mt-2">{{ product.description}}</p>
+                    <button class="mt-4 btn btn-primary">{{ product.price }}</button>
+                </div>
+            </div>
+            {% endfor %}
+            <!-- Repeat Product Cards as Needed -->
+        </div>
+    </section>
+
+    <!-- About Us -->
+    <section class="bg-green-600 text-white py-16">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold mb-4">About Us</h2>
+            <p class="max-w-2xl mx-auto">Share your story and what makes your flower shop unique. Highlight your commitment to quality, sustainability, or community involvement.</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4 flex justify-between">
+            <p>&copy; 2025 Your Flower Shop. All rights reserved.</p>
+            <div>
+                <a href="#" class="text-gray-400 mx-2">Facebook</a>
+                <a href="#" class="text-gray-400 mx-2">Instagram</a>
+                <a href="#" class="text-gray-400 mx-2">Twitter</a>
+            </div>
+        </div>
+    </footer>
+
 </body>
 </html>
