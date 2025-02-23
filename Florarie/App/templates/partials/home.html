@@ -47,7 +47,23 @@
 </head>
 <body class="bg-gray-50">
 
-    <!-- Navigation Bar -->
+    <!-- topbar -->
+    <!-- <nav class="bg-gray-50 shadow">
+        <div class="container mx-auto px-3 py-1 flex justify-between items-center">
+            <div class="text-sm text-gray-500">
+                <div class="flex space-x-4">
+                    <div>0736255194</div>
+                    <div>email.email@email.com</div>
+                </div>
+            </div>
+            <div>
+                <a href="#" class="text-gray-700 mx-2">Home</a>
+                <a href="#" class="text-gray-700 mx-2">Collections</a>
+            </div>
+        </div>
+    </nav>
+
+    Navigation Bar 
     <nav class="bg-white shadow">
         <div class="container mx-auto px-4 py-4 flex justify-between items-center">
             <a href="#" class="text-2xl font-bold text-green-600">Your Flower Shop</a>
@@ -59,7 +75,72 @@
                 <a href="#" class="text-gray-700 mx-2">About</a>
             </div>
         </div>
+    </nav> -->
+
+      <!-- Top Bar -->
+      <div class="bg-gray-100 text-gray-600 text-sm py-2 px-4 flex justify-between items-center">
+        <div>📞 0749 214 144 | ✉ office@flowershopsibiu.ro</div>
+        <!-- <div class="flex gap-3">
+            <a href="#" class="text-gray-600 hover:text-gray-800"><i class="fab fa-facebook"></i> Facebook</a>
+            <a href="#" class="text-gray-600 hover:text-gray-800"><i class="fab fa-instagram"></i> Instagram</a>
+        </div> -->
+    </div>
+
+    <!-- Main Navbar -->
+    <nav class="bg-white shadow-md">
+        <div class="container mx-auto flex justify-between items-center py-4 px-6">
+
+            <!-- Left Links -->
+            <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700 ">
+                <a href="#" class="hover:text-gray-900">Buchete</a>
+                <a href="#" class="hover:text-gray-900">Aranjamente</a>
+                <a href="#" class="hover:text-gray-900">Plante</a>
+            </div>
+
+            <!-- Logo in the Center -->
+            <div class="absolute left-1/2 transform -translate-x-1/2">
+                <a href="#" class="block w-24 h-24 bg-black text-white items-center justify-center rounded-full font-bold text-lg shadow-lg">
+                    FS
+                </a>
+            </div>
+
+            <!-- Right Links -->
+            <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700 ml-auto">
+                <a href="#" class="hover:text-gray-900">Cadouri</a>
+                <a href="#" class="hover:text-gray-900">Despre noi</a>
+                <a href="#" class="hover:text-gray-900">Make your own</a>
+            </div>
+
+            <!-- Icons -->
+            <div class="flex items-center gap-4">
+
+                <a href="#" class="text-xl px-6"> 🛒 </a>
+
+                <button class="md:hidden text-gray-700 text-2xl" id="menu-toggle">
+                    ☰
+                </button>
+                <div id="mobile-menu" class=" md:hidden flex flex-col gap-4 mt-4">
+                    <a href="#" class="hover:text-gray-900">Buchete</a>
+                    <a href="#" class="hover:text-gray-900">Aranjamente</a>
+                    <a href="#" class="hover:text-gray-900">Plante</a>
+                    <a href="#" class="hover:text-gray-900">Cadouri</a>
+                    <a href="#" class="hover:text-gray-900">Despre noi</a>
+                    <a href="#" class="hover:text-gray-900">Make your own</a>
+                </div>
+                <script>
+                    document.getElementById('menu-toggle').addEventListener('click', function() {
+                        var menu = document.getElementById('mobile-menu');
+                        if (menu.classList.contains('hidden')) {
+                            menu.classList.remove('hidden');
+                        } else {
+                            menu.classList.add('hidden');
+                        }
+                    });
+                </script>
+            </div>
+        </div>
     </nav>
+
 
     <!-- Hero Section -->
     <section class="bg-cover bg-center h-96" style="background-image: url('path-to-your-hero-image.jpg');">
