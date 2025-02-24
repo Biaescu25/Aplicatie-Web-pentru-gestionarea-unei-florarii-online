@@ -1,37 +1,4 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
 
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTMX + Django</title>
-    <script src="https://unpkg.com/htmx.org@1.9.5"></script>
-    {% load static %}
-    <link href="{% static 'output.css' %}" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 p-10 flex justify-center items-center min-h-screen">
-    <h1>Hello, HTMX!</h1>
-    
-    <button hx-get="{% url 'load_more' %}" hx-target="#content">
-        Load More Content
-    </button>
-
-    <div id="content">
-        #Content loaded via HTMX will be inserted here 
-    </div>
-
-    <div class="card w-96 bg-base-100 shadow-xl">
-        <div class="card-body">
-            <h2 class="card-title">Welcome to DaisyUI! 🎉</h2>
-            <p>Now you can use beautiful Tailwind components effortlessly.</p>
-            <div class="card-actions justify-end">
-                <button class="btn btn-primary">Get Started</button>
-            </div>
-        </div>
-    </div>
-</body>
-</html> -->
 {% load static %}
 
 <!DOCTYPE html>
@@ -39,115 +6,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Flower Shop</title>
+    <title>Flower Joy</title>
     <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap" rel="stylesheet">
 
     <link href="{% static 'output.css' %}" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 font-serif">
 
-    <!-- topbar -->
-    <!-- <nav class="bg-gray-50 shadow">
-        <div class="container mx-auto px-3 py-1 flex justify-between items-center">
-            <div class="text-sm text-gray-500">
-                <div class="flex space-x-4">
-                    <div>0736255194</div>
-                    <div>email.email@email.com</div>
-                </div>
-            </div>
-            <div>
-                <a href="#" class="text-gray-700 mx-2">Home</a>
-                <a href="#" class="text-gray-700 mx-2">Collections</a>
+
+        <!-- Top Bar (Fixed) -->
+        <div id="top-bar" class="bg-gray-100 text-gray-600 text-sm py-3 px-4 flex justify-between items-center fixed top-0 left-0 w-full z-30 transition-all duration-300 ease-in-out">
+            <div>📞 0749 122 122 | ✉ office@flowerjoy.ro</div>
+            <div class="flex gap-3">
+                <button class="text-gray-700 text-2xl" id="menu-toggle">☰</button>
             </div>
         </div>
-    </nav>
 
-    Navigation Bar 
-    <nav class="bg-white shadow">
-        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-            <a href="#" class="text-2xl font-bold text-green-600">Your Flower Shop</a>
-            <div>
-                <a href="#" class="text-gray-700 mx-2">Home</a>
-                <a href="#" class="text-gray-700 mx-2">Collections</a>
-                <a href="#" class="text-gray-700 mx-2">Events</a>
-                <a href="#" class="text-gray-700 mx-2">Contact</a>
-                <a href="#" class="text-gray-700 mx-2">About</a>
-            </div>
-        </div>
-    </nav> -->
-
-      <!-- Top Bar -->
-      <div class="bg-gray-100 text-gray-600 text-sm py-2 px-4 flex justify-between items-center">
-        <div>📞 0749 214 144 | ✉ office@flowershopsibiu.ro</div>
-        <!-- <div class="flex gap-3">
-            <a href="#" class="text-gray-600 hover:text-gray-800"><i class="fab fa-facebook"></i> Facebook</a>
-            <a href="#" class="text-gray-600 hover:text-gray-800"><i class="fab fa-instagram"></i> Instagram</a>
-        </div> -->
-    </div>
-
-    <!-- Main Navbar -->
-    <nav class="bg-white shadow-md">
-        <div class="container mx-auto flex justify-between items-center py-4 px-6">
-
-            <!-- Left Links -->
-            <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700 ">
-                <a href="#" class="hover:text-gray-900">Buchete</a>
-                <a href="#" class="hover:text-gray-900">Aranjamente</a>
-                <a href="#" class="hover:text-gray-900">Plante</a>
-            </div>
-
-            <!-- Logo in the Center -->
-            <div class="absolute left-1/2 transform -translate-x-1/2">
-                <a href="#" class="block w-24 h-24 bg-black text-white items-center justify-center rounded-full font-bold text-lg shadow-lg">
-                    FS
-                </a>
-            </div>
-
-            <!-- Right Links -->
-            <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700 ml-auto">
-                <a href="#" class="hover:text-gray-900">Cadouri</a>
-                <a href="#" class="hover:text-gray-900">Despre noi</a>
-                <a href="#" class="hover:text-gray-900">Make your own</a>
-            </div>
-
-            <!-- Icons -->
-            <div class="flex items-center gap-4">
-
-                <a href="#" class="text-xl px-6"> 🛒 </a>
-
-                <button class="md:hidden text-gray-700 text-2xl" id="menu-toggle">
-                    ☰
-                </button>
-                <div id="mobile-menu" class=" md:hidden flex flex-col gap-4 mt-4">
+        <!-- Main Navbar (Sticky after scroll) -->
+        <nav id="main-navbar" class="bg-white shadow-md fixed top-0 left-0 w-full z-40 transition-all duration-300 ease-in-out mt-14">
+            <div class="container mx-auto flex justify-between items-center py-4 px-32">
+                <!-- Left Links -->
+                <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700">
                     <a href="#" class="hover:text-gray-900">Buchete</a>
                     <a href="#" class="hover:text-gray-900">Aranjamente</a>
                     <a href="#" class="hover:text-gray-900">Plante</a>
-                    <a href="#" class="hover:text-gray-900">Cadouri</a>
-                    <a href="#" class="hover:text-gray-900">Despre noi</a>
-                    <a href="#" class="hover:text-gray-900">Make your own</a>
                 </div>
-                <script>
-                    document.getElementById('menu-toggle').addEventListener('click', function() {
-                        var menu = document.getElementById('mobile-menu');
-                        if (menu.classList.contains('hidden')) {
-                            menu.classList.remove('hidden');
-                        } else {
-                            menu.classList.add('hidden');
-                        }
-                    });
-                </script>
+
+                <!-- Logo in the Center -->
+            <div id="logo" class="absolute left-1/2 transform -translate-x-1/2 top-4 z-50 transition-all duration-300 ease-in-out -translate-y-7">
+                <a href="#" class="block w-32 h-32 bg-black rounded-full flex items-center justify-center shadow-lg">
+                    <img src="/static/Logo.png" alt="Flower Shop Logo" class="w-28 h-28 rounded-full object-cover transition-all duration-300 ease-in-out" id="logo-img">
+                </a>
             </div>
+
+
+                <!-- Right Links -->
+                <div class="flex items-center">
+                    <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700">
+                        <a href="#" class="hover:text-gray-900">Cadouri</a>
+                        <a href="#" class="hover:text-gray-900">Despre noi</a>
+                        <a href="#" class="hover:text-gray-900">Make your own</a>
+                    </div>
+                    <div class="flex items-center space-x-4 ml-2">
+                        <a href="#" class="text-xl hover:text-gray-700"> 🛒 </a>
+                        <a href="#" class="text-xl hover:text-gray-700"> 👤 </a>
+                    </div> 
+
+                    <button class="md:hidden text-gray-700 text-2xl" id="menu-toggle">
+                        ☰
+                    </button>
+                    <div id="mobile-menu" class="hidden md:hidden flex-col gap-4 mt-4">
+                        <a href="#" class="hover:text-gray-900">Buchete</a>
+                        <a href="#" class="hover:text-gray-900">Aranjamente</a>
+                        <a href="#" class="hover:text-gray-900">Plante</a>
+                        <a href="#" class="hover:text-gray-900">Cadouri</a>
+                        <a href="#" class="hover:text-gray-900">Despre noi</a>
+                        <a href="#" class="hover:text-gray-900">Make your own</a>
+                    </div>
+                    <script>
+                        document.getElementById('menu-toggle').addEventListener('click', function() {
+                            var menu = document.getElementById('mobile-menu');
+                            if (menu.classList.contains('hidden')) {
+                                menu.classList.remove('hidden');
+                            } else {
+                                menu.classList.add('hidden');
+                            }
+                        });
+                    </script>
+
+                </div>
+            </div>
+        </nav>
+
+        <script>
+            // Get the elements
+            const topBar = document.getElementById('top-bar');
+            const mainNavbar = document.getElementById('main-navbar');
+            const logo = document.getElementById('logo');
+            const logoImg = document.getElementById('logo-img');
+            
+            let lastScrollY = window.scrollY;  // Store the last scroll position
+
+            // Listen for scroll event
+            window.addEventListener('scroll', function() {
+                const currentScrollY = window.scrollY;  // Current scroll position
+
+                // On Scroll Down: Hide the top bar and shrink logo
+                if (currentScrollY > lastScrollY) {
+                    topBar.classList.add('-top-16');  // Hide top bar by moving it up (negative margin)
+                    logo.classList.add('scale-75');  // Shrink the logo
+                    logoImg.classList.add('w-24', 'h-24');  // Resize image
+                    mainNavbar.classList.remove('mt-14');  // Remove margin-top on navbar to stick it to the top
+                    mainNavbar.classList.add('mt-0');  // Make the navbar stick to the top
+                } else {
+                    // On Scroll Up: If not at the very top, keep the top bar hidden
+                    if (currentScrollY > 0) {
+                        topBar.classList.add('-top-16');  // Keep top bar hidden
+                        mainNavbar.classList.remove('mt-0');  // Keep navbar sticky at top
+                    } else {
+                        // When at the very top: Show the top bar and restore navbar margin
+                        topBar.classList.remove('-top-16');  // Show the top bar
+                        logo.classList.remove('scale-75');  // Reset logo size
+                        logoImg.classList.remove('w-24', 'h-24');  // Reset image size
+                        mainNavbar.classList.add('mt-14');  // Add margin-top to navbar
+                    }
+                }
+
+                // Update the last scroll position
+                lastScrollY = currentScrollY;
+            });
+        </script>
+
+
+        <!-- Hero Section (Fixed and Full-Width) -->
+        <section class="relative bg-cover bg-center w-full h-screen z-10">
+
+            <!-- Carousel Container -->
+            <div class="carousel w-full h-full">
+                <!-- Slide 1 -->
+                <div id="slide1" class="carousel-item w-full h-full hidden">
+                    <img src="/static/banner1.jpg" class="w-full h-full object-cover" alt="Flower Banner 1">
+                    <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
+                        <a href="#slide3" class="btn btn-circle">❮</a>
+                        <a href="#slide2" class="btn btn-circle">❯</a>
+                    </div>
+                </div>
+
+                <!-- Slide 2 -->
+                <div id="slide2" class="carousel-item w-full h-full hidden">
+                    <img src="/static/banner21.jpg" class="w-full h-full object-cover" alt="Flower Banner 2">
+                    <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
+                        <a href="#slide1" class="btn btn-circle">❮</a>
+                        <a href="#slide3" class="btn btn-circle">❯</a>
+                    </div>
+                </div>
+
+                <!-- Slide 3 -->
+                <div id="slide3" class="carousel-item w-full h-full hidden">
+                    <img src="/static/banner3.jpg" class="w-full h-full object-cover" alt="Flower Banner 3">
+                    <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
+                        <a href="#slide2" class="btn btn-circle">❮</a>
+                        <a href="#slide1" class="btn btn-circle">❯</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    
+        <script>
+            // Manual Carousel Logic
+            const slides = document.querySelectorAll('.carousel-item');
+            const prevBtns = document.querySelectorAll('.btn-circle');
+            let currentIndex = 0;
+    
+            // Function to show only the active slide
+            function updateCarousel(index) {
+                slides.forEach((slide, i) => {
+                    slide.classList.add('hidden'); // Hide all slides
+                    if (i === index) slide.classList.remove('hidden'); // Show the current slide
+                });
+            }
+    
+            // Initial carousel setup
+            updateCarousel(currentIndex);
+    
+            // Event listeners for the navigation buttons
+            prevBtns.forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                    if (e.target.textContent === "❮") {
+                        currentIndex = (currentIndex - 1 + slides.length) % slides.length; // Go to previous slide
+                    } else {
+                        currentIndex = (currentIndex + 1) % slides.length; // Go to next slide
+                    }
+                    updateCarousel(currentIndex);
+                });
+            });
+        </script>
+
+    <section class="container mx-auto px-4 py-16">
+        <!-- First Text Block -->
+        <div class="text-center mb-10">
+            <p class="text-lg font-medium text-gray-800 mb-4">Feel free to explore our wide range of floral arrangements!</p>
+            <h2 class="text-5xl font-dancing text-gray-900 text-center">
+                <span class="font-dancing">Welcome to Flower Joy 🌸</span>
+            </h2>
         </div>
-    </nav>
 
-
-    <!-- Hero Section -->
-    <section class="bg-cover bg-center h-96" style="background-image: url('path-to-your-hero-image.jpg');">
-        <div class="bg-black bg-opacity-50 h-full flex items-center justify-center">
-            <h1 class="text-white text-4xl md:text-6xl font-bold">Fresh Flowers Delivered Daily</h1>
+        <!-- Second Text Block -->
+        <div class="text-center">
+            <p class="text-lg font-medium text-gray-800">We are committed to providing you with the freshest flowers and unique designs to brighten your special moments.</p>
         </div>
     </section>
+
 
     <!-- Product Showcase -->
     <section class="container mx-auto px-4 py-16">
