@@ -1,4 +1,3 @@
-
 {% load static %}
 
 <!DOCTYPE html>
@@ -14,205 +13,230 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet"> <!-- Indie Flower font -->
 
     <link href="{% static 'output.css' %}" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
+<style>
+    .font-dancing {
+        font-family: 'Dancing Script', cursive;
+    }
+    .font-indie {
+        font-family: 'Indie Flower', cursive;
+    }
+    .glass {
+        position: absolute;
+        top: 55%;
+        left: -50%;
+        transform: translateY(-50%);
+        width: 30%;
+        height: 40%;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+        transition: left 0.5s ease-in-out;
+    }
+    .glass.active {
+        left: 10%;
+    }
+</style>
+
 <body class="bg-gray-50 font-serif">
-
-
-        <!-- Top Bar (Fixed) -->
-        <div id="top-bar" class="bg-gray-100 text-gray-600 text-sm py-3 px-4 flex justify-between items-center fixed top-0 left-0 w-full z-30 transition-all duration-300 ease-in-out">
-            <div>📞 0749 122 122 | ✉ office@flowerjoy.ro</div>
-            <div class="flex gap-3">
-                <button class="text-gray-700 text-2xl" id="menu-toggle">☰</button>
-            </div>
+    <!-- Top Bar (Fixed) -->
+    <div id="top-bar" class="bg-gray-100 text-gray-600 text-sm py-3 px-4 flex justify-between items-center fixed top-0 left-0 w-full z-30 transition-all duration-300 ease-in-out">
+        <div>📞 0749 122 122 | ✉ office@flowerjoy.ro</div>
+        <div class="flex gap-3">
+            <button class="text-gray-700 text-2xl" id="menu-toggle">☰</button>
         </div>
+    </div>
 
-        <!-- Main Navbar (Sticky after scroll) -->
-        <nav id="main-navbar" class="bg-white shadow-md fixed top-0 left-0 w-full z-40 transition-all duration-300 ease-in-out mt-14">
-            <div class="container mx-auto flex justify-between items-center py-4 px-32">
-                <!-- Left Links -->
-                <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700">
-                    <a href="#" class="hover:text-gray-900">Buchete</a>
-                    <a href="#" class="hover:text-gray-900">Aranjamente</a>
-                    <a href="#" class="hover:text-gray-900">Plante</a>
-                </div>
+    <!-- Main Navbar (Sticky after scroll) -->
+    <nav id="main-navbar" class="bg-white shadow-md fixed top-0 left-0 w-full z-40 transition-all duration-300 ease-in-out mt-14">
+        <div class="container mx-auto flex justify-between items-center py-4 px-32">
+            <!-- Left Links -->
+            <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700">
+                <a href="#" class="hover:text-gray-900">Buchete</a>
+                <a href="#" class="hover:text-gray-900">Aranjamente</a>
+                <a href="#" class="hover:text-gray-900">Plante</a>
+            </div>
 
-                <!-- Logo in the Center -->
+            <!-- Logo in the Center -->
             <div id="logo" class="absolute left-1/2 transform -translate-x-1/2 top-4 z-50 transition-all duration-300 ease-in-out -translate-y-7">
                 <a href="#" class="block w-32 h-32 bg-black rounded-full flex items-center justify-center shadow-lg">
                     <img src="/static/Logo.png" alt="Flower Shop Logo" class="w-28 h-28 rounded-full object-cover transition-all duration-300 ease-in-out" id="logo-img">
                 </a>
             </div>
 
-
-                <!-- Right Links -->
-                <div class="flex items-center">
-                    <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700">
-                        <a href="#" class="hover:text-gray-900">Cadouri</a>
-                        <a href="#" class="hover:text-gray-900">Despre noi</a>
-                        <a href="#" class="hover:text-gray-900">Make your own</a>
-                    </div>
-                    <div class="flex items-center space-x-4 ml-2">
-                        <a href="#" class="text-xl hover:text-gray-700"> 🛒 </a>
-                        <a href="#" class="text-xl hover:text-gray-700"> 👤 </a>
-                    </div> 
-
-                    <button class="md:hidden text-gray-700 text-2xl" id="menu-toggle">
-                        ☰
-                    </button>
-                    <div id="mobile-menu" class="hidden md:hidden flex-col gap-4 mt-4">
-                        <a href="#" class="hover:text-gray-900">Buchete</a>
-                        <a href="#" class="hover:text-gray-900">Aranjamente</a>
-                        <a href="#" class="hover:text-gray-900">Plante</a>
-                        <a href="#" class="hover:text-gray-900">Cadouri</a>
-                        <a href="#" class="hover:text-gray-900">Despre noi</a>
-                        <a href="#" class="hover:text-gray-900">Make your own</a>
-                    </div>
-                    <script>
-                        document.getElementById('menu-toggle').addEventListener('click', function() {
-                            var menu = document.getElementById('mobile-menu');
-                            if (menu.classList.contains('hidden')) {
-                                menu.classList.remove('hidden');
-                            } else {
-                                menu.classList.add('hidden');
-                            }
-                        });
-                    </script>
-
+            <!-- Right Links -->
+            <div class="flex items-center">
+                <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700">
+                    <a href="#" class="hover:text-gray-900">Cadouri</a>
+                    <a href="#" class="hover:text-gray-900">Despre noi</a>
+                    <a href="#" class="hover:text-gray-900">Make your own</a>
                 </div>
+                <div class="flex items-center space-x-4 ml-2">
+                    <a href="#" class="text-xl hover:text-gray-700"> 🛒 </a>
+                    <a href="#" class="text-xl hover:text-gray-700"> 👤 </a>
+                </div> 
+
+                <button class="md:hidden text-gray-700 text-2xl" id="menu-toggle">
+                    ☰
+                </button>
+                <div id="mobile-menu" class="hidden md:hidden flex-col gap-4 mt-4">
+                    <a href="#" class="hover:text-gray-900">Buchete</a>
+                    <a href="#" class="hover:text-gray-900">Aranjamente</a>
+                    <a href="#" class="hover:text-gray-900">Plante</a>
+                    <a href="#" class="hover:text-gray-900">Cadouri</a>
+                    <a href="#" class="hover:text-gray-900">Despre noi</a>
+                    <a href="#" class="hover:text-gray-900">Make your own</a>
+                </div>
+                <script>
+                    document.getElementById('menu-toggle').addEventListener('click', function() {
+                        var menu = document.getElementById('mobile-menu');
+                        if (menu.classList.contains('hidden')) {
+                            menu.classList.remove('hidden');
+                        } else {
+                            menu.classList.add('hidden');
+                        }
+                    });
+                </script>
             </div>
-        </nav>
+        </div>
+    </nav>
 
-        <script>
-            // Get the elements
-            const topBar = document.getElementById('top-bar');
-            const mainNavbar = document.getElementById('main-navbar');
-            const logo = document.getElementById('logo');
-            const logoImg = document.getElementById('logo-img');
-            
-            let lastScrollY = window.scrollY;  // Store the last scroll position
+    <script>
+        // Get the elements
+        const topBar = document.getElementById('top-bar');
+        const mainNavbar = document.getElementById('main-navbar');
+        const logo = document.getElementById('logo');
+        const logoImg = document.getElementById('logo-img');
+        
+        let lastScrollY = window.scrollY;  // Store the last scroll position
 
-            // Listen for scroll event
-            window.addEventListener('scroll', function() {
-                const currentScrollY = window.scrollY;  // Current scroll position
+        // Listen for scroll event
+        window.addEventListener('scroll', function() {
+            const currentScrollY = window.scrollY;  // Current scroll position
 
-                // On Scroll Down: Hide the top bar and shrink logo
-                if (currentScrollY > lastScrollY) {
-                    topBar.classList.add('-top-16');  // Hide top bar by moving it up (negative margin)
-                    logo.classList.add('scale-75');  // Shrink the logo
-                    logoImg.classList.add('w-24', 'h-24');  // Resize image
-                    mainNavbar.classList.remove('mt-14');  // Remove margin-top on navbar to stick it to the top
-                    mainNavbar.classList.add('mt-0');  // Make the navbar stick to the top
+            // On Scroll Down: Hide the top bar and shrink logo
+            if (currentScrollY > lastScrollY) {
+                topBar.classList.add('-top-16');  // Hide top bar by moving it up (negative margin)
+                logo.classList.add('scale-75');  // Shrink the logo
+                logoImg.classList.add('w-24', 'h-24');  // Resize image
+                mainNavbar.classList.remove('mt-14');  // Remove margin-top on navbar to stick it to the top
+                mainNavbar.classList.add('mt-0');  // Make the navbar stick to the top
+            } else {
+                // On Scroll Up: If not at the very top, keep the top bar hidden
+                if (currentScrollY > 0) {
+                    topBar.classList.add('-top-16');  // Keep top bar hidden
+                    mainNavbar.classList.remove('mt-0');  // Keep navbar sticky at top
                 } else {
-                    // On Scroll Up: If not at the very top, keep the top bar hidden
-                    if (currentScrollY > 0) {
-                        topBar.classList.add('-top-16');  // Keep top bar hidden
-                        mainNavbar.classList.remove('mt-0');  // Keep navbar sticky at top
-                    } else {
-                        // When at the very top: Show the top bar and restore navbar margin
-                        topBar.classList.remove('-top-16');  // Show the top bar
-                        logo.classList.remove('scale-75');  // Reset logo size
-                        logoImg.classList.remove('w-24', 'h-24');  // Reset image size
-                        mainNavbar.classList.add('mt-14');  // Add margin-top to navbar
-                    }
+                    // When at the very top: Show the top bar and restore navbar margin
+                    topBar.classList.remove('-top-16');  // Show the top bar
+                    logo.classList.remove('scale-75');  // Reset logo size
+                    logoImg.classList.remove('w-24', 'h-24');  // Reset image size
+                    mainNavbar.classList.add('mt-14');  // Add margin-top to navbar
                 }
+            }
 
-                // Update the last scroll position
-                lastScrollY = currentScrollY;
-            });
-        </script>
+            // Update the last scroll position
+            lastScrollY = currentScrollY;
+        });
+    </script>
 
 
-        <!-- Hero Section (Fixed and Full-Width) -->
-        <section class="relative bg-cover bg-center w-full h-screen z-10">
-
-            <!-- Carousel Container -->
-            <div class="carousel w-full h-full">
-                <!-- Slide 1 -->
-                <div id="slide1" class="carousel-item w-full h-full hidden">
-                    <img src="/static/banner1.jpg" class="w-full h-full object-cover" alt="Flower Banner 1">
-                    <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
-                        <a href="#slide3" class="btn btn-circle">❮</a>
-                        <a href="#slide2" class="btn btn-circle">❯</a>
-                    </div>
-                </div>
-
-                <!-- Slide 2 -->
-                <div id="slide2" class="carousel-item w-full h-full hidden">
-                    <img src="/static/banner21.jpg" class="w-full h-full object-cover" alt="Flower Banner 2">
-                    <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
-                        <a href="#slide1" class="btn btn-circle">❮</a>
-                        <a href="#slide3" class="btn btn-circle">❯</a>
-                    </div>
-                </div>
-
-                <!-- Slide 3 -->
-                <div id="slide3" class="carousel-item w-full h-full hidden">
-                    <img src="/static/banner3.jpg" class="w-full h-full object-cover" alt="Flower Banner 3">
-                    <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
-                        <a href="#slide2" class="btn btn-circle">❮</a>
-                        <a href="#slide1" class="btn btn-circle">❯</a>
-                    </div>
+    <!-- Hero Section (Fixed and Full-Width) -->
+    <section class="relative bg-cover bg-center w-full h-screen z-10">
+        <!-- Carousel Container -->
+        <div class="carousel w-full h-full">
+            <!-- Glass Rectangle -->
+            <div id="glass-rectangle" class="glass"></div>
+            <!-- Slide 1 -->
+            <div id="slide1" class="carousel-item w-full h-full hidden">
+                <img src="/static/banner1.jpg" class="w-full h-full object-cover" alt="Flower Banner 1">
+                <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
+                    <a href="#slide3" class="btn btn-circle">❮</a>
+                    <a href="#slide2" class="btn btn-circle">❯</a>
                 </div>
             </div>
-        </section>
 
-    
-        <script>
-            // Manual Carousel Logic
-            const slides = document.querySelectorAll('.carousel-item');
-            const prevBtns = document.querySelectorAll('.btn-circle');
-            let currentIndex = 0;
-    
-            // Function to show only the active slide
-            function updateCarousel(index) {
-                slides.forEach((slide, i) => {
-                    slide.classList.add('hidden'); // Hide all slides
-                    if (i === index) slide.classList.remove('hidden'); // Show the current slide
-                });
-            }
-    
-            // Initial carousel setup
-            updateCarousel(currentIndex);
-    
-            // Event listeners for the navigation buttons
-            prevBtns.forEach((btn) => {
-                btn.addEventListener('click', (e) => {
+            <!-- Slide 2 -->
+            <div id="slide2" class="carousel-item w-full h-full hidden">
+                <img src="/static/banner2.jpg" class="w-full h-full object-cover" alt="Flower Banner 2">
+                <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
+                    <a href="#slide1" class="btn btn-circle">❮</a>
+                    <a href="#slide3" class="btn btn-circle">❯</a>
+                </div>
+            </div>
+
+            <!-- Slide 3 -->
+            <div id="slide3" class="carousel-item w-full h-full hidden">
+                <img src="/static/banner3.jpg" class="w-full h-full object-cover" alt="Flower Banner 3">
+                <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
+                    <a href="#slide2" class="btn btn-circle">❮</a>
+                    <a href="#slide1" class="btn btn-circle">❯</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Manual Carousel Logic
+        const slides = document.querySelectorAll('.carousel-item');
+        const prevBtns = document.querySelectorAll('.btn-circle');
+        const glassRectangle = document.getElementById('glass-rectangle');
+        let currentIndex = 0;
+
+        // Function to show only the active slide
+        function updateCarousel(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.add('hidden'); // Hide all slides
+                if (i === index) slide.classList.remove('hidden'); // Show the current slide
+            });
+            glassRectangle.classList.add('active');
+        }
+
+        // Initial carousel setup
+        updateCarousel(currentIndex);
+
+        // Event listeners for the navigation buttons
+        prevBtns.forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                glassRectangle.classList.remove('active');
+                setTimeout(() => {
                     if (e.target.textContent === "❮") {
                         currentIndex = (currentIndex - 1 + slides.length) % slides.length; // Go to previous slide
                     } else {
                         currentIndex = (currentIndex + 1) % slides.length; // Go to next slide
                     }
                     updateCarousel(currentIndex);
-                });
+                }, 500);
             });
-        </script>
+        });
+    </script>
 
-    <section class="container mx-auto px-4 py-16">
+    <section class="container mx-auto px-4 pb-4 pt-16">
         <!-- First Text Block -->
         <div class="text-center mb-10">
-            <p class="text-lg font-medium text-gray-800 mb-4">Feel free to explore our wide range of floral arrangements!</p>
-            <h2 class="text-5xl font-dancing text-gray-900 text-center">
-                <span class="font-dancing">Welcome to Flower Joy 🌸</span>
+            <h2 class="text-8xl font-dancing text-gray-900 text-center">
+                <span class="font-dancing">Welcome to Flower Joy</span>
             </h2>
         </div>
 
         <!-- Second Text Block -->
-        <div class="text-center">
+        <!-- <div class="text-center">
             <p class="text-lg font-medium text-gray-800">We are committed to providing you with the freshest flowers and unique designs to brighten your special moments.</p>
-        </div>
+        </div> -->
     </section>
 
-
     <!-- Product Showcase -->
-    <section class="container mx-auto px-4 py-16">
-        <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Our Collections</h2>
+    <section class="container mx-auto px-4 py-4">
+        <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Best-Sellers</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <!-- Example Product Card -->
             {% for product in products %}
-            <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+            <div class="bg-white overflow-hidden">
                 <figure><img src="{{ product.image.url }}" alt="{{ product.name }}" class="h-48 w-full object-cover"></figure>
                 <div class="p-4">
                     <h3 class="text-xl font-bold text-gray-800">{{ product.name }}</h3>
@@ -244,6 +268,6 @@
             </div>
         </div>
     </footer>
-
 </body>
+
 </html>
