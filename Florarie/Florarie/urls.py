@@ -18,13 +18,18 @@ from django.contrib import admin
 from django.conf import settings
 from django.urls import path, include
 from django.conf.urls.static import static
-from App.views import home, load_more
+from App.views import home, load_more, cart_view, add_to_cart, remove_from_cart, update_cart, cart_count
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home, name='home'),
     path('load-more/', load_more, name='load_more'),
-    #path('App/', include('App.urls')),
+    path('cart/', cart_view, name='cart'),
+    path('cart/add/<int:product_id>/', add_to_cart, name='add_to_cart'),
+    path('cart/remove/<int:product_id>/', remove_from_cart, name='remove_from_cart'),
+    path('cart/update/<int:product_id>/<int:quantity>/', update_cart, name='update_cart'),
+    path('cart/count/', cart_count, name='cart_count'),
 ]
 
 

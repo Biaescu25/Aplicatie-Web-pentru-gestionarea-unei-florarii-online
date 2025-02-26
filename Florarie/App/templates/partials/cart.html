@@ -1,0 +1,18 @@
+<div class="container mx-auto p-6">
+    <h2 class="text-2xl font-bold mb-4">Your Cart</h2>
+
+    <div id="cart-items">
+        {% for item in cart_items %}
+        <div class="flex justify-between items-center p-4 bg-gray-100 rounded-lg mb-2">
+            <span>{{ item.product.name }}</span>
+            <span>{{ item.quantity }} × ${{ item.product.price }}</span>
+            <button hx-delete="/cart/remove/{{ item.id }}/" hx-target="#cart-items" class="text-red-500">❌</button>
+        </div>
+        {% empty %}
+        <p>Your cart is empty.</p>
+        {% endfor %}
+    </div>
+
+    <h3 class="text-lg font-bold mt-4">Total: ${{ total_price }}</h3>
+    <a href="/checkout/" class="btn btn-primary mt-4">Checkout</a>
+</div>
