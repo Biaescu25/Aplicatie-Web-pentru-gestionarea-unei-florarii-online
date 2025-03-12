@@ -1,0 +1,134 @@
+ <!-- Top Bar (Fixed) -->
+ <div id="top-bar" class="bg-gray-100 text-gray-600 text-sm py-3 px-4 flex justify-between items-center fixed top-0 left-0 w-full z-30 transition-all duration-300 ease-in-out">
+    <div>📞 0749 122 122 | ✉ office@flowerjoy.ro</div>
+    <div class="flex gap-3">
+        <button class="text-gray-700 text-2xl" id="menu-toggle">☰</button>
+    </div>
+</div>
+ 
+ 
+ <!-- Main Navbar (Sticky after scroll) -->
+ <nav id="main-navbar" class="bg-white shadow-md fixed top-0 left-0 w-full z-40 transition-all duration-300 ease-in-out mt-14">
+    <div class="container mx-auto flex justify-between items-center py-4 px-32">
+        <!-- Left Links -->
+        <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700">
+            <a href="#" class="hover:text-gray-900">Buchete</a>
+            <a href="#" class="hover:text-gray-900">Aranjamente</a>
+            <a href="#" class="hover:text-gray-900">Plante</a>
+        </div>
+
+        <!-- Logo in the Center -->
+        <div id="logo" class="absolute left-1/2 transform -translate-x-1/2 top-4 z-50 transition-all duration-300 ease-in-out -translate-y-7">
+            <a href="#" class="block w-32 h-32 bg-black rounded-full flex items-center justify-center shadow-lg">
+                <img src="/static/Logo.png" alt="Flower Shop Logo" class="w-28 h-28 rounded-full object-cover transition-all duration-300 ease-in-out" id="logo-img">
+            </a>
+        </div>
+
+        <!-- Right Links -->
+        <div class="flex items-center">
+            <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700">
+                <a href="#" class="hover:text-gray-900">Cadouri</a>
+                <a href="#" class="hover:text-gray-900">Despre noi</a>
+                <a href="#" class="hover:text-gray-900">Make your own</a>
+            </div>
+            <div class="flex items-center space-x-4 ml-2">
+                <a href="#" id="cart-btn" class="relative" hx-get="/cart/" hx-target="#cart-items" hx-trigger="click" hx-swap="innerHTML">
+                    🛒 
+                    <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 rounded-full">0</span></a>
+
+                <!-- Cart Drawer (Initially Hidden) -->
+                <div id="cart-container" class="fixed right-0 top-0 h-full w-80 bg-white shadow-lg transform translate-x-full transition-transform duration-300 p-4">
+                    <h2 class="text-xl font-bold">Your Cart</h2>
+                    <div id="cart-items">
+                        <!-- Cart items will be loaded here dynamically -->
+                    </div>
+                    <h3 class="text-lg font-bold mt-4">Total: <span id="cart-total">$0</span></h3>
+                    <a href="/checkout/" class="btn btn-primary mt-4">Checkout</a>
+                    <button id="close-cart" class="absolute top-2 right-4 text-2xl">&times;</button>
+                </div>
+
+                <a href="#" class="text-xl hover:text-gray-700"> 👤 </a>
+            </div> 
+
+            <button class="md:hidden text-gray-700 text-2xl" id="menu-toggle">
+                ☰
+            </button>
+            <div id="mobile-menu" class="hidden md:hidden flex-col gap-4 mt-4">
+                <a href="#" class="hover:text-gray-900">Buchete</a>
+                <a href="#" class="hover:text-gray-900">Aranjamente</a>
+                <a href="#" class="hover:text-gray-900">Plante</a>
+                <a href="#" class="hover:text-gray-900">Cadouri</a>
+                <a href="#" class="hover:text-gray-900">Despre noi</a>
+                <a href="#" class="hover:text-gray-900">Make your own</a>
+            </div>
+            <script>
+                document.getElementById('menu-toggle').addEventListener('click', function() {
+                    var menu = document.getElementById('mobile-menu');
+                    if (menu.classList.contains('hidden')) {
+                        menu.classList.remove('hidden');
+                    } else {
+                        menu.classList.add('hidden');
+                    }
+                });
+            </script>
+        </div>
+    </div>
+</nav>
+
+<script>
+// Get the elements
+const topBar = document.getElementById('top-bar');
+        const mainNavbar = document.getElementById('main-navbar');
+        const logo = document.getElementById('logo');
+        const logoImg = document.getElementById('logo-img');
+        
+        let lastScrollY = window.scrollY;  // Store the last scroll position
+
+        // Listen for scroll event
+        window.addEventListener('scroll', function() {
+            const currentScrollY = window.scrollY;  // Current scroll position
+
+            // On Scroll Down: Hide the top bar and shrink logo
+            if (currentScrollY > lastScrollY) {
+                topBar.classList.add('-top-16');  // Hide top bar by moving it up (negative margin)
+                logo.classList.add('scale-75');  // Shrink the logo
+                logoImg.classList.add('w-24', 'h-24');  // Resize image
+                mainNavbar.classList.remove('mt-14');  // Remove margin-top on navbar to stick it to the top
+                mainNavbar.classList.add('mt-0');  // Make the navbar stick to the top
+            } else {
+                // On Scroll Up: If not at the very top, keep the top bar hidden
+                if (currentScrollY > 0) {
+                    topBar.classList.add('-top-16');  // Keep top bar hidden
+                    mainNavbar.classList.remove('mt-0');  // Keep navbar sticky at top
+                } else {
+                    // When at the very top: Show the top bar and restore navbar margin
+                    topBar.classList.remove('-top-16');  // Show the top bar
+                    logo.classList.remove('scale-75');  // Reset logo size
+                    logoImg.classList.remove('w-24', 'h-24');  // Reset image size
+                    mainNavbar.classList.add('mt-14');  // Add margin-top to navbar
+                }
+            }
+
+            // Update the last scroll position
+            lastScrollY = currentScrollY;
+        });
+
+        function updateCartCount() {
+            fetch('/cart/count/')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('cart-count').innerText = data.count;
+                });
+        }
+    
+        document.addEventListener('DOMContentLoaded', updateCartCount);
+
+        document.getElementById('cart-btn').addEventListener('click', function() {
+            document.getElementById('cart-container').classList.remove('translate-x-full');
+        });
+
+        document.getElementById('close-cart').addEventListener('click', function() {
+            document.getElementById('cart-container').classList.add('translate-x-full');
+        });
+
+</script>
