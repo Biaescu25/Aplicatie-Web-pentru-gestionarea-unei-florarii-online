@@ -1,0 +1,56 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flower Joy</title>
+    <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet"> <!-- Indie Flower font -->
+
+    <link href="{% static 'output.css' %}" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<style>
+    .font-dancing {
+        font-family: 'Dancing Script', cursive;
+    }
+    .font-indie {
+        font-family: 'Indie Flower', cursive;
+    }
+    .glass {
+        position: absolute;
+        top: 55%;
+        left: -50%;
+        transform: translateY(-50%);
+        width: 30%;
+        height: 40%;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+        transition: left 0.5s ease-in-out;
+    }
+    .glass.active {
+        left: 10%;
+    }
+</style>
+
+<body class="bg-gray-50 font-serif">
+
+    <!-- Navbar -->
+    {% include 'partials/navbar.html' %}
+
+    {% block content %}
+    {% endblock %}
+    
+</body>
+
+

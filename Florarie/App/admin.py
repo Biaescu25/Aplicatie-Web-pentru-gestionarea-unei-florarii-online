@@ -13,4 +13,4 @@ class ProductAdmin(admin.ModelAdmin):
     image_preview.short_description = "Image"
 
 admin.site.register(Product, ProductAdmin)
-admin.site.register(User)
+# admin.site.register(User)

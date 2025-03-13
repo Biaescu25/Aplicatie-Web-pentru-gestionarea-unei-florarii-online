@@ -10,26 +10,49 @@ def load_more(request):
     return render(request, "partials/more_content.html")
 
 def cart_view(request):
-    cart_items = CartItem.objects.all()
+    if request.user.is_authenticated:
+        cart_items = CartItem.objects.filter(user=request.user)
+    else:
+        session_id = get_or_create_session_id(request)
+        cart_items = CartItem.objects.filter(session_id=session_id)
+
     total_price = sum(item.total_price() for item in cart_items)
-    if request.headers.get('HX-Request'):  # Check if it's an HTMX request
-        return render(request, 'cart_partial.html', {'cart_items': cart_items})
+
+    if request.headers.get('HX-Request'):  
+        return render(request, 'cart_partial.html', {'cart_items': cart_items, 'total_price': total_price})
 
     return render(request, 'home.html', {'cart_items': cart_items, 'total_price': total_price})
 
 def cart_count(request):
-    count = CartItem.objects.count()
+    if request.user.is_authenticated:
+        count = CartItem.objects.filter(user=request.user).count()
+    else:
+        session_id = get_or_create_session_id(request)
+        count = CartItem.objects.filter(session_id=session_id).count()
     return JsonResponse({'count': count})
+
+def get_or_create_session_id(request):
+    if not request.session.session_key:
+        request.session.save()
+    return request.session.session_key
 
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-    cart_item, created = CartItem.objects.get_or_create(product=product)
-    
+
+    if request.user.is_authenticated:
+        cart_item, created = CartItem.objects.get_or_create(user=request.user, product=product)
+    else:
+        session_id = get_or_create_session_id(request)
+        cart_item, created = CartItem.objects.get_or_create(session_id=session_id, product=product)
+
     if not created:
         cart_item.quantity += 1
         cart_item.save()
-    
-    return JsonResponse({"success": True})
+
+    cart_count = CartItem.objects.filter(user=request.user if request.user.is_authenticated else None,
+                                         session_id=request.session.session_key if not request.user.is_authenticated else None).count()
+
+    return JsonResponse({'count': cart_count})
 
 def remove_from_cart(request, product_id):
     cart_item = CartItem.objects.filter(product_id=product_id).first()

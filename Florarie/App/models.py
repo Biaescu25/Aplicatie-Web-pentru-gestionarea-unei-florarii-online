@@ -1,23 +1,23 @@
-from django.contrib.auth.models import AbstractUser, Group, Permission
+from django.contrib.auth.models import AbstractUser, Group, Permission, User
 from django.db import models
 
 # Create your models here.
 
-class User(AbstractUser):
-    groups = models.ManyToManyField(
-        Group,
-        related_name='custom_user_set',  # Add related_name to avoid conflict
-        blank=True,
-        help_text='The groups this user belongs to.',
-        verbose_name='groups',
-    )
-    user_permissions = models.ManyToManyField(
-        Permission,
-        related_name='custom_user_permissions_set',  # Add related_name to avoid conflict
-        blank=True,
-        help_text='Specific permissions for this user.',
-        verbose_name='user permissions',
-    )
+# class User(AbstractUser):
+#     groups = models.ManyToManyField(
+#         Group,
+#         related_name='custom_user_set',  # Add related_name to avoid conflict
+#         blank=True,
+#         help_text='The groups this user belongs to.',
+#         verbose_name='groups',
+#     )
+#     user_permissions = models.ManyToManyField(
+#         Permission,
+#         related_name='custom_user_permissions_set',  # Add related_name to avoid conflict
+#         blank=True,
+#         help_text='Specific permissions for this user.',
+#         verbose_name='user permissions',
+#     )
 
 class Product(models.Model):
     name = models.CharField(max_length=100)
@@ -30,6 +30,8 @@ class Product(models.Model):
         return self.name
 
 class CartItem(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    session_id = models.CharField(max_length=255, null=True, blank=True) # Store session ID for anonymous users
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
     
