@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="relative w-full h-56 bg-cover bg-center mt-14" style="background-image: url('/static/bannerCart.jpg');">
+    <div class="absolute inset-0 bg-black opacity-50"></div>
+    <div class="container mx-auto px-4 py-16 relative z-10 text-white">
+        <h1 class="text-4xl font-bold text-center mt-16">{{ category|title }}</h1>
+    </div>
+</section>  
+
+<section class="container mx-auto mt-10 px-4 py-8">
+    <form method="get" class="text-center mb-8">
+        <label for="sort" class="mr-2">Ordonare preț:</label>
+        <select name="sort" id="sort" class="border rounded p-2" onchange="this.form.submit()">
+            <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Crescător</option>
+            <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Descrescător</option>
+        </select>
+    </form>
+</section>
+
+{% include 'partials/ProductShowcase.html' with products=products category=category %}
+{% endblock %}

@@ -1,5 +1,5 @@
- <!-- Top Bar (Fixed) -->
- <div id="top-bar" class="bg-gray-100 text-gray-600 text-sm py-3 px-4 flex justify-between items-center fixed top-0 left-0 w-full z-30 transition-all duration-300 ease-in-out">
+<!-- Top Bar (Fixed) -->
+<div id="top-bar" class="bg-gray-100 text-gray-600 text-sm py-3 px-4 flex justify-between items-center fixed top-0 left-0 w-full z-30 transition-all duration-300 ease-in-out">
     <div>📞 0749 122 122 | ✉ office@flowerjoy.ro</div>
     <div class="flex gap-3">
         <button class="text-gray-700 text-2xl" id="menu-toggle">☰</button>
@@ -12,14 +12,14 @@
     <div class="container mx-auto flex justify-between items-center py-4 px-32">
         <!-- Left Links -->
         <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700">
-            <a href="#" class="hover:text-gray-900">Buchete</a>
-            <a href="#" class="hover:text-gray-900">Aranjamente</a>
-            <a href="#" class="hover:text-gray-900">Plante</a>
+            <a href="{% url 'products_by_category' category='buchete' %}" class="hover:text-gray-900">Buchete</a>
+            <a href="{% url 'products_by_category' category='aranjamente' %}" class="hover:text-gray-900">Aranjamente</a>
+            <a href="{% url 'products_by_category' category='plante' %}" class="hover:text-gray-900">Plante</a>
         </div>
 
         <!-- Logo in the Center -->
         <div id="logo" class="absolute left-1/2 transform -translate-x-1/2 top-4 z-50 transition-all duration-300 ease-in-out -translate-y-7">
-            <a href="#" class="block w-32 h-32 bg-black rounded-full flex items-center justify-center shadow-lg">
+            <a href="/" class="block w-32 h-32 bg-black rounded-full flex items-center justify-center shadow-lg">
                 <img src="/static/Logo.png" alt="Flower Shop Logo" class="w-28 h-28 rounded-full object-cover transition-all duration-300 ease-in-out" id="logo-img">
             </a>
         </div>
@@ -27,25 +27,16 @@
         <!-- Right Links -->
         <div class="flex items-center">
             <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700">
-                <a href="#" class="hover:text-gray-900">Cadouri</a>
+                <a href="{% url 'products_by_category' category='cadouri' %}" class="hover:text-gray-900">Cadouri</a>
                 <a href="#" class="hover:text-gray-900">Despre noi</a>
                 <a href="#" class="hover:text-gray-900">Make your own</a>
             </div>
             <div class="flex items-center space-x-4 ml-2">
-                <a href="#" id="cart-btn" class="relative" hx-get="/cart/" hx-target="#cart-items" hx-trigger="click" hx-swap="innerHTML">
-                    🛒 
-                    <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 rounded-full">0</span></a>
+                <!-- <a href="/cart/" id="cart-btn" class="relative" hx-get="/cart/" hx-target="#cart-items" hx-trigger="click" hx-swap="innerHTML"> -->
 
-                <!-- Cart Drawer (Initially Hidden) -->
-                <div id="cart-container" class="fixed right-0 top-0 h-full w-80 bg-white shadow-lg transform translate-x-full transition-transform duration-300 p-4">
-                    <h2 class="text-xl font-bold">Your Cart</h2>
-                    <div id="cart-items">
-                        <!-- Cart items will be loaded here dynamically -->
-                    </div>
-                    <h3 class="text-lg font-bold mt-4">Total: <span id="cart-total">$0</span></h3>
-                    <a href="/checkout/" class="btn btn-primary mt-4">Checkout</a>
-                    <button id="close-cart" class="absolute top-2 right-4 text-2xl">&times;</button>
-                </div>
+                    <a href="/cart/" id="cart-btn" class="relative">
+                        <img src="/static/cartIcon1.png" class="w-8 h-8">
+                    <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 rounded-full">0</span></a>
 
                 <a href="#" class="text-xl hover:text-gray-700"> 👤 </a>
             </div> 

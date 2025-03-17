@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.conf import settings
 from django.urls import path, include
 from django.conf.urls.static import static
-from App.views import home, load_more, cart_view, add_to_cart, remove_from_cart, update_cart, cart_count
+from App.views import home, load_more, cart_view, add_to_cart, remove_from_cart, update_cart, cart_count, products_by_category, increment_quantity, decrement_quantity
 
 
 urlpatterns = [
@@ -30,6 +30,9 @@ urlpatterns = [
     path('cart/remove/<int:product_id>/', remove_from_cart, name='remove_from_cart'),
     path('cart/update/<int:product_id>/<int:quantity>/', update_cart, name='update_cart'),
     path('cart/count/', cart_count, name='cart_count'),
+    path('category/<str:category>/',products_by_category, name='products_by_category'),
+    path('cart/increment/<int:product_id>/', increment_quantity, name='increment_quantity'),
+    path('cart/decrement/<int:product_id>/', decrement_quantity, name='decrement_quantity'),
 ]
 
 
