@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 
-from .models import Product, User
+from .models import Product, CartItem
 
 class ProductAdmin(admin.ModelAdmin):
     list_display = ('name', 'price', 'image_preview')
@@ -13,4 +13,5 @@ class ProductAdmin(admin.ModelAdmin):
     image_preview.short_description = "Image"
 
 admin.site.register(Product, ProductAdmin)
+admin.site.register(CartItem)
 # admin.site.register(User)

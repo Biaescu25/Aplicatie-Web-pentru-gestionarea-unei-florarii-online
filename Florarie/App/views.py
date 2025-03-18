@@ -1,6 +1,8 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from .models import Product, CartItem
+from django.template.loader import render_to_string
+from django.http import HttpResponse
 
 def home(request):
     products = Product.objects.all()
@@ -18,9 +20,12 @@ def cart_view(request):
             request.session.create()
             session_id = request.session.session_key
         cart_items = CartItem.objects.filter(session_id=session_id)
-    
+
+    total_price = sum(item.total_price() for item in cart_items)
+
     context = {
         'cart_items': cart_items,
+        'total_price': total_price
     }
     return render(request, 'cart.html', context)
 
@@ -53,16 +58,39 @@ def add_to_cart(request, product_id):
         cart_item.quantity += 1
         cart_item.save()
 
-    cart_count = CartItem.objects.filter(user=request.user if request.user.is_authenticated else None,
-                                         session_id=request.session.session_key if not request.user.is_authenticated else None).count()
-
-    return JsonResponse({'count': cart_count})
+    return redirect('cart')
 
 def remove_from_cart(request, product_id):
     cart_item = CartItem.objects.filter(product_id=product_id).first()
     if cart_item:
         cart_item.delete()
-    return JsonResponse({"success": True})
+
+    if request.user.is_authenticated:
+        cart_items = CartItem.objects.filter(user=request.user)
+    else:
+        session_id = request.session.session_key
+        cart_items = CartItem.objects.filter(session_id=session_id)
+
+    if request.headers.get('HX-Request'):  # Check if the request is an HTMX request
+        if not cart_items:  # If the cart is empty
+            context = {
+                'cart_items': cart_items,
+                'total_price': 0
+            }
+            #html = render_to_string('partials/cart.html', context, request=request)
+            #return HttpResponse("")
+
+            response = HttpResponse("")
+            response["HX-Redirect"] = "/cart/"  # Redirects the whole page
+            return response
+
+            #return redirect("cart")
+
+        # If the cart is not empty, return an empty response to remove the item from the DOM
+        return HttpResponse("")
+
+    # For non-HTMX requests, redirect to the full cart view
+    return cart_view(request)
 
 def update_cart(request, product_id, quantity):
     cart_item = CartItem.objects.filter(product_id=product_id).first()
@@ -76,6 +104,11 @@ def increment_quantity(request, product_id):
     if cart_item:
         cart_item.quantity += 1
         cart_item.save()
+
+    if request.headers.get('HX-Request'):  # Check if the request is an HTMX request
+        html = render_to_string('partials/cart_item.html', {'cart_item': cart_item})
+        return HttpResponse(html)
+
     return cart_view(request)
 
 def decrement_quantity(request, product_id):
@@ -83,6 +116,11 @@ def decrement_quantity(request, product_id):
     if cart_item and cart_item.quantity > 1:
         cart_item.quantity -= 1
         cart_item.save()
+
+    if request.headers.get('HX-Request'):  # Check if the request is an HTMX request
+        html = render_to_string('partials/cart_item.html', {'cart_item': cart_item})
+        return HttpResponse(html)
+
     return cart_view(request)
 
 def products_by_category(request, category):
