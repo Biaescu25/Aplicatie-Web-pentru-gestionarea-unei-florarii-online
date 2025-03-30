@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+
+<div class="container mx-auto mt-32 max-w-md py-12">
+
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert {{ message.tags }} p-3 text-center rounded bg-red-100 text-red-700">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %} 
+
+    <form method="POST" action="{% url 'login' %}" class="bg-base-100 shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
+        <h2 class="text-4xl font-bold text-center mb-6 text-primary">
+            <div class="flex items-center mb-4">
+                <hr class="flex-grow border-t-2 border-primary">
+                <span class="mx-2">Login</span>
+                <hr class="flex-grow border-t-2 border-primary">
+            </div>
+        </h2>
+        {% csrf_token %}
+        <div class="form-control mb-4">
+            <label for="username" class="label">
+                <span class="label-text text-lg font-semibold">Username</span>
+            </label>
+            <input type="text" name="username" id="username" placeholder="  Enter your username" class="input input-bordered w-full border-2 rounded-md h-10" required>
+        </div>
+        <div class="form-control mb-4">
+            <label for="password" class="label">
+                <span class="label-text text-lg font-semibold">Password</span>
+            </label>
+            <input type="password" name="password" id="password" placeholder="  Enter your password" class="input input-bordered w-full border-2 rounded-md h-10" required>
+        </div>
+        <div class="form-control mt-6">
+            <button type="submit" class="btn btn-primary w-full">
+                Login
+            </button>
+        </div>
+    </form>
+    <p class="text-center text-sm mt-4">
+        Don't have an account? <a href="{% url 'register_page' %}" class="link link-primary">Register</a>
+    </p>
+</div>
+
+{% endblock %}

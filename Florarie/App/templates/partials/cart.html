@@ -12,17 +12,17 @@
 
 <div class="container mx-auto px-4 py-8 bg-white">
 
-    {% if messages %}
+    <!-- {% if messages %}
     <div class="alert alert-success alert-dismissible fade show custom-alert" role="alert">
         {% for message in messages %}
             {{ message }}
         {% endfor %}
         <button type="button" class="btn-close custom-close-button" data-dismiss="alert" aria-label="Close">x</button>
     </div>
-    {% endif %}
+    {% endif %} -->
 
     {% if cart_items %}
-    <div class="container mt-5">
+    <div class="container mt-5 max-w-3xl mx-auto">
         {% for cart_item in cart_items %}
         <div id="cart-item-{{ cart_item.id }}" class="card mb-3 shadow-lg">
             <div hx-target="this" hx-swap="innerHTML">
@@ -30,11 +30,18 @@
             </div>
         </div>
         {% endfor %}
-        <div class="card shadow-lg">
-            <p class="mt-3 pr-3 text-right">Total Price: {{ total_price }}</p>
+        <!-- <div id="total-price" class="card shadow-lg">
+            <p class="mt-3 pr-3 text-right">Total Price: {% include 'partials/total_price.html' with total_price=total_price %}</p>
+        </div> -->
+        <!-- Total Price Section -->
+        <div id="total-price-container" class="card shadow-lg p-4 mt-4 text-right">
+            <p class="text-lg font-semibold">Total Price: <span id="total-price">{{ total_price }}</span> LEI</p>
         </div>
-        <a href=" url 'order_details' " css="btn btn-warning b-sm mt-3 float-right">Continue to check-out</a>
+
+        <a href=" {% url 'checkout' %} " class="btn btn-warning b-sm mt-3 mb-5 float-right">Continue to check-out</a>
+   
     {% else %}
+
         <div class="flex justify-center items-center">
             <img src="/static/CartEmpty.jpg" class="h-28" alt="Empty Cart">
         </div>
@@ -46,5 +53,11 @@
     {% endif %}
     </div>
 </div>
+
+<script>
+    document.body.addEventListener("updateTotalPrice", function() {
+        htmx.ajax("GET", "{% url 'get_total_price' %}", "#total-price-container");
+    });
+</script>
 
 {% endblock %}

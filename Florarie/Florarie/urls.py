@@ -18,7 +18,8 @@ from django.contrib import admin
 from django.conf import settings
 from django.urls import path, include
 from django.conf.urls.static import static
-from App.views import home, load_more, cart_view, add_to_cart, remove_from_cart, update_cart, cart_count, products_by_category, increment_quantity, decrement_quantity
+from App.views import home, load_more, cart_view, add_to_cart, remove_from_cart, update_cart, cart_count, products_by_category
+from App.views import increment_quantity, decrement_quantity, get_total_price, register_partial, login_partial,register, user_login, user_logout, checkout, process_payment
 
 
 urlpatterns = [
@@ -33,6 +34,15 @@ urlpatterns = [
     path('category/<str:category>/',products_by_category, name='products_by_category'),
     path('cart/increment/<int:product_id>/', increment_quantity, name='increment_quantity'),
     path('cart/decrement/<int:product_id>/', decrement_quantity, name='decrement_quantity'),
+    path("get-total-price/", get_total_price, name="get_total_price"),
+    path('register_page/', register_partial, name='register_page'),
+    path('login_page/', login_partial, name='login_page'),
+    path("register/", register, name="register"),
+    path("login/", user_login, name="login"),
+    path("logout/", user_logout, name="logout"),
+    path("checkout/", checkout, name="checkout"),
+    path("payment/", process_payment, name="payment"),       
+
 ]
 
 
