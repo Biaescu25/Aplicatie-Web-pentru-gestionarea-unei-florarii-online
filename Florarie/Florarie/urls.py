@@ -18,14 +18,14 @@ from django.contrib import admin
 from django.conf import settings
 from django.urls import path, include
 from django.conf.urls.static import static
-from App.views import home, load_more, cart_view, add_to_cart, remove_from_cart, update_cart, cart_count, products_by_category
-from App.views import increment_quantity, decrement_quantity, get_total_price, register_partial, login_partial,register, user_login, user_logout, checkout, process_payment
+from App.views import home, cart_view, add_to_cart, remove_from_cart, update_cart, cart_count, products_by_category
+from App.views import increment_quantity, decrement_quantity, get_total_price, register_partial, login_partial,register, user_login, user_logout
+from App.views import checkout, process_payment, order_success
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home, name='home'),
-    path('load-more/', load_more, name='load_more'),
     path('cart/', cart_view, name='cart'),
     path('cart/add/<int:product_id>/', add_to_cart, name='add_to_cart'),
     path('cart/remove/<int:product_id>/', remove_from_cart, name='remove_from_cart'),
@@ -41,7 +41,8 @@ urlpatterns = [
     path("login/", user_login, name="login"),
     path("logout/", user_logout, name="logout"),
     path("checkout/", checkout, name="checkout"),
-    path("payment/", process_payment, name="payment"),       
+    path("process_payment/", process_payment, name="process_payment"),    
+    path("order-success/", order_success, name="order_success"),   
 
 ]
 

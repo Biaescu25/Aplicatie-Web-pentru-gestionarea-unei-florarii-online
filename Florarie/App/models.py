@@ -41,7 +41,7 @@ class CartItem(models.Model):
     
 class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-    products = models.ManyToManyField(Product, through='OrderItem')  # Link products via OrderItem
+    session_id = models.CharField(max_length=255, null=True, blank=True)
     full_name = models.CharField(max_length=255)
     email = models.EmailField()
     address = models.TextField()
@@ -50,6 +50,7 @@ class Order(models.Model):
     zip_code = models.CharField(max_length=10)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=10.00)
+    payment_method = models.CharField(max_length=20, choices=[("card", "Card"), ("cash", "Cash on Delivery")], default="card")
     payment_status = models.BooleanField(default=False)  # False = Not paid, True = Paid
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -70,6 +71,11 @@ class Payment(models.Model):
     transaction_id = models.CharField(max_length=255, unique=True)
     status = models.CharField(max_length=20, choices=[("Pending", "Pending"), ("Completed", "Completed")])
     created_at = models.DateTimeField(auto_now_add=True)
+    payment_method = models.CharField(
+        max_length=20,
+        choices=[("card", "Card"), ("cash", "Cash on Delivery")],
+        default="card"  # Provide a default value
+    )
 
     def __str__(self):
-        return f"Payment {self.transaction_id} - {self.status}"
+        return f"Payment {self.transaction_id or 'Cash'} - {self.status}"

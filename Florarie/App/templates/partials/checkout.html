@@ -10,7 +10,6 @@
             <hr class="flex-grow border-t-2 border-primary">
         </div>
 
-        <!-- Single Form for All Steps -->
         <form id="checkout-form" method="POST">
             {% csrf_token %}
 
@@ -44,21 +43,7 @@
             <!-- Step 2: Payment Form (Initially Hidden) -->
             <div id="step-2" class="hidden">
                 <h2 class="text-2xl font-bold">Step 2: Payment</h2>
-
-                <label class="block mt-4">Card Number</label>
-                <input type="text" name="card_number" class="input input-bordered w-full" required>
-
-                <div class="flex gap-4 mt-4">
-                    <div class="w-1/2">
-                        <label>Expiration Date</label>
-                        <input type="text" name="expiry_date" class="input input-bordered w-full" required>
-                    </div>
-                    <div class="w-1/2">
-                        <label>CVV</label>
-                        <input type="text" name="cvv" class="input input-bordered w-full" required>
-                    </div>
-                </div>
-
+                <div id="card-element" class="input input-bordered w-full border-2 rounded-md h-10 mt-4"></div>
                 <button type="submit" id="pay-now" class="btn btn-primary w-full mt-4">Pay Now</button>
             </div>
 
@@ -74,8 +59,6 @@
     <!-- Order Summary -->
     <div class="w-full lg:w-1/3 bg-white shadow-lg rounded-lg p-6">
         <h3 class="text-lg font-bold text-gray-700">Order Summary</h3>
-
-        <!-- Scrollable Cart Items List -->
         <div class="max-h-44 overflow-y-auto space-y-2 mt-3">
             {% for item in cart_items %}
             <div class="flex items-center justify-between bg-gray-100 p-2 rounded-lg">
@@ -90,10 +73,7 @@
             </div>
             {% endfor %}
         </div>
-
         <hr class="my-3">
-
-        <!-- Subtotal and Delivery Fee -->
         <div class="flex justify-between mt-2">
             <p>Subtotal:</p>
             <p>{{ subtotal }} Lei</p>
@@ -102,10 +82,7 @@
             <p>Delivery Fee:</p>
             <p>{{ delivery_fee }} Lei</p>
         </div>
-
         <hr class="my-3">
-
-        <!-- Total Price -->
         <div class="flex justify-between text-lg font-semibold">
             <p>Total:</p>
             <p>{{ total_price }} Lei</p>
@@ -113,20 +90,33 @@
     </div>
 </div>
 
+<script src="https://js.stripe.com/v3/"></script>
 <script>
+    var stripe = Stripe("pk_test_51R8NtNRsvYugeMjUdh0qycRIsQ6qcSW2dfu2eZQiPpJ4Jf4k0xZf6AWkIkg1aNxnlC8mVDFlu9LribT35lEW2oIw00uXLxKHes");
+    var elements = stripe.elements();
+    var card = elements.create("card");
+    card.mount("#card-element");
+
     document.getElementById("continue-to-payment").addEventListener("click", function () {
         document.getElementById("step-1").classList.add("hidden");
         document.getElementById("step-2").classList.remove("hidden");
     });
 
     document.getElementById("checkout-form").addEventListener("submit", function (e) {
-        e.preventDefault();  // Prevent form from actually submitting (simulating payment)
-
-        // Simulate Payment Processing Delay
-        setTimeout(() => {
-            document.getElementById("step-2").classList.add("hidden");
-            document.getElementById("step-3").classList.remove("hidden");
-        }, 2000);
+        e.preventDefault();
+        stripe.createToken(card).then(function (result) {
+            if (result.error) {
+                alert(result.error.message);
+            } else {
+                var form = document.getElementById("checkout-form");
+                var hiddenInput = document.createElement("input");
+                hiddenInput.setAttribute("type", "hidden");
+                hiddenInput.setAttribute("name", "stripeToken");
+                hiddenInput.setAttribute("value", result.token.id);
+                form.appendChild(hiddenInput);
+                form.submit();
+            }
+        });
     });
 </script>
 

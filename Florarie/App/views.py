@@ -14,15 +14,11 @@ import stripe
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 
-# Set Stripe API key
-stripe.api_key = settings.STRIPE_SECRET_KEY
 
 def home(request):
     products = Product.objects.all()
     return render(request, "home.html", {'products': products})
 
-def load_more(request):
-    return render(request, "partials/more_content.html")
 
 def cart_view(request):
     if request.user.is_authenticated:
@@ -253,16 +249,28 @@ def user_logout(request):
     logout(request)
     return redirect("home")  # Redirect to homepage after logout
 
+
+
+stripe.api_key = settings.STRIPE_SECRET_KEY  # Set Stripe API key
+
 @login_required
 def checkout(request):
-    cart_items = CartItem.objects.filter(user=request.user)
+    """ Handles checkout process and creates order in DB. """
+    user = request.user if request.user.is_authenticated else None
+    session_id = request.session.session_key or request.session.create()
+    cart_items = CartItem.objects.filter(user=user) if user else CartItem.objects.filter(session_id=session_id)
+
     subtotal = sum(item.total_price() for item in cart_items)
     delivery_fee = 10  # Example delivery fee
     total_price = subtotal + delivery_fee
 
     if request.method == "POST":
+        payment_method = request.POST["payment_method"]
+
+        # Create the order
         order = Order.objects.create(
-            user=request.user,
+            user=user,
+            session_id=session_id if not user else None,
             full_name=request.POST["full_name"],
             email=request.POST["email"],
             address=request.POST["address"],
@@ -271,15 +279,22 @@ def checkout(request):
             zip_code=request.POST["zip_code"],
             total_price=subtotal,
             delivery_fee=delivery_fee,
-            payment_status=False
+            payment_method=payment_method,
+            payment_status=False if payment_method == "card" else True
         )
 
-        # Save cart items to OrderItem and clear the cart
+        # Save cart items to OrderItem
         for item in cart_items:
             OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity)
-        cart_items.delete()  # Clear the cart
 
-        return redirect("process_payment")  # Redirect to payment step
+        # Clear the cart after saving order
+        cart_items.delete()
+
+        if payment_method == "card":
+            request.session["order_id"] = order.id  # Store order ID for payment processing
+            return redirect("process_payment")  # Redirect to Stripe payment
+
+        return redirect("order_success")  # Redirect to success page for cash on delivery
 
     return render(request, "checkout.html", {
         "cart_items": cart_items,
@@ -288,14 +303,17 @@ def checkout(request):
         "total_price": total_price,
     })
 
-# Set Stripe API key
-stripe.api_key = settings.STRIPE_SECRET_KEY
-
 @csrf_exempt
 def process_payment(request):
     if request.method == "POST":
-        token = request.POST.get("stripeToken")  # Get token from Stripe.js
-        amount = request.session.get("total_price", 0)  # Get total price from session
+        token = request.POST.get("stripeToken")  # Get the Stripe token
+        amount = request.session.get("total_price", 0)  # Retrieve total price
+
+        print("Received token:", token)  # Debugging
+        print("Amount:", amount)  # Debugging
+
+        if not token or amount == 0:
+            return JsonResponse({"success": False, "message": "Missing payment token or invalid amount."})
 
         try:
             charge = stripe.Charge.create(
@@ -317,6 +335,17 @@ def process_payment(request):
             Order.objects.filter(user=request.user).latest('created_at').update(payment_status=True)
 
             return JsonResponse({"success": True, "message": "Payment successful!"})
+
         except stripe.error.CardError as e:
-            return JsonResponse({"success": False, "message": str(e)})
+            return JsonResponse({"success": False, "message": f"Card error: {str(e)}"})
+        except stripe.error.StripeError as e:
+            return JsonResponse({"success": False, "message": f"Stripe error: {str(e)}"})
+        except Exception as e:
+            return JsonResponse({"success": False, "message": f"Unexpected error: {str(e)}"})
+
     return JsonResponse({"success": False, "message": "Invalid request"})
+
+
+def order_success(request):
+    """ Order confirmation page """
+    return render(request, "order_success.html")
