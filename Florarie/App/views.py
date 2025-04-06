@@ -9,6 +9,8 @@ from django.dispatch import receiver
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
+from django.core.paginator import Paginator
+from .forms import UserForm
 
 import stripe
 from django.conf import settings
@@ -345,7 +347,41 @@ def process_payment(request):
 
     return JsonResponse({"success": False, "message": "Invalid request"})
 
-
 def order_success(request):
     """ Order confirmation page """
     return render(request, "order_success.html")
+
+
+def product_detail(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    related_products = Product.objects.filter(category=product.category).exclude(pk=pk)[:10]
+
+    context = {
+        'product': product,
+        'related_products': related_products
+    }
+    return render(request, 'product_detail.html', context)
+
+
+@login_required
+def profile(request):
+    form = UserForm(instance=request.user)
+    return render(request, 'profile.html', {'form': form})
+
+@login_required
+def order_history(request):
+    orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    paginator = Paginator(orders, 5)
+    page_number = request.GET.get('page')
+    page_orders = paginator.get_page(page_number)
+
+    if request.htmx:
+        html = render_to_string('partials/order_history.html', {'orders': page_orders}, request=request)
+        return HttpResponse(html)
+
+    return redirect('profile')
+
+@login_required
+def order_detail(request, order_id):
+    order = Order.objects.get(id=order_id, user=request.user)
+    return render(request, 'order_detail.html', {'order': order})

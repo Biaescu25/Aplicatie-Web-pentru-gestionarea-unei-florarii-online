@@ -43,7 +43,7 @@
                 {% if user.is_authenticated %}
                     <a href="{% url 'logout' %}" class="text-xl hover:text-gray-700">
                         <img src="/static/logout.png" class="h-7"> </a>
-                    <span class="text-gray-700 text-sm"> {{ user.username }}</span>
+                    <span class="text-gray-700 text-sm"> <a href="{% url 'profile' %}">{{ user.username }}</a></span>
                 {% else %}
                     <a href="/login_page/" class="text-xl hover:text-gray-700"> 👤 </a>
                 {% endif %}

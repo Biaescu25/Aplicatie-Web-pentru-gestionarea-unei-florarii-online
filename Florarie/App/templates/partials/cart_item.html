@@ -1,7 +1,9 @@
 <div class="card-body">
     <div class="flex justify-between items-center">
         <div class="center">
-            <img src="{{ cart_item.product.image.url }}" class="img-fluid rounded" alt="{{ cart_item.product.name }}" style="width: 100px; height: 100px; object-fit: cover;">
+            <a href="{% url 'product_detail' pk=cart_item.product.id %}" >
+                <img src="{{ cart_item.product.image.url }}" class="img-fluid rounded" alt="{{ cart_item.product.name }}" style="width: 100px; height: 100px; object-fit: cover;">
+            </a>
         </div>
         <div class="center" style="flex: 1; max-width: 200px; text-align: left;">
             <p class="card-text truncate">{{ cart_item.product.name }}</p>

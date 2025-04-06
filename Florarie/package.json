@@ -1,5 +1,8 @@
 {
   "devDependencies": {
     "daisyui": "^4.12.23"
+  },
+  "dependencies": {
+    "@tailwindcss/forms": "^0.5.10"
   }
 }

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="container mx-auto px-4 py-20 mt-24">
+
+    <h1 class="text-3xl font-bold mb-8 text-center">My Account</h1>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left: User Info Form -->
+        <div class="bg-white rounded-2xl shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Profile Details</h2>
+
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div>
+                        <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ field.label }}
+                        </label>
+                        <input 
+                        type="{{ field.field.widget.input_type }}" 
+                        name="{{ field.name }}" 
+                        value="{{ field.value }}" 
+                        class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"
+                        >
+                        {% if field.errors %}
+                        <p class="text-red-500 text-sm">{{ field.errors }}</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+                <button type="submit" class="btn btn-primary w-full">Save Changes</button>
+            </form>
+
+            <a href="{% url 'password_change' %}" class="block text-center mt-4 text-blue-500 hover:underline">Change Password</a>
+        </div>
+
+        <!-- Order History -->
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow p-6">
+            <div id="order-history" hx-get="{% url 'order_history' %}" hx-trigger="load" hx-target="this" hx-swap="innerHTML hx-indicator="#loading-spinner"">
+                Loading orders...
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

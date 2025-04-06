@@ -5,7 +5,7 @@
   daisyui: {
     themes: ["light", "dark", "cupcake"], // Add themes here
   },
-  plugins: [require("daisyui")], // DaisyUI plugin
+  plugins: [require('@tailwindcss/forms'),require("daisyui")], // DaisyUI plugin
 };
 
 

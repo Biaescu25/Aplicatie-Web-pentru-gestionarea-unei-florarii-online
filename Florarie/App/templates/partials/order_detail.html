@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container mx-auto py-36 mt-24 h-screen ">
+    <div class="bg-white shadow-lg rounded-lg p-6">
+        <h2 class="text-xl font-bold mb-4">Order #{{ order.id }} Details</h2>
+
+        <p>Date: {{ order.created_at|date:"M d, Y" }}</p>
+        <p>Status: {{ order.status }}</p>
+        <p>Total: {{ order.total_price }} Lei</p>
+
+        <div class="mt-4 space-y-4">
+            {% for item in order.items.all %}
+            <div class="border p-4 rounded-lg flex justify-between">
+                <div>
+                    <p class="font-semibold">{{ item.product.name }}</p>
+                    <p>Quantity: {{ item.quantity }}</p>
+                    <p>Price: {{ item.price }} Lei</p>
+                </div>
+                <img src="{{ item.product.image.url }}" class="w-20 h-20 object-cover rounded">
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

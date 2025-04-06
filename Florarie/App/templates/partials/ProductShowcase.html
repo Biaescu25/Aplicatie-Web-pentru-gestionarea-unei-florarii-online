@@ -1,14 +1,16 @@
-<section class="container mx-auto px-4 py-4">
+<section class="container mx-auto px-4 py-4 ">
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <!-- Example Product Card -->
         {% for product in products %}
         <div class="bg-white overflow-hidden hover:shadow-lg rounded-lg h-full relative">
-            {% if product.is_new %}
-            <div class="absolute top-0 left-0 bg-pink-400 text-white text-xs font-bold px-2 py-1 rounded-br-lg">
-                New
-            </div>
-            {% endif %}
-            <figure class="h-2/3"><img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover"></figure>
+            <a href="{% url 'product_detail' pk=product.id %}" >
+                {% if product.is_new %}
+                <div class="absolute top-0 left-0 bg-pink-400 text-white text-xs font-bold px-2 py-1 rounded-br-lg">
+                    New
+                </div>
+                {% endif %}
+                <figure class="h-2/3"><img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover"></figure>
+            </a>
             <div class="p-4 h-1/3 flex flex-col justify-end">
                 <h3 class="text-xl font-bold text-gray-800">{{ product.name }}</h3>
                 <p class="text-gray-600 mt-2">{{ product.description }}</p>

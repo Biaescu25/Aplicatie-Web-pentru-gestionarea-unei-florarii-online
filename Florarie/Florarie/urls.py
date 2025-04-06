@@ -20,8 +20,8 @@ from django.urls import path, include
 from django.conf.urls.static import static
 from App.views import home, cart_view, add_to_cart, remove_from_cart, update_cart, cart_count, products_by_category
 from App.views import increment_quantity, decrement_quantity, get_total_price, register_partial, login_partial,register, user_login, user_logout
-from App.views import checkout, process_payment, order_success
-
+from App.views import checkout, process_payment, order_success, product_detail, profile, order_detail, order_history
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -42,7 +42,15 @@ urlpatterns = [
     path("logout/", user_logout, name="logout"),
     path("checkout/", checkout, name="checkout"),
     path("process_payment/", process_payment, name="process_payment"),    
-    path("order-success/", order_success, name="order_success"),   
+    path("order-success/", order_success, name="order_success"),
+    path('product/<int:pk>/', product_detail, name='product_detail'),
+    path('profile/', profile, name='profile'),
+    path('order/<int:order_id>/', order_detail, name='order_detail'),
+    #path('order/<int:order_id>/reorder/', reorder, name='reorder'),
+    path('password_change/', auth_views.PasswordChangeView.as_view(template_name='password_change.html'), name='password_change'),
+    path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(template_name='password_change_done.html'), name='password_change_done'),
+    path('profile/orders/', order_history, name='order_history'),
+
 
 ]
 
