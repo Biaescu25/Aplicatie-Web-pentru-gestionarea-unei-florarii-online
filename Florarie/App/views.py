@@ -287,7 +287,8 @@ def checkout(request):
 
         # Save cart items to OrderItem
         for item in cart_items:
-            OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity)
+            price = item.product.price if item.product.price is not None else 0  # Ensure price is not None
+            OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, price=price)
 
         # Clear the cart after saving order
         cart_items.delete()
@@ -365,7 +366,16 @@ def product_detail(request, pk):
 
 @login_required
 def profile(request):
-    form = UserForm(instance=request.user)
+    #form = UserForm(instance=request.user)
+    user = request.user
+    if request.method == 'POST':
+        form = UserForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')  # or show a success message
+    else:
+        form = UserForm(instance=user)
+
     return render(request, 'profile.html', {'form': form})
 
 @login_required
@@ -383,5 +393,10 @@ def order_history(request):
 
 @login_required
 def order_detail(request, order_id):
-    order = Order.objects.get(id=order_id, user=request.user)
-    return render(request, 'order_detail.html', {'order': order})
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    order_items = order.items.select_related('product')  
+
+    return render(request, 'order_detail.html', {
+        'order': order,
+        'order_items': order_items,
+    })
