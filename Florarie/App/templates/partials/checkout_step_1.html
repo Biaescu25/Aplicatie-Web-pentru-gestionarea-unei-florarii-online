@@ -1,0 +1,25 @@
+<!-- templates/checkout/checkout_step_1.html -->
+<form hx-post="{% url 'checkout_step_2' %}" hx-target="#checkout-section" hx-swap="innerHTML" class="space-y-4">
+    {% csrf_token %}
+    <h3 class="text-xl font-semibold">1. Personal Information</h3>
+    <input type="text" name="full_name" placeholder="Full Name" class="input input-bordered w-full border border-gray-300 rounded-md h-10" required>
+    <input type="email" name="email" placeholder="Email" class="input input-bordered w-full border border-gray-300 rounded-md h-10" required>
+    <input type="text" name="phone_number" placeholder="Phone Number" class="input input-bordered w-full border border-gray-300 rounded-md h-10" required>
+
+    <h3 class="text-xl font-semibold mt-6">2. Shipping Address</h3>
+    <input type="text" name="address" placeholder="Street Address" class="input input-bordered w-full border border-gray-300 rounded-md h-10" required>
+    <input type="text" name="city" placeholder="City" class="input input-bordered w-full border border-gray-300 rounded-md h-10" required>
+    <input type="text" name="zip_code" placeholder="Zip Code" class="input input-bordered w-full border border-gray-300 rounded-md h-10" required>
+
+    <h3 class="text-xl font-semibold mt-6">3. Payment Method</h3>
+    <div class="flex gap-4">
+        <label class="flex items-center gap-2">
+            <input type="radio" name="payment_method" value="card" class="radio" required> Card
+        </label>
+        <label class="flex items-center gap-2">
+            <input type="radio" name="payment_method" value="cash" class="radio"> Cash on Delivery
+        </label>
+    </div>
+
+    <button type="submit" class="btn btn-primary w-full mt-4">Continue to Payment</button>
+</form>

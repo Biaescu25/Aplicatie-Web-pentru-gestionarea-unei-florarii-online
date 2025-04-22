@@ -300,58 +300,12 @@ def checkout(request):
         return redirect("order_success")  # Redirect to success page for cash on delivery
 
     return render(request, "checkout.html", {
+        'stripe_public_key': settings.STRIPE_PUBLIC_KEY,
         "cart_items": cart_items,
         "subtotal": subtotal,
         "delivery_fee": delivery_fee,
         "total_price": total_price,
     })
-
-@csrf_exempt
-def process_payment(request):
-    if request.method == "POST":
-        token = request.POST.get("stripeToken")  # Get the Stripe token
-        amount = request.session.get("total_price", 0)  # Retrieve total price
-
-        print("Received token:", token)  # Debugging
-        print("Amount:", amount)  # Debugging
-
-        if not token or amount == 0:
-            return JsonResponse({"success": False, "message": "Missing payment token or invalid amount."})
-
-        try:
-            charge = stripe.Charge.create(
-                amount=int(amount * 100),  # Convert to cents
-                currency="ron",
-                description="Order Payment",
-                source=token,
-            )
-
-            # Save Payment Info
-            Payment.objects.create(
-                user=request.user if request.user.is_authenticated else None,
-                amount=amount,
-                transaction_id=charge.id,
-                status="Completed"
-            )
-
-            # Update order payment status
-            Order.objects.filter(user=request.user).latest('created_at').update(payment_status=True)
-
-            return JsonResponse({"success": True, "message": "Payment successful!"})
-
-        except stripe.error.CardError as e:
-            return JsonResponse({"success": False, "message": f"Card error: {str(e)}"})
-        except stripe.error.StripeError as e:
-            return JsonResponse({"success": False, "message": f"Stripe error: {str(e)}"})
-        except Exception as e:
-            return JsonResponse({"success": False, "message": f"Unexpected error: {str(e)}"})
-
-    return JsonResponse({"success": False, "message": "Invalid request"})
-
-def order_success(request):
-    """ Order confirmation page """
-    return render(request, "order_success.html")
-
 
 def product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk)
@@ -400,3 +354,69 @@ def order_detail(request, order_id):
         'order': order,
         'order_items': order_items,
     })
+
+
+def checkout_step_1(request):
+    return render(request, 'checkout_step_1.html')
+
+def checkout_step_2(request):
+    if request.method == 'POST':
+        request.session['checkout_data'] = {
+            'full_name': request.POST.get('full_name'),
+            'email': request.POST.get('email'),
+            'phone_number': request.POST.get('phone_number'),
+            'address': request.POST.get('address'),
+            'city': request.POST.get('city'),
+            'zip_code': request.POST.get('zip_code'),
+            'payment_method': request.POST.get('payment_method'),
+        }
+
+        return render(request, 'checkout_step_2.html', {
+            'stripe_public_key': settings.STRIPE_PUBLIC_KEY
+        })
+
+    return redirect('checkout_step_1')
+
+@csrf_exempt
+def checkout_step_3(request):
+    if request.method == 'POST':
+        token = request.POST.get('stripeToken')
+        amount = request.session.get("total_price", 0)  # Retrieve total price
+
+        print("Received token:", token)  # Debugging
+        print("Amount:", amount)  # Debugging
+
+        if not token or amount == 0:
+            return JsonResponse({"success": False, "message": "Missing payment token or invalid amount."})
+
+        try:
+            charge = stripe.Charge.create(
+                amount=int(amount * 100),  # Convert to cents
+                currency="ron",
+                description="Order Payment",
+                source=token,
+            )
+
+            # Save Payment Info
+            Payment.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                amount=amount,
+                transaction_id=charge.id,
+                status="Completed"
+            )
+
+            # Update order payment status
+            Order.objects.filter(user=request.user).latest('created_at').update(payment_status=True)
+
+            return JsonResponse({"success": True, "message": "Payment successful!"})
+
+        except stripe.error.CardError as e:
+            return JsonResponse({"success": False, "message": f"Card error: {str(e)}"})
+        except stripe.error.StripeError as e:
+            return JsonResponse({"success": False, "message": f"Stripe error: {str(e)}"})
+        except Exception as e:
+            return JsonResponse({"success": False, "message": f"Unexpected error: {str(e)}"})
+
+    return JsonResponse({"success": False, "message": "Invalid request"})
+
+    #return redirect('checkout_step_1')

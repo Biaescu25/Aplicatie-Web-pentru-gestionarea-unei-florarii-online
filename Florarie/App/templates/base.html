@@ -51,5 +51,40 @@
     {% endblock %}
     
 </body>
+<meta name="stripe-key" content="{{ stripe_public_key }}">
+
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    const stripe = Stripe("pk_test_51R8NtNRsvYugeMjUdh0qycRIsQ6qcSW2dfu2eZQiPpJ4Jf4k0xZf6AWkIkg1aNxnlC8mVDFlu9LribT35lEW2oIw00uXLxKHes");
+    let card = null;
+
+    document.body.addEventListener('htmx:afterSwap', function (evt) {
+        const target = evt.detail.target;
+
+        if (target.querySelector('#card-element') && stripe) {
+            const elements = stripe.elements();
+            card = elements.create("card");
+            card.mount("#card-element");
+
+            const form = document.querySelector("#payment-form");
+            form.addEventListener("submit", function (e) {
+                e.preventDefault();
+
+                stripe.createToken(card).then(function (result) {
+                    if (result.error) {
+                        document.getElementById("card-errors").textContent = result.error.message;
+                    } else {
+                        const hiddenInput = document.createElement("input");
+                        hiddenInput.setAttribute("type", "hidden");
+                        hiddenInput.setAttribute("name", "stripeToken");
+                        hiddenInput.setAttribute("value", result.token.id);
+                        form.appendChild(hiddenInput);
+                        form.submit();
+                    }
+                });
+            });
+        }
+    });
+</script>
 
 
