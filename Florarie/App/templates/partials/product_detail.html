@@ -12,13 +12,20 @@
             <p class="text-gray-700 text-lg leading-relaxed">{{ product.description }}</p>
             <p class="text-3xl font-bold text-primary">{{ product.price }} Lei</p>
 
-            <form method="POST" action="{% url 'add_to_cart' product.id %}" class="mt-4">
-                {% csrf_token %}
-                <div class="flex items-center gap-4">
-                    <!-- <input type="number" name="quantity" value="1" min="1" class="input input-bordered w-24"> -->
+            <div id="add-to-cart-container-{{ product.id }}">
+                {% if product.id not in cart_product_ids %}
+                <form id="add-to-cart-form-{{ product.id }}" 
+                      hx-post="{% url 'add_to_cart' product.id %}" 
+                      class="mt-4">
+                    {% csrf_token %}
                     <button type="submit" class="btn btn-primary w-32">Add to Cart</button>
-                </div>
-            </form>
+                </form>
+                {% else %}
+                <a href="/cart/" id="cart-btn" class="btn btn-success mt-2">
+                    View in Cart
+                </a>
+                {% endif %}
+            </div>
         </div>
     </div>
 
@@ -36,5 +43,42 @@
     </div>
 
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('add-to-cart-form-{{ product.id }}');
+        if (form) {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const container = document.getElementById(`add-to-cart-container-{{ product.id }}`);
+                
+                // Immediately show "Already Added" div
+                container.innerHTML = `<a href="/cart/" id="cart-btn" class="btn btn-success mt-2">
+                        View in Cart
+                    </a>`;
+
+                const formData = new FormData(form);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        console.error('Failed to add to cart');
+                        // Optionally revert the UI if the request fails
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Optionally revert the UI if an error occurs
+                });
+            });
+        }
+    });
+</script>
 
 {% endblock %}

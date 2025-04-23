@@ -1,5 +1,5 @@
 <!-- checkout/checkout_step_2.html -->
-<form id="payment-form" method="post" hx-post="{% url 'checkout_step_2' %}" hx-target="#checkout-section" hx-swap="outerHTML">
+<form id="payment-form" method="post" >
     {% csrf_token %}
 
     <h2 class="text-xl font-bold mb-4">Step 2: Payment</h2>
@@ -9,3 +9,5 @@
 
     <button type="submit" class="btn btn-primary w-full mt-4">Pay Now</button>
 </form>
+
+<!-- hx-post="{% url 'checkout_step_3' %}" hx-target="#checkout-section" hx-swap="innerHTML" -->

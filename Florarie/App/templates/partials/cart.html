@@ -12,15 +12,6 @@
 
 <div class="container mx-auto px-4 py-8 bg-white">
 
-    <!-- {% if messages %}
-    <div class="alert alert-success alert-dismissible fade show custom-alert" role="alert">
-        {% for message in messages %}
-            {{ message }}
-        {% endfor %}
-        <button type="button" class="btn-close custom-close-button" data-dismiss="alert" aria-label="Close">x</button>
-    </div>
-    {% endif %} -->
-
     {% if cart_items %}
     <div class="container mt-5 max-w-3xl mx-auto">
         {% for cart_item in cart_items %}
@@ -30,9 +21,6 @@
             </div>
         </div>
         {% endfor %}
-        <!-- <div id="total-price" class="card shadow-lg">
-            <p class="mt-3 pr-3 text-right">Total Price: {% include 'partials/total_price.html' with total_price=total_price %}</p>
-        </div> -->
         <!-- Total Price Section -->
         <div id="total-price-container" class="card shadow-lg p-4 mt-4 text-right">
             <p class="text-lg font-semibold">Total Price: <span id="total-price">{{ total_price }}</span> LEI</p>

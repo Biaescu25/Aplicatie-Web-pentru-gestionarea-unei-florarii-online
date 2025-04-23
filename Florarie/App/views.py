@@ -19,8 +19,8 @@ from django.views.decorators.csrf import csrf_exempt
 
 def home(request):
     products = Product.objects.all()
-    return render(request, "home.html", {'products': products})
-
+    cart_product_ids = get_cart_items(request).values_list('product_id', flat=True)
+    return render(request, "home.html", {'products': products, 'cart_product_ids': cart_product_ids})
 
 def cart_view(request):
     if request.user.is_authenticated:
@@ -69,7 +69,14 @@ def add_to_cart(request, product_id):
         cart_item.quantity += 1
         cart_item.save()
 
-    return redirect('cart')
+    # Check if the request is from HTMX
+    if request.headers.get("HX-Request"):
+        cart_count = get_cart_items(request).count()
+        html = render_to_string("partials/cart_count.html", {"cart_count": cart_count})
+        return HttpResponse(html)
+    
+
+    return redirect("cart")
 
 def remove_from_cart(request, product_id):
     cart_item = CartItem.objects.filter(product_id=product_id).first()
@@ -92,7 +99,7 @@ def remove_from_cart(request, product_id):
 
         # If cart is not empty, update both cart items and total price
         total_price_html = render_to_string("partials/total_price.html", {"total_price": total_price}, request=request)
-
+    
         response = HttpResponse("")
         response["HX-Trigger"] = "updateTotalPrice"  # Trigger the total price update
         return response
@@ -158,15 +165,16 @@ def products_by_category(request, category):
     else:
         products = Product.objects.filter(category=category, price__gte=min_price, price__lte=max_price).order_by('price')
     
+    cart_product_ids = get_cart_items(request).values_list('product_id', flat=True)
     context = {
         'products': products,
         'category': category,
         'sort_order': sort_order,
         'min_price': min_price,
-        'max_price': max_price
+        'max_price': max_price,
+        'cart_product_ids': cart_product_ids
     }
     return render(request, "products_by_category.html", context)
-
 
 def get_total_price(request):
     total_price = sum(item.total_price() for item in CartItem.objects.filter(user=request.user))
@@ -251,6 +259,54 @@ def user_logout(request):
     logout(request)
     return redirect("home")  # Redirect to homepage after logout
 
+def product_detail(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    related_products = Product.objects.filter(category=product.category).exclude(pk=pk)[:10]
+    cart_product_ids = get_cart_items(request).values_list('product_id', flat=True)
+
+    context = {
+        'product': product,
+        'related_products': related_products,
+        'cart_product_ids': cart_product_ids
+    }
+    return render(request, 'product_detail.html', context)
+
+@login_required
+def profile(request):
+    #form = UserForm(instance=request.user)
+    user = request.user
+    if request.method == 'POST':
+        form = UserForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')  # or show a success message
+    else:
+        form = UserForm(instance=user)
+
+    return render(request, 'profile.html', {'form': form})
+
+@login_required
+def order_history(request):
+    orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    paginator = Paginator(orders, 5)
+    page_number = request.GET.get('page')
+    page_orders = paginator.get_page(page_number)
+
+    if request.htmx:
+        html = render_to_string('partials/order_history.html', {'orders': page_orders}, request=request)
+        return HttpResponse(html)
+
+    return redirect('profile')
+
+@login_required
+def order_detail(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    order_items = order.items.select_related('product')  
+
+    return render(request, 'order_detail.html', {
+        'order': order,
+        'order_items': order_items,
+    })
 
 
 stripe.api_key = settings.STRIPE_SECRET_KEY  # Set Stripe API key
@@ -307,57 +363,15 @@ def checkout(request):
         "total_price": total_price,
     })
 
-def product_detail(request, pk):
-    product = get_object_or_404(Product, pk=pk)
-    related_products = Product.objects.filter(category=product.category).exclude(pk=pk)[:10]
-
-    context = {
-        'product': product,
-        'related_products': related_products
-    }
-    return render(request, 'product_detail.html', context)
-
-
-@login_required
-def profile(request):
-    #form = UserForm(instance=request.user)
-    user = request.user
-    if request.method == 'POST':
-        form = UserForm(request.POST, instance=user)
-        if form.is_valid():
-            form.save()
-            return redirect('profile')  # or show a success message
-    else:
-        form = UserForm(instance=user)
-
-    return render(request, 'profile.html', {'form': form})
-
-@login_required
-def order_history(request):
-    orders = Order.objects.filter(user=request.user).order_by('-created_at')
-    paginator = Paginator(orders, 5)
-    page_number = request.GET.get('page')
-    page_orders = paginator.get_page(page_number)
-
-    if request.htmx:
-        html = render_to_string('partials/order_history.html', {'orders': page_orders}, request=request)
-        return HttpResponse(html)
-
-    return redirect('profile')
-
-@login_required
-def order_detail(request, order_id):
-    order = get_object_or_404(Order, id=order_id, user=request.user)
-    order_items = order.items.select_related('product')  
-
-    return render(request, 'order_detail.html', {
-        'order': order,
-        'order_items': order_items,
-    })
-
 
 def checkout_step_1(request):
     return render(request, 'checkout_step_1.html')
+
+
+def get_cart_items(request):
+    user = request.user if request.user.is_authenticated else None
+    session_id = request.session.session_key or request.session.create()
+    return CartItem.objects.filter(user=user) if user else CartItem.objects.filter(session_id=session_id)
 
 def checkout_step_2(request):
     if request.method == 'POST':
@@ -371,9 +385,45 @@ def checkout_step_2(request):
             'payment_method': request.POST.get('payment_method'),
         }
 
+        # Calculate total here just like in `checkout()`
+        user = request.user if request.user.is_authenticated else None
+        session_id = request.session.session_key or request.session.create()
+
+        cart_items = get_cart_items(request)
+        subtotal = sum(item.total_price() for item in cart_items)
+        delivery_fee = 10
+        total_price = subtotal + delivery_fee
+
+        # Save total price for payment
+        request.session["total_price"] = float(total_price)
+
+        # Create the Order
+        order = Order.objects.create(
+            user=user,
+            session_id=None if user else session_id,
+            full_name=request.POST.get("full_name"),
+            email=request.POST.get("email"),
+            address=request.POST.get("address"),
+            phone_number=request.POST.get("phone_number"),
+            city=request.POST.get("city"),
+            zip_code=request.POST.get("zip_code"),
+            total_price=subtotal,
+            delivery_fee=delivery_fee,
+            payment_method=request.POST.get("payment_method"),
+            payment_status=False  # Will update after payment
+        )
+
+        # Save order ID in session for later update
+        request.session["order_id"] = order.id
+
+        # Save CartItems to OrderItems
+        for item in cart_items:
+            OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, price=item.product.price)
+
         return render(request, 'checkout_step_2.html', {
-            'stripe_public_key': settings.STRIPE_PUBLIC_KEY
+            'stripe_public_key': settings.STRIPE_PUBLIC_KEY,
         })
+
 
     return redirect('checkout_step_1')
 
@@ -381,7 +431,7 @@ def checkout_step_2(request):
 def checkout_step_3(request):
     if request.method == 'POST':
         token = request.POST.get('stripeToken')
-        amount = request.session.get("total_price", 0)  # Retrieve total price
+        amount = float(request.session.get("total_price", 0))
 
         print("Received token:", token)  # Debugging
         print("Amount:", amount)  # Debugging
@@ -406,10 +456,29 @@ def checkout_step_3(request):
             )
 
             # Update order payment status
-            Order.objects.filter(user=request.user).latest('created_at').update(payment_status=True)
+            try:
+                order_id = request.session.get("order_id")
+                order = Order.objects.get(id=order_id)
+                order.payment_status = True
+                order.save()
 
-            return JsonResponse({"success": True, "message": "Payment successful!"})
+                # Clear the cart after successful payment
+                user = request.user if request.user.is_authenticated else None
+                session_id = request.session.session_key
+                cart_items = CartItem.objects.filter(user=user) if user else CartItem.objects.filter(session_id=session_id)
+                cart_items.delete()
 
+            except Order.DoesNotExist:
+                return JsonResponse({"success": False, "message": "No matching order found."})
+
+
+            #return JsonResponse({"success": True, "message": "Payment successful!"})
+            if request.headers.get("HX-Request"):
+                return render(request, 'checkout_step_3.html')
+            else:
+                return redirect("order_success")  # fallback if not HTMX
+
+        
         except stripe.error.CardError as e:
             return JsonResponse({"success": False, "message": f"Card error: {str(e)}"})
         except stripe.error.StripeError as e:

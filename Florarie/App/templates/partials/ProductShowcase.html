@@ -3,7 +3,7 @@
         <!-- Example Product Card -->
         {% for product in products %}
         <div class="bg-white overflow-hidden hover:shadow-lg rounded-lg h-full relative">
-            <a href="{% url 'product_detail' pk=product.id %}" >
+            <a href="{% url 'product_detail' pk=product.id %}">
                 {% if product.is_new %}
                 <div class="absolute top-0 left-0 bg-pink-400 text-white text-xs font-bold px-2 py-1 rounded-br-lg">
                     New
@@ -14,11 +14,61 @@
             <div class="p-4 h-1/3 flex flex-col justify-end">
                 <h3 class="text-xl font-bold text-gray-800">{{ product.name }}</h3>
                 <p class="text-gray-600 mt-2">{{ product.description }}</p>
-                <a href="{% url 'add_to_cart' product_id=product.id %}" class="mt-4 btn btn-primary w-1/3"
-                    >{{ product.price }}</a>
+                <div id="add-to-cart-container-{{ product.id }}">
+                    {% if product.id not in cart_product_ids %}
+                    <form id="add-to-cart-form-{{ product.id }}" 
+                          hx-post="{% url 'add_to_cart' product.id %}" 
+                          class="mt-4">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">{{ product.price }}</button>
+                    </form>
+                    {% else %}
+                    <a href="/cart/" id="cart-btn" class="btn btn-success mt-2">
+                        View in Cart
+                    </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
         {% endfor %}
         <!-- Repeat Product Cards as Needed -->
     </div>
 </section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const forms = document.querySelectorAll('[id^="add-to-cart-form-"]');
+        forms.forEach(form => {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const productId = form.id.split('-').pop();
+                const container = document.getElementById(`add-to-cart-container-${productId}`);
+                
+                // Immediately show "Already Added" div
+                container.innerHTML = `<a href="/cart/" id="cart-btn" class="btn btn-success mt-2">
+                        View in Cart
+                    </a>`;
+
+                const formData = new FormData(form);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        console.error('Failed to add to cart');
+                        // Optionally revert the UI if the request fails
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Optionally revert the UI if an error occurs
+                });
+            });
+        });
+    });
+</script>
