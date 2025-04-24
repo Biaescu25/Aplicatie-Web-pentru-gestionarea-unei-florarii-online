@@ -512,7 +512,7 @@ def create_custom_bouquet(request):
         # Retrieve selected shape, wrapping, greenery
         shape = BouquetShape.objects.get(id=data.get("shape"))
         wrapping = WrappingPaper.objects.get(id=data.get("wrapping"))
-        greenery = Greenery.objects.get(id=data.get("greenery"))
+        greenery = Greenery.objects.get(id=data.get("greens"))
 
         # Initialize price and selection summary
         total_price = shape.price + wrapping.price + greenery.price

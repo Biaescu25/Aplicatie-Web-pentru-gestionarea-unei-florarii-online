@@ -5,7 +5,14 @@
     <div class="container mx-auto px-4">
         <h1 class="text-4xl font-bold mb-8 text-center">Creează-ți propriul buchet</h1>
 
-        <form id="bouquet-form" hx-post="{% url 'create_custom_bouquet' %}" hx-target="#summary" hx-swap="innerHTML">
+        <form id="bouquet-form" 
+                hx-post="{% url 'create_custom_bouquet' %}" 
+                hx-target="#summary" 
+                hx-swap="innerHTML"
+                hx-trigger="change, keyup delay:300ms from:input, select">
+                
+            {% csrf_token %}
+    
             <!-- SHAPE SELECTION -->
             <div class="mb-8">
                 <h2 class="text-2xl font-semibold mb-4">Alege forma buchetului</h2>
