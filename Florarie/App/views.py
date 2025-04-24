@@ -492,7 +492,18 @@ def checkout_step_3(request):
     #return redirect('checkout_step_1')
 
 def custom_bouquet_builder(request):
-    return render(request, 'custom_bouquet_builder.html')
+    shape = BouquetShape.objects.all()
+    wrapping = WrappingPaper.objects.all()
+    greenery = Greenery.objects.all()
+    flower = Flower.objects.all()
+       
+    return render(request, "custom_bouquet_builder.html", {
+            "shapes": shape,
+            "wrappings": wrapping,
+            "greens": greenery,
+            "flowers": flower,
+        })
+
 
 def create_custom_bouquet(request):
     if request.method == "POST" and request.headers.get("HX-Request"):

@@ -66,9 +66,10 @@
             </div>
 
             <!-- SUMMARY & SUBMIT -->
-            <div id="summary" class="p-4 bg-gray-100 rounded shadow-md">
-                <h3 class="text-xl font-bold mb-2">Sumar buchet</h3>
-                <p class="text-sm text-gray-600">Componentele selectate și prețul total vor apărea aici după trimiterea formularului.</p>
+            <!-- Live-updating summary -->
+            <div id="summary" class="mt-6">
+                <!-- HTMX will load the summary here -->
+                <div class="text-gray-500 text-sm text-center">Selectează opțiuni pentru a vedea sumarul buchetului</div>
             </div>
 
             <button type="submit" class="btn btn-primary mt-4">Calculează totalul</button>
