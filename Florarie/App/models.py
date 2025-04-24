@@ -80,3 +80,38 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Payment {self.transaction_id or 'Cash'} - {self.status}"
+    
+    
+#Custom bouquet models
+class BouquetShape(models.Model):
+    name = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='bouquet_shapes/')
+
+class Flower(models.Model):
+    name = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='flowers/')
+    price = models.DecimalField(max_digits=6, decimal_places=2)
+
+class Greenery(models.Model):
+    name = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='greens/')
+    price = models.DecimalField(max_digits=6, decimal_places=2)
+
+class WrappingPaper(models.Model):
+    name = models.CharField(max_length=100)
+    image = models.ImageField(upload_to='wrappings/')
+    price = models.DecimalField(max_digits=6, decimal_places=2)
+
+class CustomBouquet(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    shape = models.ForeignKey(BouquetShape, on_delete=models.SET_NULL, null=True)
+    flowers = models.ManyToManyField(Flower, through="BouquetFlower")
+    greenery = models.ManyToManyField(Greenery, blank=True)
+    wrapping = models.ForeignKey(WrappingPaper, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    confirmed = models.BooleanField(default=False)
+
+class BouquetFlower(models.Model):
+    bouquet = models.ForeignKey(CustomBouquet, on_delete=models.CASCADE)
+    flower = models.ForeignKey(Flower, on_delete=models.CASCADE)
+    quantity = models.IntegerField()

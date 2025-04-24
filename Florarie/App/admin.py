@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 
-from .models import Product, CartItem, Order
+from .models import Product, CartItem, Order, Flower, BouquetShape, Greenery, WrappingPaper, CustomBouquet
 
 class ProductAdmin(admin.ModelAdmin):
     list_display = ('name', 'price', 'image_preview')
@@ -19,4 +19,10 @@ class OrderAdmin(admin.ModelAdmin):
 admin.site.register(Product, ProductAdmin)
 admin.site.register(CartItem)
 admin.site.register(Order, OrderAdmin)
+admin.site.register(Flower)
+admin.site.register(BouquetShape)
+admin.site.register(Greenery)
+admin.site.register(WrappingPaper)
+admin.site.register(CustomBouquet)   
+
 # admin.site.register(User)

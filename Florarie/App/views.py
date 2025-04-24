@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from .models import Product, CartItem, Order, Payment, OrderItem
+from .models import BouquetShape, Flower, Greenery, WrappingPaper
 from django.contrib.auth.decorators import login_required
 from django.template.loader import render_to_string
 from django.http import HttpResponse
@@ -489,3 +490,42 @@ def checkout_step_3(request):
     return JsonResponse({"success": False, "message": "Invalid request"})
 
     #return redirect('checkout_step_1')
+
+def custom_bouquet_builder(request):
+    return render(request, 'custom_bouquet_builder.html')
+
+def create_custom_bouquet(request):
+    if request.method == "POST" and request.headers.get("HX-Request"):
+        data = request.POST
+
+        # Retrieve selected shape, wrapping, greenery
+        shape = BouquetShape.objects.get(id=data.get("shape"))
+        wrapping = WrappingPaper.objects.get(id=data.get("wrapping"))
+        greenery = Greenery.objects.get(id=data.get("greenery"))
+
+        # Initialize price and selection summary
+        total_price = shape.price + wrapping.price + greenery.price
+        flower_summary = []
+
+        for flower in Flower.objects.all():
+            qty_key = f"flower_{flower.id}"
+            quantity = int(data.get(qty_key, 0))
+            if quantity > 0:
+                subtotal = flower.price * quantity
+                total_price += subtotal
+                flower_summary.append({
+                    "name": flower.name,
+                    "quantity": quantity,
+                    "subtotal": subtotal
+                })
+
+        # Render a partial with the summary
+        return render(request, "partials/custom_bouquet_summary.html", {
+            "shape": shape,
+            "wrapping": wrapping,
+            "greenery": greenery,
+            "flower_summary": flower_summary,
+            "total_price": total_price
+        })
+
+    return JsonResponse({"error": "Invalid request"}, status=400)

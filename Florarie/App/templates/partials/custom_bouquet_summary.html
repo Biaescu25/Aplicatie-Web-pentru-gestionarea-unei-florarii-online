@@ -1,0 +1,23 @@
+<div class="p-4 bg-white shadow rounded-lg space-y-2">
+    <h3 class="text-lg font-bold">Summary</h3>
+  
+    <ul class="text-sm space-y-1">
+      <li>Shape: {{ shape.name }} - {{ shape.price }} Lei</li>
+      <li>Wrapping: {{ wrapping.name }} - {{ wrapping.price }} Lei</li>
+      <li>Greenery: {{ greenery.name }} - {{ greenery.price }} Lei</li>
+    </ul>
+  
+    <h4 class="mt-2 font-semibold">Flowers:</h4>
+    <ul class="text-sm">
+      {% for flower in flower_summary %}
+        <li>{{ flower.name }} × {{ flower.quantity }} = {{ flower.subtotal }} Lei</li>
+      {% empty %}
+        <li>No flowers selected</li>
+      {% endfor %}
+    </ul>
+  
+    <div class="border-t pt-2 mt-2 font-bold text-right">
+      Total: {{ total_price }} Lei
+    </div>
+  </div>
+  

@@ -29,7 +29,7 @@
             <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700">
                 <a href="{% url 'products_by_category' category='cadouri' %}" class="hover:text-gray-900">Cadouri</a>
                 <a href="#" class="hover:text-gray-900">Despre noi</a>
-                <a href="#" class="hover:text-gray-900">Make your own</a>
+                <a href="{% url 'custom_bouquet_builder' %}" class="hover:text-gray-900">Make your own</a>
             </div>
             <div class="flex items-center space-x-4 ml-2">
                 <!-- <a href="/cart/" id="cart-btn" class="relative" hx-get="/cart/" hx-target="#cart-items" hx-trigger="click" hx-swap="innerHTML"> -->

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="py-12 bg-white mt-32">
+    <div class="container mx-auto px-4">
+        <h1 class="text-4xl font-bold mb-8 text-center">Creează-ți propriul buchet</h1>
+
+        <form id="bouquet-form" hx-post="{% url 'create_custom_bouquet' %}" hx-target="#summary" hx-swap="innerHTML">
+            <!-- SHAPE SELECTION -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Alege forma buchetului</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {% for shape in shapes %}
+                        <label class="cursor-pointer border rounded-lg p-2 hover:shadow-md">
+                            <input type="radio" name="shape" value="{{ shape.id }}" class="hidden" required>
+                            <img src="{{ shape.image.url }}" alt="{{ shape.name }}" class="w-full h-32 object-cover rounded">
+                            <p class="text-center mt-2">{{ shape.name }}</p>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- FLOWER SELECTION -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Alege florile</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {% for flower in flowers %}
+                        <div class="border rounded-lg p-2">
+                            <img src="{{ flower.image.url }}" alt="{{ flower.name }}" class="w-full h-32 object-cover rounded">
+                            <div class="mt-2 text-center">
+                                <p>{{ flower.name }}</p>
+                                <p class="text-sm text-gray-600">{{ flower.price }} LEI</p>
+                                <input type="number" name="flower_{{ flower.id }}" min="0" max="10" value="0" class="input input-sm mt-1 w-full">
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- GREENERY SELECTION -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Adaugă verdeață</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {% for green in greens %}
+                        <label class="cursor-pointer border rounded-lg p-2 hover:shadow-md block">
+                            <input type="checkbox" name="greens" value="{{ green.id }}" class="mr-2">
+                            <img src="{{ green.image.url }}" alt="{{ green.name }}" class="w-full h-24 object-cover rounded">
+                            <p class="text-center mt-1">{{ green.name }} ({{ green.price }} LEI)</p>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- WRAPPING PAPER -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Alege ambalajul</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {% for wrap in wrappings %}
+                        <label class="cursor-pointer border rounded-lg p-2 hover:shadow-md">
+                            <input type="radio" name="wrapping" value="{{ wrap.id }}" class="hidden" required>
+                            <img src="{{ wrap.image.url }}" alt="{{ wrap.name }}" class="w-full h-24 object-cover rounded">
+                            <p class="text-center mt-1">{{ wrap.name }} ({{ wrap.price }} LEI)</p>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- SUMMARY & SUBMIT -->
+            <div id="summary" class="p-4 bg-gray-100 rounded shadow-md">
+                <h3 class="text-xl font-bold mb-2">Sumar buchet</h3>
+                <p class="text-sm text-gray-600">Componentele selectate și prețul total vor apărea aici după trimiterea formularului.</p>
+            </div>
+
+            <button type="submit" class="btn btn-primary mt-4">Calculează totalul</button>
+        </form>
+    </div>
+</section>
+{% endblock %}
