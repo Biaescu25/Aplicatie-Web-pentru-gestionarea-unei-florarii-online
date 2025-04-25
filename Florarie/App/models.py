@@ -86,21 +86,29 @@ class Payment(models.Model):
 class BouquetShape(models.Model):
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='bouquet_shapes/')
-
+    def __str__(self):
+        return self.name
+    
 class Flower(models.Model):
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='flowers/')
     price = models.DecimalField(max_digits=6, decimal_places=2)
+    def __str__(self):
+        return self.name
 
 class Greenery(models.Model):
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='greens/')
     price = models.DecimalField(max_digits=6, decimal_places=2)
+    def __str__(self):
+        return self.name
 
 class WrappingPaper(models.Model):
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='wrappings/')
     price = models.DecimalField(max_digits=6, decimal_places=2)
+    def __str__(self):
+        return self.name
 
 class CustomBouquet(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
@@ -110,8 +118,12 @@ class CustomBouquet(models.Model):
     wrapping = models.ForeignKey(WrappingPaper, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     confirmed = models.BooleanField(default=False)
+    def __str__(self):
+        return self.name
 
 class BouquetFlower(models.Model):
     bouquet = models.ForeignKey(CustomBouquet, on_delete=models.CASCADE)
     flower = models.ForeignKey(Flower, on_delete=models.CASCADE)
     quantity = models.IntegerField()
+    def __str__(self):
+        return self.name

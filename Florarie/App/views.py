@@ -504,39 +504,45 @@ def custom_bouquet_builder(request):
             "flowers": flower,
         })
 
-
 def create_custom_bouquet(request):
     if request.method == "POST" and request.headers.get("HX-Request"):
         data = request.POST
 
-        # Retrieve selected shape, wrapping, greenery
-        shape = BouquetShape.objects.get(id=data.get("shape"))
-        wrapping = WrappingPaper.objects.get(id=data.get("wrapping"))
-        greenery = Greenery.objects.get(id=data.get("greens"))
+        try:
+            shape = BouquetShape.objects.get(id=data.get("shape"))
+            wrapping = WrappingPaper.objects.get(id=data.get("wrapping"))
+        except (BouquetShape.DoesNotExist, WrappingPaper.DoesNotExist):
+            return JsonResponse({"error": "Invalid shape or wrapping selected."}, status=400)
 
-        # Initialize price and selection summary
-        total_price = shape.price + wrapping.price + greenery.price
+        # Greenery (can be multiple)
+        greenery_ids = data.getlist("greens")
+        greenery_list = Greenery.objects.filter(id__in=greenery_ids)
+        greenery_price = sum(g.price for g in greenery_list)
+
+        # Flower selection
         flower_summary = []
-
+        total_flower_price = 0
         for flower in Flower.objects.all():
-            qty_key = f"flower_{flower.id}"
-            quantity = int(data.get(qty_key, 0))
-            if quantity > 0:
-                subtotal = flower.price * quantity
-                total_price += subtotal
+            qty = int(data.get(f"flower_{flower.id}", 0))
+            if qty > 0:
+                subtotal = flower.price * qty
                 flower_summary.append({
                     "name": flower.name,
-                    "quantity": quantity,
-                    "subtotal": subtotal
+                    "quantity": qty,
+                    "subtotal": subtotal,
                 })
+                total_flower_price += subtotal
 
-        # Render a partial with the summary
-        return render(request, "partials/custom_bouquet_summary.html", {
+        print(f"Shape: {shape}, Fields: {shape.__dict__}")
+
+        total_price = wrapping.price + greenery_price + total_flower_price
+
+        return render(request, "custom_bouquet_summary.html", {
             "shape": shape,
             "wrapping": wrapping,
-            "greenery": greenery,
+            "greens": greenery_list,
             "flower_summary": flower_summary,
-            "total_price": total_price
+            "total_price": total_price,
         })
 
     return JsonResponse({"error": "Invalid request"}, status=400)
