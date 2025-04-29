@@ -15,10 +15,11 @@
     {% if cart_items %}
     <div class="container mt-5 max-w-3xl mx-auto">
         {% for cart_item in cart_items %}
-        <div id="cart-item-{{ cart_item.id }}" class="card mb-3 shadow-lg">
-            <div hx-target="this" hx-swap="innerHTML">
-                {% include 'partials/cart_item.html' with cart_item=cart_item %}
-            </div>
+
+        <div id="cart-item-{{ cart_item.id }}" >
+
+            {% include 'partials/cart_item.html' with cart_item=cart_item %}
+
         </div>
         {% endfor %}
         <!-- Total Price Section -->

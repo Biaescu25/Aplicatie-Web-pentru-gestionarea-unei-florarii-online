@@ -2,34 +2,36 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <!-- Example Product Card -->
         {% for product in products %}
-        <div class="bg-white overflow-hidden hover:shadow-lg rounded-lg h-full relative">
-            <a href="{% url 'product_detail' pk=product.id %}">
-                {% if product.is_new %}
-                <div class="absolute top-0 left-0 bg-pink-400 text-white text-xs font-bold px-2 py-1 rounded-br-lg">
-                    New
-                </div>
-                {% endif %}
-                <figure class="h-2/3"><img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover"></figure>
-            </a>
-            <div class="p-4 h-1/3 flex flex-col justify-end">
-                <h3 class="text-xl font-bold text-gray-800">{{ product.name }}</h3>
-                <p class="text-gray-600 mt-2">{{ product.description }}</p>
-                <div id="add-to-cart-container-{{ product.id }}">
-                    {% if product.id not in cart_product_ids %}
-                    <form id="add-to-cart-form-{{ product.id }}" 
-                          hx-post="{% url 'add_to_cart' product.id %}" 
-                          class="mt-4">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-primary">{{ product.price }}</button>
-                    </form>
-                    {% else %}
-                    <a href="/cart/" id="cart-btn" class="btn btn-success mt-2">
-                        View in Cart
-                    </a>
+            {% if not product.is_custom %}
+            <div class="bg-white overflow-hidden hover:shadow-lg rounded-lg h-full relative">
+                <a href="{% url 'product_detail' pk=product.id %}">
+                    {% if product.is_new %}
+                    <div class="absolute top-0 left-0 bg-pink-400 text-white text-xs font-bold px-2 py-1 rounded-br-lg">
+                        New
+                    </div>
                     {% endif %}
+                    <figure class="h-2/3"><img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover"></figure>
+                </a>
+                <div class="p-4 h-1/3 flex flex-col justify-end">
+                    <h3 class="text-xl font-bold text-gray-800">{{ product.name }}</h3>
+                    <p class="text-gray-600 mt-2">{{ product.description }}</p>
+                    <div id="add-to-cart-container-{{ product.id }}">
+                        {% if product.id not in cart_product_ids %}
+                        <form id="add-to-cart-form-{{ product.id }}" 
+                            hx-post="{% url 'add_to_cart' product.id %}" 
+                            class="mt-4">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">{{ product.price }}</button>
+                        </form>
+                        {% else %}
+                        <a href="/cart/" id="cart-btn" class="btn btn-success mt-2">
+                            View in Cart
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-        </div>
+            {% endif %}
         {% endfor %}
         <!-- Repeat Product Cards as Needed -->
     </div>

@@ -511,7 +511,10 @@ def create_custom_bouquet(request):
         try:
             shape = BouquetShape.objects.get(id=data.get("shape"))
         except BouquetShape.DoesNotExist:
-            return JsonResponse({"error": "Invalid shape selected."}, status=400)
+            # Render the summary
+            return render(request, "custom_bouquet_summary.html", {
+                "error": "Please select the shape ."
+            })
 
         # Wrapping
         wrapping_ids = data.getlist("wrapping")
@@ -526,6 +529,9 @@ def create_custom_bouquet(request):
         # Flower selection
         flower_summary = []
         total_flower_price = 0
+        qty = 0
+        numflowers = 0
+
         for flower in Flower.objects.all():
             qty = int(data.get(f"flower_{flower.id}", 0))
             if qty > 0:
@@ -536,6 +542,14 @@ def create_custom_bouquet(request):
                     "subtotal": subtotal,
                 })
                 total_flower_price += subtotal
+                numflowers += 1
+
+        if numflowers == 0:
+            # Render the summary
+            return render(request, "custom_bouquet_summary.html", {
+                "error": "Please select at least one flower."
+            })
+        
 
         # Calculate total price
         total_price = wrapping_price + greenery_price + total_flower_price
@@ -554,8 +568,6 @@ def create_custom_bouquet(request):
 def save_custom_bouquet(request):
     if request.method == "POST":
         data = request.POST
-
-        #print(data)  # Debugging
 
         try:
             shape = BouquetShape.objects.get(id=data.get("shape"))
@@ -580,8 +592,6 @@ def save_custom_bouquet(request):
         # Calculate total price
         total_price = float(data.get("total_price", 0))
 
-        print("Total price:", total_price)  # Debugging
-
         # Save the bouquet
         custom_bouquet = CustomBouquet.objects.create(
             user=request.user if request.user.is_authenticated else None,
@@ -604,7 +614,7 @@ def save_custom_bouquet(request):
             price=total_price,
             is_custom=True,
             custom_bouquet=custom_bouquet,
-            image="static\Logo.png"
+            image="STATICFILES_DIRS/Logo.png"
         )
 
         # Add to cart
@@ -617,7 +627,10 @@ def save_custom_bouquet(request):
         cart_item.quantity = 1
         cart_item.save()
 
-        return JsonResponse({"success": True, "redirect": "/cart/"})
+        # Redirect to the cart page
+        response = HttpResponse()
+        response["HX-Redirect"] = "/cart/"
+        return response
 
     return JsonResponse({"error": "Invalid request"}, status=400)
 

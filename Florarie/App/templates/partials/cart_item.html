@@ -1,9 +1,15 @@
-<div class="card-body">
+<div id="cart-item-{{ cart_item.id }}" class="card-body mb-3 shadow-lg"" hx-target="this" hx-swap="innerHTML">
     <div class="flex justify-between items-center">
         <div class="center">
-            <a href="{% url 'product_detail' pk=cart_item.product.id %}" >
+            {% if not cart_item.product.is_custom %}
+            <a href="{% url 'product_detail' pk=cart_item.product.id %}">
+            {% endif %}
+
                 <img src="{{ cart_item.product.image.url }}" class="img-fluid rounded" alt="{{ cart_item.product.name }}" style="width: 100px; height: 100px; object-fit: cover;">
+
+            {% if not cart_item.product.is_custom %}
             </a>
+            {% endif %}
         </div>
         <div class="center" style="flex: 1; max-width: 200px; text-align: left;">
             <p class="card-text truncate">{{ cart_item.product.name }}</p>
@@ -11,18 +17,18 @@
         <div class="flex items-center space-x-2">
 
             <a href="{% url 'decrement_quantity' product_id=cart_item.product.id %}" 
-            class="btn btn-primary btn-sm center bg-green-600 text-white"
-            hx-get="{% url 'decrement_quantity' product_id=cart_item.product.id %}" 
-               hx-target="#cart-item-{{ cart_item.id }} > div" 
-               hx-swap="innerHTML">-</a>
+               class="btn btn-primary btn-sm center bg-green-600 text-white"
+               hx-get="{% url 'decrement_quantity' product_id=cart_item.product.id %}" 
+               hx-target="#cart-item-{{ cart_item.id }}" 
+               hx-swap="outerHTML">-</a>
 
             <div class="center"><p class="card-text">{{ cart_item.quantity }}</p></div>
 
             <a href="{% url 'increment_quantity' product_id=cart_item.product.id %}" 
-            class="btn btn-primary btn-sm center bg-green-600 text-white"
-            hx-get="{% url 'increment_quantity' product_id=cart_item.product.id %}" 
-               hx-target="#cart-item-{{ cart_item.id }} > div" 
-               hx-swap="innerHTML">+</a>
+               class="btn btn-primary btn-sm center bg-green-600 text-white"
+               hx-get="{% url 'increment_quantity' product_id=cart_item.product.id %}" 
+               hx-target="#cart-item-{{ cart_item.id }}" 
+               hx-swap="outerHTML">+</a>
         </div>
         <div class="center" style="min-width: 120px; text-align: right;">
             <p class="card-text">Subtotal: {{ cart_item.total_price }}</p>
@@ -32,7 +38,7 @@
                class="btn btn-danger btn-sm"
                hx-get="{% url 'remove_from_cart' product_id=cart_item.product.id %}" 
                hx-target="#cart-item-{{ cart_item.id }}" 
-               hx-swap="innerHTML">Remove</a>
+               hx-swap="outerHTML">Remove</a>
         </div>
     </div>
 </div>

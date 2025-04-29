@@ -19,11 +19,15 @@
                 <h2 class="col-span-3 text-xl font-semibold text-secondary">Forma buchetului</h2>
                 <div class="col-span-9 grid grid-cols-3 md:grid-cols-5 gap-2">
                     {% for shape in shapes %}
-                        <label class="cursor-pointer border rounded p-1 hover:shadow transition peer-checked:bg-blue-100">
-                            <input type="radio" name="shape" value="{{ shape.id }}" class="hidden peer" required>
+                    <div class="relative">
+                        <input type="radio" name="shape" value="{{ shape.id }}" id="shape_{{ shape.id }}" class="hidden peer" required>
+                        <label for="shape_{{ shape.id }}" 
+                            class="cursor-pointer border rounded p-1 hover:shadow transition 
+                                    peer-checked:ring-2 peer-checked:ring-primary peer-checked:border-primary block">
                             <img src="{{ shape.image.url }}" alt="{{ shape.name }}" class="w-full h-24 object-cover rounded">
                             <p class="text-center mt-1 text-sm font-medium">{{ shape.name }}</p>
                         </label>
+                    </div>
                     {% endfor %}
                 </div>
             </div>
@@ -53,11 +57,15 @@
                 <h2 class="col-span-3 text-xl font-semibold text-secondary">Verdeață</h2>
                 <div class="col-span-9 grid grid-cols-3 md:grid-cols-5 gap-2">
                     {% for green in greens %}
-                        <label class="cursor-pointer border rounded p-2 hover:shadow transition peer-checked:bg-green-100">
-                            <input type="checkbox" name="greens" value="{{ green.id }}" class="hidden peer">
+                    <div class="relative">
+                        <input type="checkbox" name="greens" value="{{ green.id }}" id="green_{{ green.id }}" class="hidden peer">
+                        <label for="green_{{ green.id }}" 
+                            class="cursor-pointer border rounded p-2 hover:shadow transition block 
+                                    peer-checked:ring-2 peer-checked:ring-success peer-checked:border-success">
                             <img src="{{ green.image.url }}" alt="{{ green.name }}" class="w-full h-20 object-cover rounded">
                             <p class="text-center mt-1 text-sm font-medium">{{ green.name }} ({{ green.price }} LEI)</p>
                         </label>
+                    </div>
                     {% endfor %}
                 </div>
             </div>
@@ -68,11 +76,15 @@
                 <h2 class="col-span-3 text-xl font-semibold text-secondary">Ambalaj</h2>
                 <div class="col-span-9 grid grid-cols-3 md:grid-cols-5 gap-2">
                     {% for wrap in wrappings %}
-                        <label class="cursor-pointer border rounded p-2 hover:shadow transition peer-checked:bg-yellow-100">
-                            <input type="checkbox" name="wrapping" value="{{ wrap.id }}" class="hidden peer">
+                        <div class="relative">
+                            <input type="radio" name="wrapping" value="{{ wrap.id }}" id="wrap_{{ wrap.id }}" class="hidden peer">
+                            <label for="wrap_{{ wrap.id }}" 
+                                class="cursor-pointer border rounded p-2 hover:shadow transition block 
+                                        peer-checked:ring-2 peer-checked:ring-success peer-checked:border-success">
                             <img src="{{ wrap.image.url }}" alt="{{ wrap.name }}" class="w-full h-20 object-cover rounded">
                             <p class="text-center mt-1 text-sm font-medium">{{ wrap.name }} ({{ wrap.price }} LEI)</p>
-                        </label>
+                            </label>
+                        </div>
                     {% endfor %}
                 </div>
             </div>

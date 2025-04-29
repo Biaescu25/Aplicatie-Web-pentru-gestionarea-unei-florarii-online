@@ -1,5 +1,10 @@
 <div class="p-4 bg-white shadow rounded-lg space-y-2">
-  <h3 class="text-lg font-bold">Sumar buchet</h3>
+  <h3 class="text-lg font-bold">Summary</h3>
+
+  {% if error %}
+    <div class="text-red-500 text-sm">{{ error }}</div>
+    
+  {% else %}
 
   <ul class="text-sm space-y-1">
     <li>Formă: {{ shape.name }} - {{ shape.price }} Lei</li>
@@ -35,4 +40,6 @@
     class="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg">
     Salvează buchetul
   </button>
+
+  {% endif %}
 </div>
