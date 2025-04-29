@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from .models import Product, CartItem, Order, Payment, OrderItem
-from .models import BouquetShape, Flower, Greenery, WrappingPaper
+from .models import BouquetShape, Flower, Greenery, WrappingPaper, CustomBouquet, BouquetFlower
 from django.contrib.auth.decorators import login_required
 from django.template.loader import render_to_string
 from django.http import HttpResponse
@@ -510,11 +510,15 @@ def create_custom_bouquet(request):
 
         try:
             shape = BouquetShape.objects.get(id=data.get("shape"))
-            wrapping = WrappingPaper.objects.get(id=data.get("wrapping"))
-        except (BouquetShape.DoesNotExist, WrappingPaper.DoesNotExist):
-            return JsonResponse({"error": "Invalid shape or wrapping selected."}, status=400)
+        except BouquetShape.DoesNotExist:
+            return JsonResponse({"error": "Invalid shape selected."}, status=400)
 
-        # Greenery (can be multiple)
+        # Wrapping
+        wrapping_ids = data.getlist("wrapping")
+        wrapping_list = WrappingPaper.objects.filter(id__in=wrapping_ids)
+        wrapping_price = sum(w.price for w in wrapping_list)
+
+        # Greenery
         greenery_ids = data.getlist("greens")
         greenery_list = Greenery.objects.filter(id__in=greenery_ids)
         greenery_price = sum(g.price for g in greenery_list)
@@ -533,16 +537,88 @@ def create_custom_bouquet(request):
                 })
                 total_flower_price += subtotal
 
-        print(f"Shape: {shape}, Fields: {shape.__dict__}")
+        # Calculate total price
+        total_price = wrapping_price + greenery_price + total_flower_price
 
-        total_price = wrapping.price + greenery_price + total_flower_price
-
+        # Render the summary
         return render(request, "custom_bouquet_summary.html", {
             "shape": shape,
-            "wrapping": wrapping,
+            "wrapping": wrapping_list,
             "greens": greenery_list,
             "flower_summary": flower_summary,
             "total_price": total_price,
         })
+    return JsonResponse({"error": "Invalid request"}, status=400)
+
+@csrf_exempt
+def save_custom_bouquet(request):
+    if request.method == "POST":
+        data = request.POST
+
+        #print(data)  # Debugging
+
+        try:
+            shape = BouquetShape.objects.get(id=data.get("shape"))
+        except BouquetShape.DoesNotExist:
+            return JsonResponse({"error": "Invalid shape selected."}, status=400)
+
+        # Wrapping
+        wrapping_id = data.get("wrapping")
+        wrapping = WrappingPaper.objects.filter(id=wrapping_id).first()
+
+        # Greenery
+        greenery_ids = data.getlist("greens")
+        greenery_list = Greenery.objects.filter(id__in=greenery_ids)
+
+        # Flowers
+        flower_quantities = {}
+        for flower in Flower.objects.all():
+            qty = int(data.get(f"flower_{flower.id}", 0))
+            if qty > 0:
+                flower_quantities[flower.id] = qty
+
+        # Calculate total price
+        total_price = float(data.get("total_price", 0))
+
+        print("Total price:", total_price)  # Debugging
+
+        # Save the bouquet
+        custom_bouquet = CustomBouquet.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            shape=shape,
+            wrapping=wrapping,
+        )
+        custom_bouquet.greenery.set(greenery_list)
+
+        # Add flowers with quantities
+        for flower_id, quantity in flower_quantities.items():
+            BouquetFlower.objects.create(
+                bouquet=custom_bouquet,
+                flower_id=flower_id,
+                quantity=quantity
+            )
+
+        # Create a Product representing this custom bouquet
+        custom_product = Product.objects.create(
+            name=f"Buchet personalizat #{custom_bouquet.id}",
+            price=total_price,
+            is_custom=True,
+            custom_bouquet=custom_bouquet,
+            image="static\Logo.png"
+        )
+
+        # Add to cart
+        if request.user.is_authenticated:
+            cart_item, _ = CartItem.objects.get_or_create(user=request.user, product=custom_product)
+        else:
+            session_id = get_or_create_session_id(request)
+            cart_item, _ = CartItem.objects.get_or_create(session_id=session_id, product=custom_product)
+
+        cart_item.quantity = 1
+        cart_item.save()
+
+        return JsonResponse({"success": True, "redirect": "/cart/"})
 
     return JsonResponse({"error": "Invalid request"}, status=400)
+
+

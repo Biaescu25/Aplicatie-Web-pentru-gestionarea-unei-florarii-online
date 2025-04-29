@@ -3,7 +3,9 @@
 
   <ul class="text-sm space-y-1">
     <li>Formă: {{ shape.name }} - {{ shape.price }} Lei</li>
-    <li>Ambalaj: {{ wrapping.name }} - {{ wrapping.price }} Lei</li>
+    {% for wrap in wrapping %}
+    <li>Ambalaj: {{ wrap.name }} - {{ wrap.price }} Lei</li>
+    {% endfor %}
     {% for green in greens %}
       <li>Verdeață: {{ green.name }} - {{ green.price }} Lei</li>
     {% endfor %}
@@ -21,4 +23,16 @@
   <div class="border-t pt-2 mt-2 font-bold text-right">
     Total: {{ total_price }} Lei
   </div>
+
+  <!-- Hidden input for total_price -->
+  <input type="hidden" name="total_price" value="{{ total_price }}">
+
+  <button 
+    hx-post="{% url 'save_custom_bouquet' %}" 
+    hx-include="[name='shape'], [name='wrapping'], [name='greens'], [name^='flower_'], [name='total_price']" 
+    hx-target="body" 
+    hx-swap="none" 
+    class="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg">
+    Salvează buchetul
+  </button>
 </div>

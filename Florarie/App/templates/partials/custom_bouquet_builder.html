@@ -1,86 +1,89 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="py-12 bg-white mt-32">
+<section class="py-8 bg-gray-50 mt-32">
     <div class="container mx-auto px-4">
-        <h1 class="text-4xl font-bold mb-8 text-center">Creează-ți propriul buchet</h1>
+        <h1 class="text-3xl font-bold mb-6 text-center text-primary mt-12">Creează-ți propriul buchet</h1>
 
         <form id="bouquet-form" 
-                hx-post="{% url 'create_custom_bouquet' %}" 
-                hx-target="#summary" 
-                hx-swap="innerHTML"
-                hx-trigger="change, keyup delay:300ms from:input, select">
-                
+              hx-post="{% url 'create_custom_bouquet' %}" 
+              hx-target="#summary" 
+              hx-swap="innerHTML"
+              hx-trigger="change, keyup delay:300ms from:input, select"
+              class="space-y-6 bg-white p-4 rounded-lg shadow-sm overflow-y-auto max-h-96">
+              
             {% csrf_token %}
-    
+
             <!-- SHAPE SELECTION -->
-            <div class="mb-8">
-                <h2 class="text-2xl font-semibold mb-4">Alege forma buchetului</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-12 gap-4 items-center">
+                <h2 class="col-span-3 text-xl font-semibold text-secondary">Forma buchetului</h2>
+                <div class="col-span-9 grid grid-cols-3 md:grid-cols-5 gap-2">
                     {% for shape in shapes %}
-                        <label class="cursor-pointer border rounded-lg p-2 hover:shadow-md">
-                            <input type="radio" name="shape" value="{{ shape.id }}" class="hidden" required>
-                            <img src="{{ shape.image.url }}" alt="{{ shape.name }}" class="w-full h-32 object-cover rounded">
-                            <p class="text-center mt-2">{{ shape.name }}</p>
+                        <label class="cursor-pointer border rounded p-1 hover:shadow transition peer-checked:bg-blue-100">
+                            <input type="radio" name="shape" value="{{ shape.id }}" class="hidden peer" required>
+                            <img src="{{ shape.image.url }}" alt="{{ shape.name }}" class="w-full h-24 object-cover rounded">
+                            <p class="text-center mt-1 text-sm font-medium">{{ shape.name }}</p>
                         </label>
                     {% endfor %}
                 </div>
             </div>
+            <hr>
 
             <!-- FLOWER SELECTION -->
-            <div class="mb-8">
-                <h2 class="text-2xl font-semibold mb-4">Alege florile</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-12 gap-4 items-center">
+                <h2 class="col-span-3 text-xl font-semibold text-secondary">Florile</h2>
+                <div class="col-span-9 grid grid-cols-3 md:grid-cols-5 gap-2">
                     {% for flower in flowers %}
-                        <div class="border rounded-lg p-2">
-                            <img src="{{ flower.image.url }}" alt="{{ flower.name }}" class="w-full h-32 object-cover rounded">
-                            <div class="mt-2 text-center">
-                                <p>{{ flower.name }}</p>
-                                <p class="text-sm text-gray-600">{{ flower.price }} LEI</p>
-                                <input type="number" name="flower_{{ flower.id }}" min="0" max="10" value="0" class="input input-sm mt-1 w-full">
+                        <div class="border rounded p-2 hover:shadow transition">
+                            <img src="{{ flower.image.url }}" alt="{{ flower.name }}" class="w-full h-24 object-cover rounded">
+                            <div class="mt-1 text-center">
+                                <p class="text-sm font-medium">{{ flower.name }}</p>
+                                <p class="text-xs text-gray-600">{{ flower.price }} LEI</p>
+                                <input type="number" name="flower_{{ flower.id }}" min="0" max="10" value="0" 
+                                       class="input input-bordered input-xs mt-1 w-full">
                             </div>
                         </div>
                     {% endfor %}
                 </div>
             </div>
+            <hr>
 
             <!-- GREENERY SELECTION -->
-            <div class="mb-8">
-                <h2 class="text-2xl font-semibold mb-4">Adaugă verdeață</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-12 gap-4 items-center">
+                <h2 class="col-span-3 text-xl font-semibold text-secondary">Verdeață</h2>
+                <div class="col-span-9 grid grid-cols-3 md:grid-cols-5 gap-2">
                     {% for green in greens %}
-                        <label class="cursor-pointer border rounded-lg p-2 hover:shadow-md block">
-                            <input type="checkbox" name="greens" value="{{ green.id }}" class="mr-2">
-                            <img src="{{ green.image.url }}" alt="{{ green.name }}" class="w-full h-24 object-cover rounded">
-                            <p class="text-center mt-1">{{ green.name }} ({{ green.price }} LEI)</p>
+                        <label class="cursor-pointer border rounded p-2 hover:shadow transition peer-checked:bg-green-100">
+                            <input type="checkbox" name="greens" value="{{ green.id }}" class="hidden peer">
+                            <img src="{{ green.image.url }}" alt="{{ green.name }}" class="w-full h-20 object-cover rounded">
+                            <p class="text-center mt-1 text-sm font-medium">{{ green.name }} ({{ green.price }} LEI)</p>
                         </label>
                     {% endfor %}
                 </div>
             </div>
+            <hr>
 
             <!-- WRAPPING PAPER -->
-            <div class="mb-8">
-                <h2 class="text-2xl font-semibold mb-4">Alege ambalajul</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-12 gap-4 items-center">
+                <h2 class="col-span-3 text-xl font-semibold text-secondary">Ambalaj</h2>
+                <div class="col-span-9 grid grid-cols-3 md:grid-cols-5 gap-2">
                     {% for wrap in wrappings %}
-                        <label class="cursor-pointer border rounded-lg p-2 hover:shadow-md">
-                            <input type="radio" name="wrapping" value="{{ wrap.id }}" class="hidden" required>
-                            <img src="{{ wrap.image.url }}" alt="{{ wrap.name }}" class="w-full h-24 object-cover rounded">
-                            <p class="text-center mt-1">{{ wrap.name }} ({{ wrap.price }} LEI)</p>
+                        <label class="cursor-pointer border rounded p-2 hover:shadow transition peer-checked:bg-yellow-100">
+                            <input type="checkbox" name="wrapping" value="{{ wrap.id }}" class="hidden peer">
+                            <img src="{{ wrap.image.url }}" alt="{{ wrap.name }}" class="w-full h-20 object-cover rounded">
+                            <p class="text-center mt-1 text-sm font-medium">{{ wrap.name }} ({{ wrap.price }} LEI)</p>
                         </label>
                     {% endfor %}
                 </div>
             </div>
-
-            <!-- SUMMARY & SUBMIT -->
-            <!-- Live-updating summary -->
-            <div id="summary" class="mt-6">
-                <!-- HTMX will load the summary here -->
-                <div class="text-gray-500 text-sm text-center">Selectează opțiuni pentru a vedea sumarul buchetului</div>
-            </div>
-
-            <button type="submit" class="btn btn-primary mt-4">Calculează totalul</button>
+            <hr>
         </form>
+
+        <!-- SUMMARY & SUBMIT -->
+        <div id="summary" class="mt-4 bg-gray-100 p-3 rounded">
+            <!-- HTMX will load the summary here -->
+            <div class="text-gray-500 text-xs text-center">Selectează opțiuni pentru a vedea sumarul buchetului</div>
+        </div>
     </div>
 </section>
 {% endblock %}

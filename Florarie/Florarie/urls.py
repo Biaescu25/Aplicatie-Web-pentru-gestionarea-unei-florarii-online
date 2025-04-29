@@ -20,7 +20,8 @@ from django.urls import path, include
 from django.conf.urls.static import static
 from App.views import home, cart_view, add_to_cart, remove_from_cart, update_cart, cart_count, products_by_category
 from App.views import increment_quantity, decrement_quantity, get_total_price, register_partial, login_partial,register, user_login, user_logout
-from App.views import checkout, product_detail, profile, order_detail, order_history, checkout_step_1, checkout_step_2, checkout_step_3, create_custom_bouquet, custom_bouquet_builder
+from App.views import checkout, product_detail, profile, order_detail, order_history, checkout_step_1, checkout_step_2, checkout_step_3
+from App.views import create_custom_bouquet, custom_bouquet_builder, save_custom_bouquet
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -53,6 +54,7 @@ urlpatterns = [
     path('checkout/step-3/', checkout_step_3, name='checkout_step_3'),
     path('custom-bouquet/', custom_bouquet_builder, name='custom_bouquet_builder'),
     path("custom-bouquet/create/", create_custom_bouquet, name="create_custom_bouquet"),
+    path("save_custom_bouquet", save_custom_bouquet, name="save_custom_bouquet"),
 ]
 
 
