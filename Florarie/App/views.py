@@ -16,6 +16,7 @@ from .forms import UserForm
 import stripe
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
+from django.templatetags.static import static  # Import the static function
 
 
 def home(request):
@@ -614,7 +615,7 @@ def save_custom_bouquet(request):
             price=total_price,
             is_custom=True,
             custom_bouquet=custom_bouquet,
-            image="STATICFILES_DIRS/Logo.png"
+            image='Logo.png'  
         )
 
         # Add to cart

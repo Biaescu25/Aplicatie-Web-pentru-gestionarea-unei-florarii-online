@@ -3,11 +3,11 @@
 
   {% if error %}
     <div class="text-red-500 text-sm">{{ error }}</div>
-    
+
   {% else %}
 
   <ul class="text-sm space-y-1">
-    <li>Formă: {{ shape.name }} - {{ shape.price }} Lei</li>
+    <li>Formă: {{ shape.name }}</li>
     {% for wrap in wrapping %}
     <li>Ambalaj: {{ wrap.name }} - {{ wrap.price }} Lei</li>
     {% endfor %}
