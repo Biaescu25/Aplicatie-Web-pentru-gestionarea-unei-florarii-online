@@ -41,6 +41,22 @@
     .glass.active {
         left: 10%;
     }
+
+    /* Remove number input arrows */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+
+    /* .bg-selected {
+        @apply bg-primary/10 ring-2 ring-primary font-semibold;
+    } */
+
 </style>
 
 <body class="bg-gray font-serif">
@@ -100,3 +116,53 @@ document.body.addEventListener('htmx:afterSwap', function (evt) {
 </script>
 
 
+<script>
+
+    //script for make your own page
+    document.addEventListener("DOMContentLoaded", () => showStep("step-shape"));
+
+    function showStep(stepId) {
+        // Hide all steps
+        document.querySelectorAll('.step').forEach(step => {
+            step.classList.add('hidden');
+        });
+
+        // Show selected step
+        document.getElementById(stepId).classList.remove('hidden');
+
+        // Update button highlighting
+        document.querySelectorAll('.step-button').forEach(btn => {
+            btn.classList.remove('bg-primary/10', 'ring-2', 'ring-primary', 'font-semibold');
+        });
+
+        const activeBtn = document.querySelector(`[data-step-button="${stepId}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('bg-primary/10', 'ring-2', 'ring-primary', 'font-semibold');
+        }
+    }
+
+
+   function incrementValue(inputId) {
+        const input = document.getElementById(inputId);
+        const currentValue = parseInt(input.value);
+        const maxValue = parseInt(input.max);
+
+        if (input && currentValue < maxValue) {
+            input.value = currentValue + 1;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+
+    function decrementValue(inputId) {
+        const input = document.getElementById(inputId);
+        const currentValue = parseInt(input.value);
+        const minValue = parseInt(input.min);
+
+        if (input && currentValue > minValue) {
+            input.value = currentValue - 1;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+
+
+</script>
