@@ -110,11 +110,12 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Set your desired timezone
+TIME_ZONE = 'Europe/Bucharest'  # Example: Bucharest timezone
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = True  # Ensure timezone support is enabled
 
 
 # Static files (CSS, JavaScript, Images)

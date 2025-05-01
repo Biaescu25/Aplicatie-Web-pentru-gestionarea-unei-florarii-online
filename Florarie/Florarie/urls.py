@@ -22,6 +22,7 @@ from App.views import home, cart_view, add_to_cart, remove_from_cart, update_car
 from App.views import increment_quantity, decrement_quantity, get_total_price, register_partial, login_partial,register, user_login, user_logout
 from App.views import checkout, product_detail, profile, order_detail, order_history, checkout_step_1, checkout_step_2, checkout_step_3
 from App.views import create_custom_bouquet, custom_bouquet_builder, save_custom_bouquet
+from App.views import auction_view, auction_price_partial
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -55,6 +56,8 @@ urlpatterns = [
     path('custom-bouquet/', custom_bouquet_builder, name='custom_bouquet_builder'),
     path("custom-bouquet/create/", create_custom_bouquet, name="create_custom_bouquet"),
     path("save_custom_bouquet", save_custom_bouquet, name="save_custom_bouquet"),
+    path("auction/", auction_view, name="auction"),
+    path("auction/price/<int:pk>/", auction_price_partial, name="auction_price_partial"),
 ]
 
 

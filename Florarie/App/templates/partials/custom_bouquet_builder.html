@@ -53,7 +53,7 @@
                                 <p class="text-xs text-gray-600">{{ flower.price }} LEI</p>
                                 <div class="flex items-center justify-center mt-2">
                                     <button type="button" class="px-2 py-1 bg-gray-200 rounded-l hover:bg-gray-300" onclick="decrementValue('flower_{{ flower.id }}')">-</button>
-                                    <input type="number" name="flower_{{ flower.id }}" id="flower_{{ flower.id }}" min="0" max="20" value="0" 
+                                    <input type="number" name="flower_{{ flower.id }}" id="flower_{{ flower.id }}" min="0" max="100" value="0" 
                                            class="w-12 text-center border-t border-b border-gray-300 focus:outline-none">
                                     <button type="button" class="px-2 py-1 bg-gray-200 rounded-r hover:bg-gray-300" onclick="incrementValue('flower_{{ flower.id }}')">+</button>
                                 </div>

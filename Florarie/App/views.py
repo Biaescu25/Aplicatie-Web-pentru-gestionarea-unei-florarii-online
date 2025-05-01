@@ -17,6 +17,10 @@ import stripe
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.templatetags.static import static  # Import the static function
+from django.shortcuts import render
+from .models import Product
+from datetime import timedelta
+from django.utils import timezone
 
 
 def home(request):
@@ -615,7 +619,8 @@ def save_custom_bouquet(request):
             price=total_price,
             is_custom=True,
             custom_bouquet=custom_bouquet,
-            image='Logo.png'  
+            image='Logo.png',
+            category='CustomBouquet'  
         )
 
         # Add to cart
@@ -636,3 +641,21 @@ def save_custom_bouquet(request):
     return JsonResponse({"error": "Invalid request"}, status=400)
 
 
+def auction_view(request):
+    now = timezone.now()
+    threshold = now - timedelta(hours=24)
+
+    products = Product.objects.filter(
+        #is_auction_item=True,
+        in_store=True,
+        #created_at__lte=threshold
+    )
+    return render(request, "auction.html", {"products": products})
+
+def auction_price_partial(request, pk):
+    try:
+        product = Product.objects.get(pk=pk)
+        price_html = render_to_string("partials/auction_price.html", {"product": product})
+        return HttpResponse(price_html)
+    except Product.DoesNotExist:
+        return HttpResponse("Product not found", status=404)

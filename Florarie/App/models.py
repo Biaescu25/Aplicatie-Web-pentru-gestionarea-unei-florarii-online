@@ -1,5 +1,8 @@
 from django.contrib.auth.models import AbstractUser, Group, Permission, User
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
+from decimal import Decimal
 
 # Create your models here.
 
@@ -19,16 +22,51 @@ from django.db import models
 #         verbose_name='user permissions',
 #     )
 
+
 class Product(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField()
-    category = models.CharField(max_length=100, default="General")
+    category = models.CharField(
+        max_length=100,
+        choices=[
+            ("Flowers", "Flowers"),
+            ("Bouquets", "Bouquets"),
+            ("Accessories", "Accessories"),
+            ("Gifts", "Gifts"),
+            ("CustomBouquet", "CustomBouquet"),
+        ],
+        default="General"
+    )
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    image = models.ImageField(upload_to="Pictures/")  # Stores images in 'media/Pictures/'
+    image = models.ImageField(upload_to="Pictures/")
     created_at = models.DateTimeField(auto_now_add=True)
-    is_custom = models.BooleanField(default=False)  # Flag for custom bouquets
+
+    is_custom = models.BooleanField(default=False)
     custom_bouquet = models.OneToOneField("CustomBouquet", on_delete=models.SET_NULL, null=True, blank=True)
 
+    # NEW FIELDS
+    in_store = models.BooleanField(default=False)
+    auction_manual = models.BooleanField(default=False)
+    auction_start_time = models.DateTimeField(null=True, blank=True)
+    auction_floor_price = models.DecimalField(max_digits=10, decimal_places=2, default=10)
+    auction_interval_minutes = models.PositiveIntegerField(default=60)
+    auction_drop_amount = models.DecimalField(max_digits=6, decimal_places=2, default=5)
+
+
+    def is_in_auction(self):
+        # Eligible if manually added or in store for > 3 days
+        return self.auction_manual or (self.in_store and self.created_at <= timezone.now() - timedelta(days=3))
+
+    def get_auction_price(self):
+        if not self.is_in_auction():
+            return self.price
+
+        hours_passed = (timezone.now() - self.auction_start_time).total_seconds() / 3600
+        discount = min(0.05 * int(hours_passed), 0.30)  # 5% per hour, up to 30%
+        discount_decimal = Decimal(str(discount))
+
+        return self.price * (Decimal("1.0") - discount_decimal)
+    
     def __str__(self):
         return self.name
 
@@ -51,10 +89,10 @@ class Order(models.Model):
     city = models.CharField(max_length=100)
     zip_code = models.CharField(max_length=10)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
-    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=10.00)
     payment_method = models.CharField(max_length=20, choices=[("card", "Card"), ("cash", "Cash on Delivery")], default="card")
     payment_status = models.BooleanField(default=False)  # False = Not paid, True = Paid
     created_at = models.DateTimeField(auto_now_add=True)
+    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)  # Default delivery fee
 
     def final_total(self):
         return self.total_price + self.delivery_fee  # Calculate final amount
@@ -120,12 +158,12 @@ class CustomBouquet(models.Model):
     wrapping = models.ForeignKey(WrappingPaper, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     confirmed = models.BooleanField(default=False)
-    #def __str__(self):
-     #   return self.id
+
+    def related_flowers(self):
+        return ", ".join([f"{bf.quantity} x {bf.flower.name}" for bf in self.bouquetflower_set.all()])
+    related_flowers.short_description = "Flowers"
 
 class BouquetFlower(models.Model):
     bouquet = models.ForeignKey(CustomBouquet, on_delete=models.CASCADE)
     flower = models.ForeignKey(Flower, on_delete=models.CASCADE)
     quantity = models.IntegerField()
-    #def __str__(self):
-     #   return self.id
