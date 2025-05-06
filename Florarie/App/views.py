@@ -76,9 +76,16 @@ def add_to_cart(request, product_id):
         cart_item.product.price = cart_item.product.get_auction_price()
         cart_item.product.bid_submited = True  # Mark that a bid has been submitted
         cart_item.product.save()
-
+        
         if request.headers.get("HX-Request"):
-            return HttpResponse("")  # causes target to be replaced with nothing
+            cart_count = get_cart_items(request).count()
+            html = render_to_string("partials/cart_count.html", {"cart_count": cart_count})
+            response = HttpResponse(html)
+            response["HX-Trigger"] = "refreshProductList"  # Trigger product list refresh
+            return response
+    
+        #if request.headers.get("HX-Request"):
+        #    return HttpResponse("")  # causes target to be replaced with nothing
 
     if not created:
         cart_item.quantity += 1
@@ -658,7 +665,11 @@ def save_custom_bouquet(request):
 def auction_view(request):
     products = Product.objects.all()
     auction_products = [product for product in products if product.is_in_auction()]  # Filter products using is_in_auction
-    return render(request, "auction.html", {"products": auction_products})
+
+    if request.headers.get("HX-Request"):  # Check if the request is from HTMX
+        return render(request, "partials/auction_list.html", {"products": auction_products})  # Render only the product list
+
+    return render(request, "auction.html", {"products": auction_products})  # Render the full page
 
 def auction_price_partial(request, pk):
     try:
