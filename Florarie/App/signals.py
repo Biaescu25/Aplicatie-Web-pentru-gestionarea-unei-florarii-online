@@ -18,3 +18,22 @@ def merge_carts(sender, request, user, **kwargs):
                 item.user = user
                 item.session_id = None  # Remove session association
                 item.save()
+
+# shop/signals.py
+
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+from .models import Product, CustomBouquet
+
+@receiver(post_delete, sender=Product)
+def delete_related_custom_bouquet(sender, instance, **kwargs):
+    try:
+        bouquet = instance.linked_custom_bouquet
+        bouquet.delete()
+    except CustomBouquet.DoesNotExist:
+        pass
+
+@receiver(post_delete, sender=CustomBouquet)
+def delete_related_product(sender, instance, **kwargs):
+    if instance.product:
+        instance.product.delete()

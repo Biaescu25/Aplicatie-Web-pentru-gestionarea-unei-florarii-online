@@ -71,6 +71,15 @@ def add_to_cart(request, product_id):
         session_id = get_or_create_session_id(request)
         cart_item, created = CartItem.objects.get_or_create(session_id=session_id, product=product)
 
+    if cart_item.product.is_in_auction():
+        # If the product is in auction, set the price to the auction price
+        cart_item.product.price = cart_item.product.get_auction_price()
+        cart_item.product.bid_submited = True  # Mark that a bid has been submitted
+        cart_item.product.save()
+
+        if request.headers.get("HX-Request"):
+            return HttpResponse("")  # causes target to be replaced with nothing
+
     if not created:
         cart_item.quantity += 1
         cart_item.save()
@@ -81,12 +90,16 @@ def add_to_cart(request, product_id):
         html = render_to_string("partials/cart_count.html", {"cart_count": cart_count})
         return HttpResponse(html)
     
-
     return redirect("cart")
 
 def remove_from_cart(request, product_id):
     cart_item = CartItem.objects.filter(product_id=product_id).first()
     if cart_item:
+        if cart_item.product.bid_submited:
+            # If the product is in auction, set bid_submited to False
+            cart_item.product.bid_submited = False
+            cart_item.product.price = cart_item.product.before_auction_price  # Reset to original price
+            cart_item.product.save() 
         cart_item.delete()
 
     if request.user.is_authenticated:
@@ -369,10 +382,8 @@ def checkout(request):
         "total_price": total_price,
     })
 
-
 def checkout_step_1(request):
     return render(request, 'checkout_step_1.html')
-
 
 def get_cart_items(request):
     user = request.user if request.user.is_authenticated else None
@@ -618,10 +629,14 @@ def save_custom_bouquet(request):
             name=f"Buchet personalizat #{custom_bouquet.id}",
             price=total_price,
             is_custom=True,
-            custom_bouquet=custom_bouquet,
+            #custom_bouquet=custom_bouquet,
             image='Logo.png',
             category='CustomBouquet'  
         )
+
+        # Link product to bouquet
+        custom_bouquet.product = custom_product
+        custom_bouquet.save()
 
         # Add to cart
         if request.user.is_authenticated:
@@ -640,22 +655,17 @@ def save_custom_bouquet(request):
 
     return JsonResponse({"error": "Invalid request"}, status=400)
 
-
 def auction_view(request):
-    now = timezone.now()
-    threshold = now - timedelta(hours=24)
-
-    products = Product.objects.filter(
-        #is_auction_item=True,
-        in_store=True,
-        #created_at__lte=threshold
-    )
-    return render(request, "auction.html", {"products": products})
+    products = Product.objects.all()
+    auction_products = [product for product in products if product.is_in_auction()]  # Filter products using is_in_auction
+    return render(request, "auction.html", {"products": auction_products})
 
 def auction_price_partial(request, pk):
     try:
         product = Product.objects.get(pk=pk)
         price_html = render_to_string("partials/auction_price.html", {"product": product})
         return HttpResponse(price_html)
+       
+    
     except Product.DoesNotExist:
         return HttpResponse("Product not found", status=404)

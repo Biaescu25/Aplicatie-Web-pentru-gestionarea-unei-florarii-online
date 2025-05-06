@@ -5,11 +5,13 @@ from django.urls import reverse
 from .models import Product, CartItem, Order, Flower, BouquetShape, Greenery, WrappingPaper, CustomBouquet
 
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'image_preview','delete_link')
+    list_display = ('name', 'price', 'in_store','delete_link')
+    #readonly_fields = ('get_readonly_fields')  # Make delete_link visible in the detail view
 
-    def image_preview(self, obj):
-        return obj.image.url if obj.image else "(No Image)"
-    image_preview.short_description = "Image"
+    def get_readonly_fields(self, request, obj=None):
+        if obj and not obj.in_store:
+            return super().get_readonly_fields(request, obj) + ('auction_manual', 'auction_start_time', 'auction_floor_price', 'auction_interval_minutes', 'auction_drop_amount')
+        return super().get_readonly_fields(request, obj)
 
     def delete_link(self, obj):
         url = reverse('admin:App_product_delete', args=[obj.pk])  # Replace "appname" with your app's name
@@ -18,7 +20,7 @@ class ProductAdmin(admin.ModelAdmin):
     delete_link.allow_tags = True
 
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'total_price', 'created_at', 'payment_status', 'linked_products')
+    list_display = ('id', 'user','total_price', 'created_at', 'payment_status', 'linked_products')
     readonly_fields = ('linked_products_table',)  # Make linked_products visible in the detail view
 
     def linked_products(self, obj):

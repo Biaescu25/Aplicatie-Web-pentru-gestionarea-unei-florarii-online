@@ -3,6 +3,7 @@ from django.db import models
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
+from django.core.exceptions import ValidationError
 
 # Create your models here.
 
@@ -24,7 +25,7 @@ from decimal import Decimal
 
 
 class Product(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, null=False, blank=False)
     description = models.TextField()
     category = models.CharField(
         max_length=100,
@@ -37,12 +38,12 @@ class Product(models.Model):
         ],
         default="General"
     )
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    image = models.ImageField(upload_to="Pictures/")
-    created_at = models.DateTimeField(auto_now_add=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    image = models.ImageField(upload_to="Pictures/", null=False, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True, null=False, blank=False)
 
     is_custom = models.BooleanField(default=False)
-    custom_bouquet = models.OneToOneField("CustomBouquet", on_delete=models.SET_NULL, null=True, blank=True)
+    #custom_bouquet = models.OneToOneField("CustomBouquet", on_delete=models.CASCADE, null=True, blank=True, related_name="linked_product")  # Add related_name to avoid conflict
 
     # NEW FIELDS
     in_store = models.BooleanField(default=False)
@@ -52,20 +53,37 @@ class Product(models.Model):
     auction_interval_minutes = models.PositiveIntegerField(default=60)
     auction_drop_amount = models.DecimalField(max_digits=6, decimal_places=2, default=5)
 
+    before_auction_price = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False, default=0.00)  # Store the price before auction
+    bid_submited = models.BooleanField(default=False)  # Track if a bid has been submitted
+
+    def clean(self):
+        if self.in_store:
+            if not self.auction_start_time:
+                raise ValidationError("Auction start time is required when the product is in store.")
+            if not self.auction_floor_price:
+                raise ValidationError("Auction floor price is required when the product is in store.")
+            if not self.auction_interval_minutes:
+                raise ValidationError("Auction interval minutes are required when the product is in store.")
+            if not self.auction_drop_amount:
+                raise ValidationError("Auction drop amount is required when the product is in store.")
+
 
     def is_in_auction(self):
         # Eligible if manually added or in store for > 3 days
-        return self.auction_manual or (self.in_store and self.created_at <= timezone.now() - timedelta(days=3))
+        self.before_auction_price = self.price
+        return self.auction_manual or (self.in_store and self.created_at <= timezone.now() - timedelta(minutes=3)) and self.bid_submited == False
 
     def get_auction_price(self):
         if not self.is_in_auction():
             return self.price
-
-        hours_passed = (timezone.now() - self.auction_start_time).total_seconds() / 3600
-        discount = min(0.05 * int(hours_passed), 0.30)  # 5% per hour, up to 30%
+ 
+        minutes_passed = (timezone.now() - self.auction_start_time).total_seconds() / 60
+        discount = min(0.05 * int(minutes_passed / self.auction_interval_minutes), 0.50)  # 5% per interval, up to 50%
         discount_decimal = Decimal(str(discount))
 
-        return self.price * (Decimal("1.0") - discount_decimal)
+        auction_bid_price = self.price * (Decimal("1.0") - discount_decimal) # Calculate the auction price
+         
+        return auction_bid_price
     
     def __str__(self):
         return self.name
@@ -158,6 +176,9 @@ class CustomBouquet(models.Model):
     wrapping = models.ForeignKey(WrappingPaper, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     confirmed = models.BooleanField(default=False)
+    product = models.OneToOneField(
+        Product, on_delete=models.CASCADE, null=True, blank=True, related_name="linked_custom_bouquet"
+    )  # Add related_name to avoid conflict
 
     def related_flowers(self):
         return ", ".join([f"{bf.quantity} x {bf.flower.name}" for bf in self.bouquetflower_set.all()])

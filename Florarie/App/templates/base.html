@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flower Joy</title>
     <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
@@ -74,7 +75,7 @@
     const stripe = Stripe("pk_test_51R8NtNRsvYugeMjUdh0qycRIsQ6qcSW2dfu2eZQiPpJ4Jf4k0xZf6AWkIkg1aNxnlC8mVDFlu9LribT35lEW2oIw00uXLxKHes");
     let card = null;
 
-document.body.addEventListener('htmx:afterSwap', function (evt) {
+    document.body.addEventListener('htmx:afterSwap', function (evt) {
     const target = evt.detail.target;
 
     if (target.querySelector('#card-element') && stripe) {
@@ -163,6 +164,48 @@ document.body.addEventListener('htmx:afterSwap', function (evt) {
             input.dispatchEvent(new Event('change', { bubbles: true }));
         }
     }
-
-
 </script>
+
+<!-- 
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<script>
+    function auctionItem(itemId) {
+      return {
+        priceHtml: '',
+  
+        async fetchPrice() {
+          try {
+            const response = await fetch(`/auction/price/${itemId}`);
+            const html = await response.text();
+            this.priceHtml = html;
+          } catch (error) {
+            console.error("Error fetching auction price:", error);
+          }
+        },
+  
+        startPolling() {
+          this.fetchPrice();
+          setInterval(() => {
+            this.fetchPrice();
+          }, 5000); // adjust polling interval as needed
+        },
+  
+        bid() {
+          fetch(`/auction/bid/${itemId}`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCSRFToken(),
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ bid: true })
+          })
+          .then(() => this.fetchPrice());
+        }
+      };
+    }
+  
+    function getCSRFToken() {
+      return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+  </script>
+   -->
