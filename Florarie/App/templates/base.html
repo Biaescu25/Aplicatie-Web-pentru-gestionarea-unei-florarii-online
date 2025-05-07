@@ -175,3 +175,12 @@
     });
 </script>
 
+<script>
+    document.body.addEventListener('htmx:targetError', function(evt) {
+        console.error("HTMX Target Error:", evt.detail);
+    });
+
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        console.log("HTMX request completed", evt.detail);
+    });
+</script>

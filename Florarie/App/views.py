@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from .models import Product, CartItem, Order, Payment, OrderItem
 from .models import BouquetShape, Flower, Greenery, WrappingPaper, CustomBouquet, BouquetFlower
 from django.contrib.auth.decorators import login_required
@@ -670,6 +670,10 @@ def auction_price_partial(request, pk):
 
 
 def  auction_confirm_popup(request, pk):
+    if not request.headers.get("HX-Request"):
+        return HttpResponseBadRequest("Invalid request")
+    
+    print("auction_confirm_popup called")
     product = get_object_or_404(Product, pk=pk)
      # GET request: show confirmation popup
     return render(request, "partials/auction_confirm_popup.html", {"product": product})                      
@@ -692,13 +696,13 @@ def auction_confirm(request, pk):
         cart_item.product.save()
 
     # Always refresh the product list (optional), and cart count
-    if request.headers.get("HX-Request"):
-        cart_count = get_cart_items(request).count()
-        cart_html = render_to_string("partials/cart_count.html", {"cart_count": cart_count}, request=request)
+    # if request.headers.get("HX-Request"):
+    #     cart_count = get_cart_items(request).count()
+    #     cart_html = render_to_string("partials/cart_count.html", {"cart_count": cart_count}, request=request)
 
-        # Return a response that updates the cart count (via hx-swap-oob)
-        response = HttpResponse(cart_html)
-        response["HX-Trigger"] = "refreshProductList"
-        return response
+    #     # Return a response that updates the cart count (via hx-swap-oob)
+    #     response = HttpResponse(cart_html)
+    #     response["HX-Trigger"] = "refreshProductList"
+    #     return response
 
     return redirect("auction")
