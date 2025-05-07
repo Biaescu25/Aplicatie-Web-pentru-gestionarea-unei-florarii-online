@@ -1,28 +1,23 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
-
+from .forms import ProductForm
 from .models import Product, CartItem, Order, Flower, BouquetShape, Greenery, WrappingPaper, CustomBouquet
 
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'in_store','bid_submited','delete_link')
-    #readonly_fields = ('get_readonly_fields')  # Make delete_link visible in the detail view
+    form = ProductForm
+    list_display = ('name', 'price', 'in_store', 'bid_submited', 'delete_link')
+    list_filter = ('bid_submited', 'in_store', 'is_custom')
+    readonly_fields = ('is_custom', 'before_auction_price', 'bid_submited')  # Only truly readonly ones
 
-    list_filter = ('bid_submited', 'in_store', 'is_custom')  # Add filters
-
-    def get_readonly_fields(self, request, obj=None):
-        read_only_fields = super().get_readonly_fields(request, obj) + ('is_custom','before_auction_price', 'bid_submited')
-        if obj and not obj.in_store:
-            read_only_fields = read_only_fields + super().get_readonly_fields(request, obj) + ('auction_manual', 'auction_start_time', 
-                                                                'auction_floor_price', 'auction_interval_minutes', 
-                                                                'auction_drop_amount')
-        return read_only_fields
-
+    class Media:
+        js = ('admin/js/hide_auction_fields.js',)  
+        
     def delete_link(self, obj):
-        url = reverse('admin:App_product_delete', args=[obj.pk])  # Replace "appname" with your app's name
+        url = reverse('admin:App_product_delete', args=[obj.pk])
         return format_html('<a class="button" href="{}">Delete</a>', url)
     delete_link.short_description = 'Delete'
-    delete_link.allow_tags = True
+
 
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('id', 'user','total_price', 'created_at', 'payment_status', 'linked_products')

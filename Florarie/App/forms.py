@@ -1,6 +1,13 @@
 from django import forms
 from django.contrib.auth.models import User
 
+from .models import Product
+
+class ProductForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = '__all__'  # or explicitly list all fields you need
+
 class UserForm(forms.ModelForm):
     class Meta:
         model = User
