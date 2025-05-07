@@ -16,6 +16,7 @@ from .forms import UserForm
 import stripe
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods, require_POST
 from django.templatetags.static import static  # Import the static function
 from django.shortcuts import render
 from .models import Product
@@ -71,21 +72,16 @@ def add_to_cart(request, product_id):
         session_id = get_or_create_session_id(request)
         cart_item, created = CartItem.objects.get_or_create(session_id=session_id, product=product)
 
-    if cart_item.product.is_in_auction():
-        # If the product is in auction, set the price to the auction price
-        cart_item.product.price = cart_item.product.get_auction_price()
-        cart_item.product.bid_submited = True  # Mark that a bid has been submitted
-        cart_item.product.save()
-        
-        if request.headers.get("HX-Request"):
-            cart_count = get_cart_items(request).count()
-            html = render_to_string("partials/cart_count.html", {"cart_count": cart_count})
-            response = HttpResponse(html)
-            response["HX-Trigger"] = "refreshProductList"  # Trigger product list refresh
-            return response
-    
-        #if request.headers.get("HX-Request"):
-        #    return HttpResponse("")  # causes target to be replaced with nothing
+    # If coming from auction confirm
+    # if product.is_in_auction():
+    #     cart_item.product.price = product.get_auction_price()
+    #     cart_item.product.bid_submited = True
+    #     cart_item.product.save()
+    #      # Refresh product list via trigger
+    #     if request.headers.get("HX-Request"):
+    #         response = HttpResponse()
+    #         response["HX-Trigger"] = "refreshProductList"
+    #         return response
 
     if not created:
         cart_item.quantity += 1
@@ -662,21 +658,48 @@ def save_custom_bouquet(request):
 
     return JsonResponse({"error": "Invalid request"}, status=400)
 
+
 def auction_view(request):
     products = Product.objects.all()
-    auction_products = [product for product in products if product.is_in_auction()]  # Filter products using is_in_auction
+    auction_products = [p for p in products if p.is_in_auction()]
+    
+    if request.headers.get("HX-Request"):
+        return render(request, "partials/auction_list.html", {"products": auction_products})
 
-    if request.headers.get("HX-Request"):  # Check if the request is from HTMX
-        return render(request, "partials/auction_list.html", {"products": auction_products})  # Render only the product list
-
-    return render(request, "auction.html", {"products": auction_products})  # Render the full page
+    return render(request, "auction.html", {"products": auction_products})
 
 def auction_price_partial(request, pk):
-    try:
-        product = Product.objects.get(pk=pk)
-        price_html = render_to_string("partials/auction_price.html", {"product": product})
-        return HttpResponse(price_html)
-       
-    
-    except Product.DoesNotExist:
-        return HttpResponse("Product not found", status=404)
+    product = get_object_or_404(Product, pk=pk)
+    return render(request, "partials/auction_price.html", {"product": product})
+
+
+def  auction_confirm_popup(request, pk):
+    print("i do this")
+    product = get_object_or_404(Product, pk=pk)
+     # GET request: show confirmation popup
+    return render(request, "partials/auction_confirm_popup.html", {"product": product})                      
+
+@require_POST
+def auction_confirm(request, pk):
+
+    product = get_object_or_404(Product, pk=pk)
+
+    if request.user.is_authenticated:
+        cart_item, created = CartItem.objects.get_or_create(user=request.user, product=product)
+    else:
+        session_id = get_or_create_session_id(request)
+        cart_item, created = CartItem.objects.get_or_create(session_id=session_id, product=product)
+
+    if product.is_in_auction():
+        cart_item.product.price = product.get_auction_price()
+        cart_item.product.bid_submited = True
+        cart_item.product.save()
+        # Refresh product list via trigger
+        if request.headers.get("HX-Request"):
+            response = HttpResponse()
+            response["HX-Trigger"] = "refreshProductList"
+            return response
+
+    # Render and return updated auction price button (with hx-get again)
+    html = render_to_string("partials/auction_list.html", {"product": product}, request=request) 
+    return HttpResponse(html)

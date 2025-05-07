@@ -104,6 +104,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CSRF_COOKIE_HTTPONLY=False
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/

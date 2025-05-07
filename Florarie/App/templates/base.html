@@ -18,6 +18,8 @@
 
     <link href="{% static 'output.css' %}" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    {% csrf_token %}
+    <meta name="csrf-token" content="{{ csrf_token }}">
 </head>
 
 <style>
@@ -166,46 +168,9 @@
     }
 </script>
 
-<!-- 
-<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 <script>
-    function auctionItem(itemId) {
-      return {
-        priceHtml: '',
-  
-        async fetchPrice() {
-          try {
-            const response = await fetch(`/auction/price/${itemId}`);
-            const html = await response.text();
-            this.priceHtml = html;
-          } catch (error) {
-            console.error("Error fetching auction price:", error);
-          }
-        },
-  
-        startPolling() {
-          this.fetchPrice();
-          setInterval(() => {
-            this.fetchPrice();
-          }, 5000); // adjust polling interval as needed
-        },
-  
-        bid() {
-          fetch(`/auction/bid/${itemId}`, {
-            method: 'POST',
-            headers: {
-              'X-CSRFToken': getCSRFToken(),
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ bid: true })
-          })
-          .then(() => this.fetchPrice());
-        }
-      };
-    }
-  
-    function getCSRFToken() {
-      return document.querySelector('[name=csrfmiddlewaretoken]').value;
-    }
-  </script>
-   -->
+    document.body.addEventListener('htmx:configRequest', (event) => {
+        const token = document.querySelector('meta[name="csrf-token"]').content;
+        event.detail.headers['X-CSRFToken'] = token;
+    });
+</script>

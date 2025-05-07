@@ -1,20 +1,28 @@
 {% extends "base.html" %}
-{% block content %}
+{% load static %}
 
+{% block content %}
 <section class="py-8">
     <div class="container mx-auto mt-36 px-4">
         <h2 class="text-3xl font-bold mb-6 text-primary text-center">Last-Chance Flowers</h2>
+        <p class="text-lg text-gray-700 mb-8 text-center">Don't miss out on our exclusive flower auction!</p>
+        <p class="text- text-gray-700 mb-8 ">
+            Buchetele prezente in magazinul nostru fizic vor fi prezente si aici. 
+            Cu cat acestea stau mai mult in magazin, cu atat pretul va scadea. Dar ai grija ca florile sa nu isi piarda din prospetime!
+        </p>
+        <br>
         <div 
-            id="product-list" 
-            hx-get="{% url 'auction' %}" 
-            hx-trigger="refreshProductList from:body" 
+            id="product-list"
+            hx-get="{% url 'auction' %}"
+            hx-trigger="refreshProductList from:body"
             hx-swap="outerHTML"
             class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
         >
             {% include "partials/auction_list.html" %}
-           
         </div>
     </div>
 </section>
 
+<!-- Modal container -->
+<div id="modal-container"></div>
 {% endblock %}
