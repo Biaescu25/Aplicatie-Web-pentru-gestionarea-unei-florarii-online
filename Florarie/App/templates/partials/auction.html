@@ -2,16 +2,20 @@
 {% load static %}
 
 {% block content %}
+<section class="relative w-full h-56 bg-cover bg-center mt-14" style="background-image: url('/static/bannerCart.jpg');">
+    <div class="absolute inset-0 bg-black opacity-50"></div>
+    <div class="container mx-auto px-4 py-16 relative z-10 text-white">
+        <h1 class="text-4xl font-bold text-center mt-16">Last-Chance Flowers</h1>
+    </div>
+</section>  
+
 <section class="py-8">
-    <div class="container mx-auto mt-36 px-4">
-        <h2 class="text-3xl font-bold mb-6 text-primary text-center">Last-Chance Flowers</h2>
-       
-        <p class="text- text-gray-700 mb-8 ">
-            <p class="text-lg text-gray-700 mb-8 text-left">Don't miss out on our exclusive flower auction!</p>
-            Buchetele prezente in magazinul nostru fizic vor fi prezente si aici. 
+    <div class="container mx-auto px-4">
+        <p class="text-lg text-gray-700 mb-8 text-left">
+            Don't miss out on our exclusive flower auction! Buchetele prezente in magazinul nostru fizic vor fi prezente si aici. 
             Cu cat acestea stau mai mult in magazin, cu atat pretul va scadea. Dar ai grija ca florile sa nu isi piarda din prospetime!
         </p>
-        <hr>
+        <hr class="my-6">
         <div 
             id="product-list"
             hx-get="{% url 'auction' %}"

@@ -16,19 +16,26 @@
         </div>
         <div class="flex items-center space-x-2">
 
+            {% if not cart_item.product.bid_submited %}
             <a href="{% url 'decrement_quantity' product_id=cart_item.product.id %}" 
                class="btn btn-primary btn-sm center bg-green-600 text-white"
                hx-get="{% url 'decrement_quantity' product_id=cart_item.product.id %}" 
                hx-target="#cart-item-{{ cart_item.id }}" 
                hx-swap="outerHTML">-</a>
+            {%endif %}
 
-            <div class="center"><p class="card-text">{{ cart_item.quantity }}</p></div>
+            <div class="center" style="padding: 0 10px; text-align: center;">
+                <p class="card-text font-bold text-lg" style="margin: 0; font-size: 1.2rem;">{{ cart_item.quantity }}</p>
+            </div>
 
+            {% if not cart_item.product.bid_submited %}
             <a href="{% url 'increment_quantity' product_id=cart_item.product.id %}" 
                class="btn btn-primary btn-sm center bg-green-600 text-white"
                hx-get="{% url 'increment_quantity' product_id=cart_item.product.id %}" 
                hx-target="#cart-item-{{ cart_item.id }}" 
                hx-swap="outerHTML">+</a>
+            {%endif %}
+
         </div>
         <div class="center" style="min-width: 120px; text-align: right;">
             <p class="card-text">Subtotal: {{ cart_item.total_price }}</p>

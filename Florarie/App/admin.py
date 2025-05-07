@@ -11,9 +11,12 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ('bid_submited', 'in_store', 'is_custom')  # Add filters
 
     def get_readonly_fields(self, request, obj=None):
+        read_only_fields = super().get_readonly_fields(request, obj) + ('is_custom','before_auction_price', 'bid_submited')
         if obj and not obj.in_store:
-            return super().get_readonly_fields(request, obj) + ('auction_manual', 'auction_start_time', 'auction_floor_price', 'auction_interval_minutes', 'auction_drop_amount')
-        return super().get_readonly_fields(request, obj)
+            read_only_fields = read_only_fields + super().get_readonly_fields(request, obj) + ('auction_manual', 'auction_start_time', 
+                                                                'auction_floor_price', 'auction_interval_minutes', 
+                                                                'auction_drop_amount')
+        return read_only_fields
 
     def delete_link(self, obj):
         url = reverse('admin:App_product_delete', args=[obj.pk])  # Replace "appname" with your app's name

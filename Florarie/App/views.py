@@ -72,17 +72,6 @@ def add_to_cart(request, product_id):
         session_id = get_or_create_session_id(request)
         cart_item, created = CartItem.objects.get_or_create(session_id=session_id, product=product)
 
-    # If coming from auction confirm
-    # if product.is_in_auction():
-    #     cart_item.product.price = product.get_auction_price()
-    #     cart_item.product.bid_submited = True
-    #     cart_item.product.save()
-    #      # Refresh product list via trigger
-    #     if request.headers.get("HX-Request"):
-    #         response = HttpResponse()
-    #         response["HX-Trigger"] = "refreshProductList"
-    #         return response
-
     if not created:
         cart_item.quantity += 1
         cart_item.save()
@@ -122,9 +111,16 @@ def remove_from_cart(request, product_id):
         # If cart is not empty, update both cart items and total price
         total_price_html = render_to_string("partials/total_price.html", {"total_price": total_price}, request=request)
     
-        response = HttpResponse("")
+        cart_count = get_cart_items(request).count()
+        cart_html = render_to_string("partials/cart_count.html", {"cart_count": cart_count}, request=request)
+
+        # Return a response that updates the cart count (via hx-swap-oob)
+        response = HttpResponse(cart_html)
+
+        #response = HttpResponse("")
         response["HX-Trigger"] = "updateTotalPrice"  # Trigger the total price update
         return response
+
 
     # If it's a normal request, redirect to the cart page
     return redirect("cart")
@@ -674,7 +670,6 @@ def auction_price_partial(request, pk):
 
 
 def  auction_confirm_popup(request, pk):
-    print("i do this")
     product = get_object_or_404(Product, pk=pk)
      # GET request: show confirmation popup
     return render(request, "partials/auction_confirm_popup.html", {"product": product})                      
@@ -690,16 +685,20 @@ def auction_confirm(request, pk):
         session_id = get_or_create_session_id(request)
         cart_item, created = CartItem.objects.get_or_create(session_id=session_id, product=product)
 
+  
     if product.is_in_auction():
         cart_item.product.price = product.get_auction_price()
         cart_item.product.bid_submited = True
         cart_item.product.save()
-        # Refresh product list via trigger
-        if request.headers.get("HX-Request"):
-            response = HttpResponse()
-            response["HX-Trigger"] = "refreshProductList"
-            return response
 
-    # Render and return updated auction price button (with hx-get again)
-    html = render_to_string("partials/auction_list.html", {"product": product}, request=request) 
-    return HttpResponse(html)
+    # Always refresh the product list (optional), and cart count
+    if request.headers.get("HX-Request"):
+        cart_count = get_cart_items(request).count()
+        cart_html = render_to_string("partials/cart_count.html", {"cart_count": cart_count}, request=request)
+
+        # Return a response that updates the cart count (via hx-swap-oob)
+        response = HttpResponse(cart_html)
+        response["HX-Trigger"] = "refreshProductList"
+        return response
+
+    return redirect("auction")
