@@ -5,8 +5,10 @@ from django.urls import reverse
 from .models import Product, CartItem, Order, Flower, BouquetShape, Greenery, WrappingPaper, CustomBouquet
 
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'in_store','delete_link')
+    list_display = ('name', 'price', 'in_store','bid_submited','delete_link')
     #readonly_fields = ('get_readonly_fields')  # Make delete_link visible in the detail view
+
+    list_filter = ('bid_submited', 'in_store', 'is_custom')  # Add filters
 
     def get_readonly_fields(self, request, obj=None):
         if obj and not obj.in_store:
