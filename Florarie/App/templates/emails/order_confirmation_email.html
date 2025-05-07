@@ -1,0 +1,27 @@
+<h2>Thank you for your order, {{ user.first_name }}!</h2>
+
+<p>Order ID: <strong>#{{ order.id }}</strong></p>
+<p>Date: {{ order.created_at }}</p>
+
+<table style="width: 100%; border-collapse: collapse;">
+    <thead>
+        <tr>
+            <th style="text-align: left;">Product</th>
+            <th>Quantity</th>
+            <th>Price</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in order.items.all %}
+        <tr>
+            <td>{{ item.product.name }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.product.price }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><strong>Total: {{ order.total_price }}</strong></p>
+
+<p>We’ll notify you when it ships!</p>

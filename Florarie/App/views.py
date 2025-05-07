@@ -22,6 +22,11 @@ from django.shortcuts import render
 from .models import Product
 from datetime import timedelta
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.utils.html import strip_tags
+from django.core.mail import EmailMessage
+from weasyprint import HTML
+from io import BytesIO
 
 
 def home(request):
@@ -473,10 +478,14 @@ def checkout_step_3(request):
 
             # Update order payment status
             try:
+
                 order_id = request.session.get("order_id")
                 order = Order.objects.get(id=order_id)
                 order.payment_status = True
                 order.save()
+
+                send_order_email(order, request.user)
+                send_invoice_email(order, request.user)
 
                 # Clear the cart after successful payment
                 user = request.user if request.user.is_authenticated else None
@@ -706,3 +715,43 @@ def auction_confirm(request, pk):
     #     return response
 
     return redirect("auction")
+
+
+def send_order_email(order, user):
+    subject = f"Order Confirmation - #{order.id}"
+    html_message = render_to_string("emails/order_confirmation_email.html", {"order": order, "user": user})
+    plain_message = strip_tags(html_message)
+    from_email = settings.DEFAULT_FROM_EMAIL
+    to_email = [user.email]
+
+    send_mail(subject, plain_message, from_email, to_email, html_message=html_message)
+
+def send_invoice_email(order, user):
+    html = render_to_string('emails/invoice.html', {'order': order})
+    pdf_file = BytesIO()
+    HTML(string=html).write_pdf(pdf_file)
+
+    email = EmailMessage(
+        subject=f"Invoice for Order #{order.id}",
+        body="Please find your invoice attached.",
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email]
+    )
+    email.attach(f"invoice_{order.id}.pdf", pdf_file.getvalue(), 'application/pdf')
+    email.send()
+
+
+
+def send_invoice_email(order, user):
+    html = render_to_string('emails/invoice.html', {'order': order, 'user': user})
+    pdf_file = BytesIO()
+    HTML(string=html).write_pdf(pdf_file)
+
+    email = EmailMessage(
+        subject=f"Invoice for Order #{order.id}",
+        body=f"Dear {user.first_name},\n\nAttached is the invoice for your recent order #{order.id}.",
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email]
+    )
+    email.attach(f"invoice_{order.id}.pdf", pdf_file.getvalue(), 'application/pdf')
+    email.send()

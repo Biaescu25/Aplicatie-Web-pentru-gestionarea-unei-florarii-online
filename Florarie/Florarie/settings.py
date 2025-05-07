@@ -141,3 +141,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STRIPE_PUBLIC_KEY = "pk_test_51R8NtNRsvYugeMjUdh0qycRIsQ6qcSW2dfu2eZQiPpJ4Jf4k0xZf6AWkIkg1aNxnlC8mVDFlu9LribT35lEW2oIw00uXLxKHes"
 STRIPE_SECRET_KEY = "sk_test_51R8NtNRsvYugeMjUgWdFox6ISPvTdWIRorWAeeoT7IK6mQHVMntQpUHe4zvCfkLoFmbn788cKDDzLOXQKJJmSjQv00ovGzRovX"
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'biancaenculescu@gmail.com'
+EMAIL_HOST_PASSWORD = 'mqlx atie aixu rtsk'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
