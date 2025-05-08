@@ -47,6 +47,17 @@ class CustomBouquetAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'shape', 'wrapping', 'created_at', 'related_flowers')
     readonly_fields = ('related_flowers',)  # Display related flowers in the detail view
 
+
+from django.contrib import admin
+from .models import ContactMessage
+
+
+class ContactMessageAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'submitted_at')
+    readonly_fields = ('name', 'email', 'message', 'submitted_at')
+
+
+admin.site.site_header = "Florarie Admin"
 admin.site.register(Product, ProductAdmin)
 admin.site.register(CartItem)
 admin.site.register(Order, OrderAdmin)
@@ -55,5 +66,6 @@ admin.site.register(BouquetShape)
 admin.site.register(Greenery)
 admin.site.register(WrappingPaper)
 admin.site.register(CustomBouquet, CustomBouquetAdmin)   
+admin.site.register(ContactMessage)
 
 # admin.site.register(User)

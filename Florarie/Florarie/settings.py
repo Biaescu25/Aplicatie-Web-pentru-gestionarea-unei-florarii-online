@@ -143,7 +143,10 @@ STRIPE_PUBLIC_KEY = "pk_test_51R8NtNRsvYugeMjUdh0qycRIsQ6qcSW2dfu2eZQiPpJ4Jf4k0x
 STRIPE_SECRET_KEY = "sk_test_51R8NtNRsvYugeMjUgWdFox6ISPvTdWIRorWAeeoT7IK6mQHVMntQpUHe4zvCfkLoFmbn788cKDDzLOXQKJJmSjQv00ovGzRovX"
 
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' #for prod
+
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' #for dev
+
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True

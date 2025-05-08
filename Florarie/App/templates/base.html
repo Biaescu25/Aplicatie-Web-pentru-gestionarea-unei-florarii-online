@@ -62,14 +62,31 @@
 
 </style>
 
-<body class="bg-gray font-serif">
+<body class="bg-gray font-serif min-h-screen flex flex-col">
 
     <!-- Navbar -->
     {% include 'partials/navbar.html' %}  
-    {% block content %}
-    {% endblock %}
+
+    <!-- Main Content -->
+    <main class="flex-grow">
+        {% block content %}
+        {% endblock %}
+    </main>
     
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4 flex justify-between">
+            <p>&copy; 2025 Your Flower Shop. All rights reserved.</p>
+            <div>
+                <a href="#" class="text-gray-400 mx-2">Facebook</a>
+                <a href="#" class="text-gray-400 mx-2">Instagram</a>
+                <a href="#" class="text-gray-400 mx-2">Twitter</a>
+            </div>
+        </div>
+    </footer>
+
 </body>
+
 <meta name="stripe-key" content="{{ stripe_public_key }}">
 
 <script src="https://js.stripe.com/v3/"></script>

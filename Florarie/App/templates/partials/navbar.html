@@ -20,7 +20,7 @@
 
         <!-- Logo in the Center -->
         <div id="logo" class="absolute left-1/2 transform -translate-x-1/2 top-4 z-50 transition-all duration-300 ease-in-out -translate-y-7">
-            <a href="/" class="block w-32 h-32 bg-black rounded-full flex items-center justify-center shadow-lg">
+            <a href="/" class=" w-32 h-32 bg-black rounded-full flex items-center justify-center shadow-lg">
                 <img src="/static/Logo.png" alt="Flower Shop Logo" class="w-28 h-28 rounded-full object-cover transition-all duration-300 ease-in-out" id="logo-img">
             </a>
         </div>
@@ -29,8 +29,11 @@
         <div class="flex items-center">
             <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700">
                 <a href="{% url 'products_by_category' category='cadouri' %}" class="hover:text-gray-900">Cadouri</a>
-                <a href="#" class="hover:text-gray-900">Despre noi</a>
+                <a href="{% url 'contact' %}" class="hover:text-gray-900">Contact</a>
                 <a href="{% url 'custom_bouquet_builder' %}" class="hover:text-gray-900">Make your own</a>
+                {% if user.is_authenticated and user.is_staff %}
+                    <a href="/admin/" class="hover:text-gray-900">Admin</a>
+                {% endif %}
             </div>
             <div class="flex items-center space-x-4 ml-2">
                 <!-- <a href="/cart/" id="cart-btn" class="relative" hx-get="/cart/" hx-target="#cart-items" hx-trigger="click" hx-swap="innerHTML"> -->
@@ -45,8 +48,11 @@
 
             <div class="flex items-center space-x-4 ml-2">
                 {% if user.is_authenticated %}
-                    <a href="{% url 'logout' %}" class="text-xl hover:text-gray-700">
-                        <img src="/static/logout.png" class="h-7"> </a>
+                    <a href="{% url 'logout' %}" 
+                       class="text-xl hover:text-gray-700" 
+                       onclick="return confirm('Are you sure you want to log out?');">
+                        <img src="/static/logout.png" class="h-7">
+                    </a>
                     <span class="text-gray-700 text-sm"> <a href="{% url 'profile' %}">{{ user.username }}</a></span>
                 {% else %}
                     <a href="/login_page/" class="text-xl hover:text-gray-700"> 👤 </a>

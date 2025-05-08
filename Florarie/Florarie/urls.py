@@ -22,7 +22,7 @@ from App.views import home, cart_view, add_to_cart, remove_from_cart, update_car
 from App.views import increment_quantity, decrement_quantity, get_total_price, register_partial, login_partial,register, user_login, user_logout
 from App.views import checkout, product_detail, profile, order_detail, order_history, checkout_step_1, checkout_step_2, checkout_step_3
 from App.views import create_custom_bouquet, custom_bouquet_builder, save_custom_bouquet
-from App.views import auction_view, auction_price_partial, auction_confirm_popup, auction_confirm
+from App.views import auction_view, auction_price_partial, auction_confirm_popup, auction_confirm, contact_view
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -60,6 +60,7 @@ urlpatterns = [
     path("auction/price/<int:pk>/", auction_price_partial, name="auction_price_partial"),
     path("auction_confirm_popup/<int:pk>/", auction_confirm_popup, name="auction_confirm_popup"),
     path("auction_confirm/<int:pk>/", auction_confirm, name="auction_confirm"),
+    path("contact/", contact_view, name="contact"),
 ]
 
 

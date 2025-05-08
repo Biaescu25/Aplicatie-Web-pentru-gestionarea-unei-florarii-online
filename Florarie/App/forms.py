@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-
+from .models import ContactMessage
 from .models import Product
 
 class ProductForm(forms.ModelForm):
@@ -19,3 +19,9 @@ class UserForm(forms.ModelForm):
                 field.widget.attrs.update({
                     'class': 'mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2'
                 })
+
+
+class ContactForm(forms.ModelForm):
+    class Meta:
+        model = ContactMessage
+        fields = ['name', 'email', 'message']
