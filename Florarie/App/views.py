@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponseBadRequest
-from .models import Product, CartItem, Order, Payment, OrderItem
+from .models import ContactMessage, Product, CartItem, Order, Payment, OrderItem
 from .models import BouquetShape, Flower, Greenery, WrappingPaper, CustomBouquet, BouquetFlower
 from django.contrib.auth.decorators import login_required
 from django.template.loader import render_to_string
@@ -716,7 +716,6 @@ def auction_confirm(request, pk):
     return redirect("auction")
 
 
-
 def send_order_email(order, user):
     subject = f"Order Confirmation - #{order.id}"
     html_message = render_to_string("emails/order_confirmation_email.html", {"order": order, "user": user})
@@ -740,12 +739,15 @@ def send_order_email(order, user):
     email.send()
 
 
+from django.utils import timezone
 
 def contact_view(request):
     form = ContactForm(request.POST or None)
 
     if form.is_valid():
-        contact_message = form.save()
+        contact_message = form.save(commit=False)
+        contact_message.submitted_at = timezone.now()
+        contact_message.save()
 
         # Send email to business
         subject = f"New Contact Message from {contact_message.name}"
@@ -764,3 +766,8 @@ def contact_view(request):
         return redirect('contact_success')
 
     return render(request, 'contact.html', {'form': form})
+
+
+def contact_success(request):
+
+    return render(request, 'contact_success.html')

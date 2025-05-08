@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from .forms import ProductForm
-from .models import Product, CartItem, Order, Flower, BouquetShape, Greenery, WrappingPaper, CustomBouquet
+from .models import Product, CartItem, Order, Flower, BouquetShape, Greenery, WrappingPaper, CustomBouquet, ContactMessage
 
 class ProductAdmin(admin.ModelAdmin):
     form = ProductForm
@@ -46,10 +46,6 @@ class OrderAdmin(admin.ModelAdmin):
 class CustomBouquetAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'shape', 'wrapping', 'created_at', 'related_flowers')
     readonly_fields = ('related_flowers',)  # Display related flowers in the detail view
-
-
-from django.contrib import admin
-from .models import ContactMessage
 
 
 class ContactMessageAdmin(admin.ModelAdmin):
