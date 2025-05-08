@@ -49,7 +49,7 @@ class CustomBouquetAdmin(admin.ModelAdmin):
 
 
 class ContactMessageAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'submitted_at')
+    #list_display = ('name', 'email', 'submitted_at')
     readonly_fields = ('name', 'email', 'message', 'submitted_at')
 
 
@@ -62,6 +62,6 @@ admin.site.register(BouquetShape)
 admin.site.register(Greenery)
 admin.site.register(WrappingPaper)
 admin.site.register(CustomBouquet, CustomBouquetAdmin)   
-admin.site.register(ContactMessage)
+admin.site.register(ContactMessage, ContactMessageAdmin)
 
 # admin.site.register(User)
