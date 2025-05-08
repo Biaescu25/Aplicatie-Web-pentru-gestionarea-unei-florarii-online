@@ -27,12 +27,22 @@ from django.utils.html import strip_tags
 from django.core.mail import EmailMessage
 from weasyprint import HTML
 from io import BytesIO
-
+from django.db.models import Q
 
 def home(request):
-    products = Product.objects.all()
+    all_products = Product.objects.all().order_by('-number_of_purcheses', '-created_at')
+
+    # Filter manually using a loop
+    top_products = []
+    for product in all_products:
+        if not product.is_custom and not product.in_store:
+            top_products.append(product)
+        if len(top_products) == 3:
+            break
+
     cart_product_ids = get_cart_items(request).values_list('product_id', flat=True)
-    return render(request, "home.html", {'products': products, 'cart_product_ids': cart_product_ids})
+
+    return render(request, "home.html", {'products': top_products, 'cart_product_ids': cart_product_ids})
 
 def cart_view(request):
     if request.user.is_authenticated:
@@ -490,6 +500,11 @@ def checkout_step_3(request):
                 user = request.user if request.user.is_authenticated else None
                 session_id = request.session.session_key
                 cart_items = CartItem.objects.filter(user=user) if user else CartItem.objects.filter(session_id=session_id)
+
+                for item in cart_items:
+                    item.product.number_of_purcheses += item.quantity
+                    item.product.save()
+
                 cart_items.delete()
 
             except Order.DoesNotExist:

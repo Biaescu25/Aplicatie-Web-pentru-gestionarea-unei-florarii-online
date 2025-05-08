@@ -43,9 +43,7 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, null=False, blank=False)
 
     is_custom = models.BooleanField(default=False)
-    #custom_bouquet = models.OneToOneField("CustomBouquet", on_delete=models.CASCADE, null=True, blank=True, related_name="linked_product")  # Add related_name to avoid conflict
-
-    # NEW FIELDS
+ 
     in_store = models.BooleanField(default=False)
     auction_manual = models.BooleanField(default=False)
     auction_start_time = models.DateTimeField(null=True, blank=True)
@@ -56,6 +54,8 @@ class Product(models.Model):
     before_auction_price = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False, default=0.00)  # Store the price before auction
     bid_submited = models.BooleanField(default=False)  # Track if a bid has been submitted
 
+    number_of_purcheses = models.PositiveIntegerField(default=0)  # Track the number of purchases
+    
     def clean(self):
         if self.in_store:
             if not self.auction_start_time:

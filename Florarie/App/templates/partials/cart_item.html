@@ -11,9 +11,11 @@
             </a>
             {% endif %}
         </div>
-        <div class="center" style="flex: 1; max-width: 200px; text-align: left;">
-            <p class="card-text truncate">{{ cart_item.product.name }}</p>
+        <div class="center" style="flex: 1; max-width: 200px; text-align: left; padding-right: 10px;">
+            <p class="card-text font-medium truncate" style="margin: 0;">{{ cart_item.product.name }}</p>
+            <p class="card-text font-medium" style="margin: 0;">{{ cart_item.product.price }} LEI</p>
         </div>
+
         <div class="flex items-center space-x-2">
 
             {% if not cart_item.product.bid_submited %}

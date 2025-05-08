@@ -2,176 +2,173 @@
 
 {% block content %}
 
-    <!-- Hero Section (Fixed and Full-Width) -->
-    <section class="relative bg-cover bg-center w-full h-screen z-10">
-        <!-- Carousel Container -->
-        <div class="carousel w-full h-full">
-            <!-- Glass Rectangle -->
-            <div id="glass-rectangle" class="glass"></div>
-            <!-- Slide 1 -->
-            <div id="slide1" class="carousel-item w-full h-full hidden">
-                <img src="/static/banner1.jpg" class="w-full h-full object-cover" alt="Flower Banner 1">
-                <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
-                    <a href="#slide3" class="btn btn-circle">❮</a>
-                    <a href="#slide2" class="btn btn-circle">❯</a>
+<!-- Hero Section (Fixed and Full-Width) -->
+<section class="relative bg-cover bg-center w-full h-screen z-10">
+    <!-- Carousel Container -->
+    <div class="carousel w-full h-full">
+        <!-- Glass Rectangle -->
+        <div id="glass-rectangle" class="glass"></div>
+        <!-- Slide 1 -->
+        <div id="slide1" class="carousel-item w-full h-full hidden">
+            <img src="/static/banner1.jpg" class="w-full h-full object-cover" alt="Flower Banner 1">
+            <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
+                <a href="#slide3" class="btn btn-circle">❮</a>
+                <a href="#slide2" class="btn btn-circle">❯</a>
+            </div>
+        </div>
+
+        <!-- Slide 2 -->
+        <div id="slide2" class="carousel-item w-full h-full hidden">
+            <img src="/static/banner2.jpg" class="w-full h-full object-cover" alt="Flower Banner 2">
+            <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
+                <a href="#slide1" class="btn btn-circle">❮</a>
+                <a href="#slide3" class="btn btn-circle">❯</a>
+            </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div id="slide3" class="carousel-item w-full h-full hidden">
+            <img src="/static/banner3.jpg" class="w-full h-full object-cover" alt="Flower Banner 3">
+            <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
+                <a href="#slide2" class="btn btn-circle">❮</a>
+                <a href="#slide1" class="btn btn-circle">❯</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="container mx-auto px-4 pb-4 pt-16">
+    <div class="text-center mb-10 opacity-0 transform translate-y-10 transition-all duration-1000 ease-out" id="welcome-section">
+        <h2 class="text-8xl font-dancing text-gray-900 text-center mb-6">
+            <span class="font-dancing">Welcome to Flower Joy</span>
+        </h2>
+        <h2 class="text-3xl font-bold text-center mt-12">Best-Sellers</h2>
+    </div>
+</section>
+
+<!-- Product Showcase -->
+
+{% include 'partials/ProductShowcase.html'%}
+
+<!-- About Us -->
+<section class="bg-gray-300 py-16">
+    <div class="container mx-auto px-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column -->
+            <div class="col-span-1 text-center">
+                <h1 class="text-4xl font-bold mb-6">Despre noi</h1>
+                <div class="about-section">
+                    <img class="mx-auto mb-4 w-32 h-32 rounded-full object-cover" src="/static/Logo.png" alt="Despre noi">
+                    <p class="text-lg font-semibold">Bine ati venit!</p>
+                    <p class="mt-4 transition duration-300 transform hover:scale-110">
+                        Vreti sa luminati ziua cuiva? Ofera-i un buchet frumos! La FlowerJoy, avem o selectie mare de flori si aranjamente realizate cu pasiune si mult suflet, pentru fiecare ocazie. Florile noastre provin direct din Olanda si ne permit sa oferim zilnic selectii proaspete si superbe. Vizitati site-ul nostru si vedeti ce avem de oferit!
+                    </p>
+                    <a class="btn btn-primary mt-6 px-6 py-3 rounded-full shadow-lg
+                            hover:bg-blue-700 transition duration-300 ease-in-out transform hover:scale-105" 
+                            href="contact" title="Vezi detalii">Vezi detalii</a>
                 </div>
             </div>
 
-            <!-- Slide 2 -->
-            <div id="slide2" class="carousel-item w-full h-full hidden">
-                <img src="/static/banner2.jpg" class="w-full h-full object-cover" alt="Flower Banner 2">
-                <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
-                    <a href="#slide1" class="btn btn-circle">❮</a>
-                    <a href="#slide3" class="btn btn-circle">❯</a>
+            <!-- Right Column -->
+            <div class="col-span-2 grid grid-cols-2 gap-6">
+                <!-- First Image -->
+                <div class="about-img opacity-0 transform translate-y-10 transition-all duration-1000 ease-out" id="aranjamente-section">
+                    <figure>
+                        <h3 class="text-xl font-bold mb-2"><a href="{% url 'products_by_category' category='aranjamente' %}" title="Aranjamente">Aranjamente</a></h3>
+                        <a href="{% url 'products_by_category' category='aranjamente' %}" title="Aranjamente">
+                            <div class="overflow-hidden border-white border-4">
+                                <img 
+                                    class="shadow-lg brightness-50 hover:brightness-100 transition duration-300 transform hover:scale-110" 
+                                    src="static\media\Pictures\Aranjament-Floral-Cu-Flori-In-Culori-Deschise.jpg" 
+                                    alt="Aranjamente"
+                                />
+                            </div>
+                        </a>
+                    </figure>
                 </div>
-            </div>
-
-            <!-- Slide 3 -->
-            <div id="slide3" class="carousel-item w-full h-full hidden">
-                <img src="/static/banner3.jpg" class="w-full h-full object-cover" alt="Flower Banner 3">
-                <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
-                    <a href="#slide2" class="btn btn-circle">❮</a>
-                    <a href="#slide1" class="btn btn-circle">❯</a>
+                <!-- Second Image -->
+                <div class="about-img flex items-center justify-center opacity-0 transform translate-y-10 transition-all duration-1000 ease-out" id="buchete-section">
+                    <figure>
+                        <h3 class="text-xl font-bold mb-2"><a href="{% url 'products_by_category' category='buchete' %}" title="Buchete">Buchete</a></h3>
+                        <a href="{% url 'products_by_category' category='buchete' %}" title="Buchete" class="relative -left-20">
+                            <div class="overflow-hidden border-white border-4">
+                                <img 
+                                    class="shadow-lg brightness-50 hover:brightness-100 transition duration-300 transform hover:scale-110"  
+                                    src="/static/banner3.jpg" 
+                                    alt="Buchete">
+                            </div>
+                        </a>
+                    </figure>
                 </div>
             </div>
         </div>
-    </section>
-
-    <section class="container mx-auto px-4 pb-4 pt-16">
-        <!-- First Text Block -->
-        <div class="text-center mb-10 opacity-0 transform translate-y-10 transition-all duration-1000 ease-out" id="welcome-section">
-            <h2 class="text-8xl font-dancing text-gray-900 text-center">
-                <span class="font-dancing">Welcome to Flower Joy</span>
-            </h2>
-
-            <h2 class="text-3xl font-bold text-center">Best-Sellers</h2>
-        </div>
-
-    </section>
-
-    <!-- Product Showcase -->
-    
-    {% include 'partials/ProductShowcase.html'%}
-
-    <!-- About Us -->
-    <section class="bg-gray-300 py-16">
-        <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- Left Column -->
-                <div class="col-span-1 text-center">
-                    <h1 class="text-4xl font-bold mb-6">Despre noi</h1>
-                    <div class="about-section">
-                        <img class="mx-auto mb-4 w-32 h-32 rounded-full object-cover" src="/static/Logo.png" alt="Despre noi">
-                        <p class="text-lg font-semibold">Bine ati venit!</p>
-                        <p class="mt-4">
-                            Vreti sa luminati ziua cuiva? Ofera-i un buchet frumos! La Flower Shop Sibiu, avem o selectie mare de flori si aranjamente realizate cu pasiune si mult suflet, pentru fiecare ocazie. Florile noastre provin direct din Olanda si ne permit sa oferim zilnic selectii proaspete si superbe. Vizitati site-ul nostru si vedeti ce avem de oferit!
-                        </p>
-                        <a class="btn btn-primary mt-6 px-6 py-3 rounded-full shadow-lg
-                             hover:bg-blue-700 transition duration-300 ease-in-out transform hover:scale-105" 
-                             href="contact" title="Vezi detalii">Vezi detalii</a>
-                    </div>
-                </div>
-
-                <!-- Right Column -->
-                <div class="col-span-2 grid grid-cols-2 gap-6">
-                    <!-- First Image -->
-                    <div class="about-img opacity-0 transform translate-y-10 transition-all duration-1000 ease-out" id="aranjamente-section">
-                        <figure>
-                            <h3 class="text-xl font-bold mb-2"><a href="{% url 'products_by_category' category='aranjamente' %}" title="Aranjamente">Aranjamente</a></h3>
-                            <a href="{% url 'products_by_category' category='aranjamente' %}" title="Aranjamente">
-                                <div class="overflow-hidden border-white border-4">
-                                    <img 
-                                        class="shadow-lg brightness-50 hover:brightness-100 transition duration-300 transform hover:scale-110" 
-                                        src="static\media\Pictures\Aranjament-Floral-Cu-Flori-In-Culori-Deschise.jpg" 
-                                        alt="Aranjamente"
-                                    />
-                                </div>
-                            </a>
-                        </figure>
-                    </div>
-                    <!-- Second Image -->
-                    <div class="about-img flex items-center justify-center opacity-0 transform translate-y-10 transition-all duration-1000 ease-out" id="buchete-section">
-                        <figure>
-                            <h3 class="text-xl font-bold mb-2"><a href="{% url 'products_by_category' category='buchete' %}" title="Buchete">Buchete</a></h3>
-                            <a href="{% url 'products_by_category' category='buchete' %}" title="Buchete" class="relative -left-20">
-                                <div class="overflow-hidden border-white border-4">
-                                    <img 
-                                        class="shadow-lg brightness-50 hover:brightness-100 transition duration-300 transform hover:scale-110"  
-                                        src="/static/banner3.jpg" 
-                                        alt="Buchete">
-                                </div>
-                            </a>
-                        </figure>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+    </div>
+</section>
 
 
-    <script> 
-        // Manual Carousel Logic
-        const slides = document.querySelectorAll('.carousel-item');
-        const prevBtns = document.querySelectorAll('.btn-circle');
-        const glassRectangle = document.getElementById('glass-rectangle');
-        let currentIndex = 0;
+<script> 
+    // Manual Carousel Logic
+    const slides = document.querySelectorAll('.carousel-item');
+    const prevBtns = document.querySelectorAll('.btn-circle');
+    const glassRectangle = document.getElementById('glass-rectangle');
+    let currentIndex = 0;
 
-        // Function to show only the active slide
-        function updateCarousel(index) {
-            slides.forEach((slide, i) => {
-                slide.classList.add('hidden'); // Hide all slides
-                if (i === index) slide.classList.remove('hidden'); // Show the current slide
-            });
-            glassRectangle.classList.add('active');
-        }
-
-        // Initial carousel setup
-        updateCarousel(currentIndex);
-
-        // Event listeners for the navigation buttons
-        prevBtns.forEach((btn) => {
-            btn.addEventListener('click', (e) => {
-                glassRectangle.classList.remove('active');
-                setTimeout(() => {
-                    if (e.target.textContent === "❮") {
-                        currentIndex = (currentIndex - 1 + slides.length) % slides.length; // Go to previous slide
-                    } else {
-                        currentIndex = (currentIndex + 1) % slides.length; // Go to next slide
-                    }
-                    updateCarousel(currentIndex);
-                }, 500);
-            });
+    // Function to show only the active slide
+    function updateCarousel(index) {
+        slides.forEach((slide, i) => {
+            slide.classList.add('hidden'); // Hide all slides
+            if (i === index) slide.classList.remove('hidden'); // Show the current slide
         });
+        glassRectangle.classList.add('active');
+    }
 
-        // Scroll animation for the welcome section
-        const welcomeSection = document.getElementById('welcome-section');
-        window.addEventListener('scroll', () => {
-            const sectionTop = welcomeSection.getBoundingClientRect().top;
-            const windowHeight = window.innerHeight;
+    // Initial carousel setup
+    updateCarousel(currentIndex);
+
+    // Event listeners for the navigation buttons
+    prevBtns.forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            glassRectangle.classList.remove('active');
+            setTimeout(() => {
+                if (e.target.textContent === "❮") {
+                    currentIndex = (currentIndex - 1 + slides.length) % slides.length; // Go to previous slide
+                } else {
+                    currentIndex = (currentIndex + 1) % slides.length; // Go to next slide
+                }
+                updateCarousel(currentIndex);
+            }, 500);
+        });
+    });
+
+    // Scroll animation for the welcome section
+    const welcomeSection = document.getElementById('welcome-section');
+    window.addEventListener('scroll', () => {
+        const sectionTop = welcomeSection.getBoundingClientRect().top;
+        const windowHeight = window.innerHeight;
+
+        if (sectionTop < windowHeight - 100) { // Trigger animation when section is in view
+            welcomeSection.classList.remove('opacity-0', 'translate-y-10');
+            welcomeSection.classList.add('opacity-100', 'translate-y-0');
+        }
+    });
+
+    // Scroll animation for the right column sections
+    const aranjamenteSection = document.getElementById('aranjamente-section');
+    const bucheteSection = document.getElementById('buchete-section');
+
+    window.addEventListener('scroll', () => {
+        const windowHeight = window.innerHeight;
+
+        [aranjamenteSection, bucheteSection].forEach((section) => {
+            const sectionTop = section.getBoundingClientRect().top;
 
             if (sectionTop < windowHeight - 100) { // Trigger animation when section is in view
-                welcomeSection.classList.remove('opacity-0', 'translate-y-10');
-                welcomeSection.classList.add('opacity-100', 'translate-y-0');
+                section.classList.remove('opacity-0', 'translate-y-10');
+                section.classList.add('opacity-100', 'translate-y-0');
             }
         });
+    });
 
-        // Scroll animation for the right column sections
-        const aranjamenteSection = document.getElementById('aranjamente-section');
-        const bucheteSection = document.getElementById('buchete-section');
-
-        window.addEventListener('scroll', () => {
-            const windowHeight = window.innerHeight;
-
-            [aranjamenteSection, bucheteSection].forEach((section) => {
-                const sectionTop = section.getBoundingClientRect().top;
-
-                if (sectionTop < windowHeight - 100) { // Trigger animation when section is in view
-                    section.classList.remove('opacity-0', 'translate-y-10');
-                    section.classList.add('opacity-100', 'translate-y-0');
-                }
-            });
-        });
-  
-    </script>
+</script>
 
 {% endblock %}

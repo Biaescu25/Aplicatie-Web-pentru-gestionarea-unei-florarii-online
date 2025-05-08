@@ -6,7 +6,7 @@ from .models import Product, CartItem, Order, Flower, BouquetShape, Greenery, Wr
 
 class ProductAdmin(admin.ModelAdmin):
     form = ProductForm
-    list_display = ('name', 'price', 'in_store', 'bid_submited', 'delete_link')
+    list_display = ('name', 'price', 'in_store', 'bid_submited', 'number_of_purcheses', 'delete_link')
     list_filter = ('bid_submited', 'in_store', 'is_custom')
     readonly_fields = ('is_custom', 'before_auction_price', 'bid_submited')  # Only truly readonly ones
 
