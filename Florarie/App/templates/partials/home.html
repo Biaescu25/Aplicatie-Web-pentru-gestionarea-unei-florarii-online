@@ -112,6 +112,7 @@
     const prevBtns = document.querySelectorAll('.btn-circle');
     const glassRectangle = document.getElementById('glass-rectangle');
     let currentIndex = 0;
+    let autoSlideInterval;
 
     // Function to show only the active slide
     function updateCarousel(index) {
@@ -125,6 +126,26 @@
     // Initial carousel setup
     updateCarousel(currentIndex);
 
+    // Function to automatically change slides every 5 seconds
+    function startAutoSlide() {
+        autoSlideInterval = setInterval(() => {
+            glassRectangle.classList.remove('active');
+            setTimeout(() => {
+                currentIndex = (currentIndex + 1) % slides.length; // Go to the next slide
+                updateCarousel(currentIndex);
+            }, 500);
+        }, 5000); // 5 seconds interval
+    }
+
+    // Function to reset the auto-slide timer
+    function resetAutoSlide() {
+        clearInterval(autoSlideInterval); // Clear the existing interval
+        startAutoSlide(); // Restart the auto-slide
+    }
+
+    // Start the automatic slide change
+    startAutoSlide();
+
     // Event listeners for the navigation buttons
     prevBtns.forEach((btn) => {
         btn.addEventListener('click', (e) => {
@@ -136,6 +157,7 @@
                     currentIndex = (currentIndex + 1) % slides.length; // Go to next slide
                 }
                 updateCarousel(currentIndex);
+                resetAutoSlide(); // Reset the timer after manual use
             }, 500);
         });
     });
