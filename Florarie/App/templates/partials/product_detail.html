@@ -18,7 +18,7 @@
                       hx-post="{% url 'add_to_cart' product.id %}" 
                       class="mt-4">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-primary w-32">Add to Cart</button>
+                    <button type="submit" class="btn btn-primary w-32 hover:bg-blue-700 transition duration-300 ease-in-out transform hover:scale-105">Add to Cart</button>
                 </form>
                 {% else %}
                 <a href="/cart/" id="cart-btn" class="btn btn-success mt-2">
