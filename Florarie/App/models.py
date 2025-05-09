@@ -30,8 +30,9 @@ class Product(models.Model):
     category = models.CharField(
         max_length=100,
         choices=[
-            ("Flowers", "Flowers"),
-            ("Bouquets", "Bouquets"),
+            ("buchete", "buchete"),
+            ("plante", "plante"),
+            ("aranjamente", "aranjamente"),
             ("Accessories", "Accessories"),
             ("Gifts", "Gifts"),
             ("CustomBouquet", "CustomBouquet"),
@@ -55,7 +56,7 @@ class Product(models.Model):
     bid_submited = models.BooleanField(default=False)  # Track if a bid has been submitted
 
     number_of_purcheses = models.PositiveIntegerField(default=0)  # Track the number of purchases
-    
+
     def clean(self):
         if self.in_store:
             if not self.auction_start_time:

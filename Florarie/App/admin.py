@@ -4,19 +4,22 @@ from django.urls import reverse
 from .forms import ProductForm
 from .models import Product, CartItem, Order, Flower, BouquetShape, Greenery, WrappingPaper, CustomBouquet, ContactMessage
 
+from django.utils.html import format_html
+
 class ProductAdmin(admin.ModelAdmin):
     form = ProductForm
     list_display = ('name', 'price', 'in_store', 'bid_submited', 'number_of_purcheses', 'delete_link')
     list_filter = ('bid_submited', 'in_store', 'is_custom')
-    readonly_fields = ('is_custom', 'before_auction_price', 'bid_submited')  # Only truly readonly ones
+    readonly_fields = ('is_custom', 'before_auction_price', 'bid_submited')  # Include image here too
 
     class Media:
-        js = ('admin/js/hide_auction_fields.js',)  
-        
+        js = ('admin/js/admin.js',)  
+ 
     def delete_link(self, obj):
         url = reverse('admin:App_product_delete', args=[obj.pk])
         return format_html('<a class="button" href="{}">Delete</a>', url)
     delete_link.short_description = 'Delete'
+
 
 
 class OrderAdmin(admin.ModelAdmin):

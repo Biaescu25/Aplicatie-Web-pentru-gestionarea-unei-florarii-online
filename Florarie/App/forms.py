@@ -3,10 +3,24 @@ from django.contrib.auth.models import User
 from .models import ContactMessage
 from .models import Product
 
+
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = '__all__'  # or explicitly list all fields you need
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.instance and self.instance.pk and self.instance.image:
+            self.fields['image'].widget.attrs.update({
+                'onchange': "previewImage(this)",
+            })
+
+            self.fields['image'].help_text = (
+                f'<img id="image-preview" src="{self.instance.image.url}" '
+                f'style="max-height: 150px; margin-top: 10px; object-fit: cover;" />'
+            )
 
 class UserForm(forms.ModelForm):
     class Meta:
