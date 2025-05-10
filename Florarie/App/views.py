@@ -19,7 +19,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
 from django.templatetags.static import static  # Import the static function
 from django.shortcuts import render
-from .models import Product
 from datetime import timedelta
 from django.utils import timezone
 from django.core.mail import send_mail
@@ -28,6 +27,8 @@ from django.core.mail import EmailMessage
 from weasyprint import HTML
 from io import BytesIO
 from django.db.models import Q
+from django.http import HttpRequest
+
 
 def home(request):
     all_products = Product.objects.all().order_by('-number_of_purcheses', '-created_at')
@@ -188,21 +189,21 @@ def decrement_quantity(request, product_id):
 
     return redirect("cart")
 
-def products_by_category(request, category):
-    
+
+def products_by_category(request: HttpRequest, category):
     products = Product.objects.filter(category=category)
 
-    # Get the smallest and largest price
-    smallest_price = products.order_by('price').first().price if products.exists() else None
-    largest_price = products.order_by('-price').first().price if products.exists() else None
+    # Determine smallest and largest prices
+    smallest_price = products.order_by('price').first().price if products.exists() else 0
+    largest_price = products.order_by('-price').first().price if products.exists() else 0
 
-    # Price range filter
+    # Apply price range filter
     min_price = request.GET.get('min_price')
     max_price = request.GET.get('max_price')
     if min_price and max_price:
         products = products.filter(price__gte=min_price, price__lte=max_price)
 
-    # Sort filter
+    # Apply sorting
     sort_order = request.GET.get('sort', 'asc')
     if sort_order == 'asc':
         products = products.order_by('price')
@@ -210,16 +211,23 @@ def products_by_category(request, category):
         products = products.order_by('-price')
 
     cart_product_ids = get_cart_items(request).values_list('product_id', flat=True)
+
     context = {
         'products': products,
         'category': category,
         'sort_order': sort_order,
         'smallest_price': smallest_price,
         'largest_price': largest_price,
-        'sort_order': sort_order,
         'cart_product_ids': cart_product_ids
     }
-    return render(request, "products_by_category.html", context)
+
+    if request.headers.get('HX-Request'):
+        # Return only the product showcase partial for HTMX requests
+        return render(request, 'partials/ProductShowcase.html', context)
+    else:
+        # Return the full page for standard requests
+        return render(request, 'products_by_category.html', context)
+
 
 def get_total_price(request):
     total_price = sum(item.total_price() for item in CartItem.objects.filter(user=request.user))

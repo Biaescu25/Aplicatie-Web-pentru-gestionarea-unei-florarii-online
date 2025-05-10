@@ -9,7 +9,7 @@
 </section>  
 
 <section class="container mx-auto mt-10 px-4 py-8">
-    <form method="get" class="text-center mb-8">
+    <form method="get" class="text-center mb-8" hx-get="{% url 'products_by_category' category=category %}" hx-target="#productShowcase" hx-swap="innerHTML">
         <div class="flex items-center justify-center mb-6 space-x-4">
             <div class="w-[400px] bg-white">
             <div class="relative mt-4 slider-container">
@@ -33,7 +33,11 @@
 
             <div>
             <label for="sort" class="mr-2">Ordonare preț:</label>
-            <select name="sort" id="sort" class="border rounded p-2" onchange="this.form.submit()">
+            <select name="sort" id="sort" class="border rounded p-2"
+                    hx-get="{% url 'products_by_category' category=category %}"
+                    hx-target="#productShowcase"
+                    hx-include="closest form"
+                    hx-trigger="change">
                 <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Crescător</option>
                 <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Descrescător</option>
             </select>
@@ -42,14 +46,16 @@
         <hr>
       </form>
 
-  
-    {% if products %}
-        {% include 'partials/ProductShowcase.html' with products=products category=category cart_product_ids=cart_product_ids %}
-    {% else %}
-        <div class="text-center text-gray-600 mt-10">
-            <p>No products found in the selected price range.</p>
-        </div>
-    {% endif %}
+      <div id="productShowcase">
+
+        {% if products %}
+            {% include 'partials/ProductShowcase.html' with products=products category=category cart_product_ids=cart_product_ids %}
+        {% else %}
+            <div class="text-center text-gray-600 mt-10">
+                <p>No products found in the selected price range.</p>
+            </div>
+        {% endif %}
+    </div>
 </section>
 
 <script>
@@ -92,18 +98,17 @@
         rangeTrack.style.width = `${maxPercent - minPercent}%`;
     }
 
-    function submitForm() {
-        const form = document.querySelector("form");
-        form.submit();
-    }
-
+    function submitFormWithHTMX() {
+    const form = document.querySelector("form");
+    htmx.trigger(form, "submit");
+}
     // Attach event listeners for input changes
     minRange.addEventListener("input", updateRange);
     maxRange.addEventListener("input", updateRange);
 
     // Submit the form only when the user releases the slider
-    minRange.addEventListener("change", submitForm);
-    maxRange.addEventListener("change", submitForm);
+    minRange.addEventListener("change", submitFormWithHTMX);
+    maxRange.addEventListener("change", submitFormWithHTMX);
 
     // Initialize the UI on load
     updateRange({ target: minRange });
