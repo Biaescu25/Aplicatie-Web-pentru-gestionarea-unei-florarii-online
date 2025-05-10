@@ -189,22 +189,34 @@ def decrement_quantity(request, product_id):
     return redirect("cart")
 
 def products_by_category(request, category):
+    
+    products = Product.objects.filter(category=category)
+
+    # Get the smallest and largest price
+    smallest_price = products.order_by('price').first().price if products.exists() else None
+    largest_price = products.order_by('-price').first().price if products.exists() else None
+
+    # Price range filter
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
+    if min_price and max_price:
+        products = products.filter(price__gte=min_price, price__lte=max_price)
+
+    # Sort filter
     sort_order = request.GET.get('sort', 'asc')
-    min_price = request.GET.get('min_price', 10)
-    max_price = request.GET.get('max_price', 400)
-    
-    if sort_order == 'desc':
-        products = Product.objects.filter(category=category, price__gte=min_price, price__lte=max_price).order_by('-price')
-    else:
-        products = Product.objects.filter(category=category, price__gte=min_price, price__lte=max_price).order_by('price')
-    
+    if sort_order == 'asc':
+        products = products.order_by('price')
+    elif sort_order == 'desc':
+        products = products.order_by('-price')
+
     cart_product_ids = get_cart_items(request).values_list('product_id', flat=True)
     context = {
         'products': products,
         'category': category,
         'sort_order': sort_order,
-        'min_price': min_price,
-        'max_price': max_price,
+        'smallest_price': smallest_price,
+        'largest_price': largest_price,
+        'sort_order': sort_order,
         'cart_product_ids': cart_product_ids
     }
     return render(request, "products_by_category.html", context)

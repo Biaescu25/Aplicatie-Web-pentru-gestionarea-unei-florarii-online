@@ -4,6 +4,7 @@
         {% for product in products %}
             {% if not product.is_custom %}
             {% if not product.in_store%}
+            
             <div class="bg-white overflow-hidden hover:shadow-lg rounded-lg h-full relative">
                 <a href="{% url 'product_detail' pk=product.id %}">
                     {% if product.is_new %}

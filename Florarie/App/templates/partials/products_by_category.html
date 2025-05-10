@@ -10,13 +10,104 @@
 
 <section class="container mx-auto mt-10 px-4 py-8">
     <form method="get" class="text-center mb-8">
-        <label for="sort" class="mr-2">Ordonare preț:</label>
-        <select name="sort" id="sort" class="border rounded p-2" onchange="this.form.submit()">
-            <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Crescător</option>
-            <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Descrescător</option>
-        </select>
-    </form>
+        <div class="flex items-center justify-center mb-6 space-x-4">
+            <div class="w-[400px] bg-white">
+            <div class="relative mt-4 slider-container">
+                <!-- Custom Range Inputs -->
+                <input type="range" id="minRange" name="min_price" min="{{ smallest_price }}" max="{{ largest_price }}"
+                   value="{{ request.GET.min_price|default:smallest_price }}" class="range-input">
+                <input type="range" id="maxRange" name="max_price" min="{{ smallest_price }}" max="{{ largest_price }}"
+                   value="{{ request.GET.max_price|default:largest_price }}" class="range-input">
+                    
+                <!-- Custom Track -->
+                <div class="relative w-full h-1 bg-gray-200 rounded-md">
+                    <div id="rangeTrack" class="absolute bg-black h-1 rounded-md"></div>
+                </div>
+            </div>
+            
+            <div class="flex justify-between mt-2 text-sm text-gray-600">
+                <span>Min: $<span id="minValue">{{ smallest_price }}</span></span>
+                <span>Max: $<span id="maxValue">{{ largest_price }}</span></span>
+            </div>
+            </div>
+
+            <div>
+            <label for="sort" class="mr-2">Ordonare preț:</label>
+            <select name="sort" id="sort" class="border rounded p-2" onchange="this.form.submit()">
+                <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Crescător</option>
+                <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Descrescător</option>
+            </select>
+            </div>
+        </div>
+        <hr>
+      </form>
+
+  
+    {% if products %}
+        {% include 'partials/ProductShowcase.html' with products=products category=category cart_product_ids=cart_product_ids %}
+    {% else %}
+        <div class="text-center text-gray-600 mt-10">
+            <p>No products found in the selected price range.</p>
+        </div>
+    {% endif %}
 </section>
 
-{% include 'partials/ProductShowcase.html' with products=products category=category cart_product_ids=cart_product_ids %}
+<script>
+    const minRange = document.getElementById("minRange");
+    const maxRange = document.getElementById("maxRange");
+    const minValueElement = document.getElementById("minValue");
+    const maxValueElement = document.getElementById("maxValue");
+    const rangeTrack = document.getElementById("rangeTrack");
+    const minGap = 10;
+
+    // Get smallest and largest prices dynamically from the HTML attributes
+    const smallestPrice = parseInt(minRange.min);
+    const largestPrice = parseInt(maxRange.max);
+
+    function updateRange(event) {
+        let min = parseInt(minRange.value);
+        let max = parseInt(maxRange.value);
+
+        // Enforce gap
+        if (max - min < minGap) {
+            if (event.target === minRange) {
+                min = max - minGap;
+                minRange.value = min;
+            } else {
+                max = min + minGap;
+                maxRange.value = max;
+            }
+        }
+
+        // Update the displayed values
+        minValueElement.innerText = min;
+        maxValueElement.innerText = max;
+
+        // Update the range track position and width
+        const rangeWidth = largestPrice - smallestPrice; // Dynamic range width
+        const minPercent = ((min - smallestPrice) / rangeWidth) * 100;
+        const maxPercent = ((max - smallestPrice) / rangeWidth) * 100;
+
+        rangeTrack.style.left = `${minPercent}%`;
+        rangeTrack.style.width = `${maxPercent - minPercent}%`;
+    }
+
+    function submitForm() {
+        const form = document.querySelector("form");
+        form.submit();
+    }
+
+    // Attach event listeners for input changes
+    minRange.addEventListener("input", updateRange);
+    maxRange.addEventListener("input", updateRange);
+
+    // Submit the form only when the user releases the slider
+    minRange.addEventListener("change", submitForm);
+    maxRange.addEventListener("change", submitForm);
+
+    // Initialize the UI on load
+    updateRange({ target: minRange });
+</script>
+
 {% endblock %}
+
