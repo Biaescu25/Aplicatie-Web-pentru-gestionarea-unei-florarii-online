@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'App',  # Your app
     'django_htmx',  # HTMX Middleware
+    'social_django',  # Social Auth
 ]
 
 MIDDLEWARE = [
@@ -153,3 +154,16 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'biancaenculescu@gmail.com'
 EMAIL_HOST_PASSWORD = 'mqlx atie aixu rtsk'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.google.GoogleOAuth2',
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '316570206228-f9gasjv9h4uge53mqnm7o8n06g9685l1.apps.googleusercontent.com'
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
+
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+SOCIAL_AUTH_ASSOCIATE_BY_EMAIL = True

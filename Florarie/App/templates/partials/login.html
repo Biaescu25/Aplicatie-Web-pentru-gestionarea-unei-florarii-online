@@ -42,7 +42,10 @@
             </button>
         </div>
     </form>
+    
     <p class="text-center text-sm mt-4">
+        <a href="{% url 'social:begin' 'google-oauth2' %}">Sign in with Google!</a>
+        <br>
         Don't have an account? <a href="{% url 'register_page' %}" class="link link-primary">Register</a>
     </p>
 </div>

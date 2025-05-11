@@ -62,6 +62,7 @@ urlpatterns = [
     path("auction_confirm/<int:pk>/", auction_confirm, name="auction_confirm"),
     path("contact/", contact_view, name="contact"),
     path("contact/success/", contact_success, name="contact_success"),
+    path('auth/', include('social_django.urls', namespace='social')),
 ]
 
 
