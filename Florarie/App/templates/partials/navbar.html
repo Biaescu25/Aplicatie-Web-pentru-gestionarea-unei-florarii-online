@@ -32,7 +32,8 @@
                 <a href="{% url 'contact' %}" class="hover:text-gray-900">Contact</a>
                 <a href="{% url 'custom_bouquet_builder' %}" class="hover:text-gray-900">Make your own</a>
                 {% if user.is_authenticated and user.is_staff %}
-                    <a href="/admin/" class="hover:text-gray-900">Admin</a>
+                    <!-- <a href="/admin/" class="hover:text-gray-900">Admin</a> -->
+                    <a href="{% url 'admin_dashboard' %}" class="hover:text-gray-900">Admin</a>
                 {% endif %}
             </div>
             <div class="flex items-center space-x-4 ml-2">

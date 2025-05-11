@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+
+
+<form method="get" class="mb-6 mt-32 bg-white shadow p-4 rounded-md flex flex-wrap gap-4 items-end">
+    <div>
+      <label class="block text-sm font-medium">Start Date</label>
+      <input type="date" name="start_date" value="{{ start_date }}" class="input input-bordered w-full max-w-xs">
+    </div>
+  
+    <div>
+      <label class="block text-sm font-medium">End Date</label>
+      <input type="date" name="end_date" value="{{ end_date }}" class="input input-bordered w-full max-w-xs">
+    </div>
+  
+    <div>
+      <label class="block text-sm font-medium">Category</label>
+      <select name="category" class="select select-bordered w-full max-w-xs">
+        <option value="">All</option>
+        {% for cat in categories %}
+          <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  
+    <div>
+      <button type="submit" class="btn btn-primary">Apply Filters</button>
+    </div>
+  </form>
+
+  
+<div class="flex min-h-screen bg-gray-100">
+  <!-- Sidebar -->
+  <aside class="w-64 bg-white border-r">
+    <div class="p-4 text-xl font-bold">📊 Admin Dashboard</div>
+    <ul class="menu p-4 space-y-2">
+      <li><a onclick="showTab('visitors')">Visitors</a></li>
+      <li><a onclick="showTab('sales')">Sales</a></li>
+      <li><a onclick="showTab('products')">Products</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-6">
+    <div id="tab-visitors" class="tab-section">
+      <div class="card bg-white shadow-lg p-4 mb-6">
+        <h2 class="text-xl font-semibold mb-2">Visitors Overview</h2>
+        <img src="data:image/png;base64,{{ visitor_chart }}" alt="Visitors Chart">
+      </div>
+    </div>
+
+    <div id="tab-sales" class="tab-section hidden">
+      <div class="card bg-white shadow-lg p-4 mb-6">
+        <h2 class="text-xl font-semibold mb-2">Sales Overview</h2>
+        <img src="data:image/png;base64,{{ sales_chart }}" alt="Sales Chart">
+      </div>
+    </div>
+
+    <div id="tab-products" class="tab-section hidden">
+      <div class="card bg-white shadow-lg p-4">
+        <h2 class="text-xl font-semibold mb-2">Top-Selling Products</h2>
+        <img src="data:image/png;base64,{{ product_chart }}" alt="Product Chart">
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  function showTab(tabName) {
+    document.querySelectorAll('.tab-section').forEach(tab => tab.classList.add('hidden'));
+    document.getElementById('tab-' + tabName).classList.remove('hidden');
+  }
+</script>
+{% endblock %}

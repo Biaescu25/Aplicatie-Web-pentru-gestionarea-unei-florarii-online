@@ -1,33 +1,51 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse, HttpResponseBadRequest
-from .models import ContactMessage, Product, CartItem, Order, Payment, OrderItem
-from .models import BouquetShape, Flower, Greenery, WrappingPaper, CustomBouquet, BouquetFlower
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from django.template.loader import render_to_string
-from django.http import HttpResponse
 from django.contrib.auth.signals import user_logged_in
 from django.dispatch import receiver
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.core.paginator import Paginator
-from .forms import ContactForm, UserForm
-
-import stripe
-from django.conf import settings
+from django.core.mail import send_mail, EmailMessage
+from django.template.loader import render_to_string
+from django.templatetags.static import static
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods, require_POST
-from django.templatetags.static import static  # Import the static function
-from django.shortcuts import render
-from datetime import timedelta
+from django.views.decorators.http import require_POST
 from django.utils import timezone
-from django.core.mail import send_mail
-from django.utils.html import strip_tags
-from django.core.mail import EmailMessage
+from django.conf import settings
+from django.http import HttpRequest
+from django.contrib.admin.views.decorators import staff_member_required
 from weasyprint import HTML
 from io import BytesIO
-from django.db.models import Q
-from django.http import HttpRequest
+from datetime import timedelta
+
+from django.shortcuts import render
+from .models import VisitorLog, Order  # Replace with your actual models
+from django.utils.timezone import now, timedelta
+
+from django.db.models import Sum, Q
+from datetime import datetime
+
+
+from .models import (
+    Product, CartItem, Order, Payment, OrderItem,
+    BouquetShape, Flower, Greenery, WrappingPaper, CustomBouquet, BouquetFlower, VisitorLog
+)
+from .forms import ContactForm, UserForm
+
+import base64
+import matplotlib
+matplotlib.use('Agg')  # Use non-GUI backend
+
+import matplotlib.pyplot as plt
+
+import stripe
+
+stripe.api_key = settings.STRIPE_SECRET_KEY  # Set Stripe API key
+
+
+
 
 
 def home(request):
@@ -736,7 +754,7 @@ def auction_confirm(request, pk):
     if product.is_in_auction():
         cart_item.product.price = product.get_auction_price()
         cart_item.product.bid_submited = True
-        
+
         cart_item.product.save()
 
 
@@ -808,3 +826,69 @@ def contact_view(request):
 def contact_success(request):
 
     return render(request, 'contact_success.html')
+
+
+def render_chart(fig):
+    buffer = BytesIO()
+    fig.tight_layout()
+    plt.savefig(buffer, format="png")
+    buffer.seek(0)
+    image_png = buffer.getvalue()
+    buffer.close()
+    plt.close(fig)
+    return base64.b64encode(image_png).decode("utf-8")
+
+
+@staff_member_required
+def admin_dashboard(request):
+
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+    category_id = request.GET.get("category")
+
+    # Default to last 30 days
+    today = now().date()
+    default_start = today - timedelta(days=30)
+    start = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else default_start
+    end = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else today
+
+    # Filter orders
+    order_filter = Q(created_at__date__range=[start, end])
+
+    category = request.GET.get("category")
+    product_filter = Q()
+    if category:
+        product_filter &= Q(category=category)
+
+    # Sales revenue chart
+    date_range = [start + timedelta(days=i) for i in range((end - start).days + 1)]
+    revenue = [
+        Order.objects.filter(order_filter & Q(created_at__date=d)).aggregate(Sum("total_price"))["total_price__sum"] or 0 
+        for d in date_range
+    ]
+    fig2, ax2 = plt.subplots()
+    ax2.plot([d.strftime("%d %b") for d in date_range], revenue)
+    ax2.set_title("Sales Revenue")
+    sales_chart = render_chart(fig2)
+
+    # Top-selling products (filtered by category and date)
+    top_products = (
+        Product.objects.filter(product_filter)
+        .annotate(total_sold=Sum("orderitem__quantity", filter=Q(orderitem__order__created_at__date__range=(start, end))))
+        .order_by("-total_sold")[:5]
+    )
+    fig3, ax3 = plt.subplots()
+    ax3.bar([p.name for p in top_products], [p.total_sold or 0 for p in top_products])
+    ax3.set_title("Top Products")
+    product_chart = render_chart(fig3)
+
+    categories = Product.objects.values_list("category", flat=True).distinct()
+
+    return render(request, "admin_dashboard.html", {
+        "sales_chart": sales_chart,
+        "product_chart": product_chart,
+        "categories": categories,
+        "selected_category": category_id,
+        "start_date": start.strftime("%Y-%m-%d"),
+        "end_date": end.strftime("%Y-%m-%d"),
+    })

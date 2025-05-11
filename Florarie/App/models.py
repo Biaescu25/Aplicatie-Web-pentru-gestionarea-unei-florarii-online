@@ -199,3 +199,9 @@ class ContactMessage(models.Model):
 
     def __str__(self):
         return f"Message from {self.name} ({self.email})"
+
+
+class VisitorLog(models.Model):
+    ip = models.GenericIPAddressField()
+    path = models.CharField(max_length=255)
+    timestamp = models.DateTimeField(auto_now_add=True)

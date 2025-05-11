@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'App',  # Your app
+    'App',  # the app
     'django_htmx',  # HTMX Middleware
     'social_django',  # Social Auth
 ]
@@ -53,6 +53,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'App.middleware.TrackVisitorMiddleware',
 ]
 
 ROOT_URLCONF = 'Florarie.urls'
