@@ -736,7 +736,9 @@ def auction_confirm(request, pk):
     if product.is_in_auction():
         cart_item.product.price = product.get_auction_price()
         cart_item.product.bid_submited = True
+        
         cart_item.product.save()
+
 
     # Always refresh the product list (optional), and cart count
     # if request.headers.get("HX-Request"):

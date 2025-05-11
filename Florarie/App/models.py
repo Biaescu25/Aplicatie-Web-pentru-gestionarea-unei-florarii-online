@@ -68,12 +68,11 @@ class Product(models.Model):
             if not self.auction_drop_amount:
                 raise ValidationError("Auction drop amount is required when the product is in store.")
 
-    auction_item_is_in_cart = models.BooleanField(default=False)  # Track if the auction item is in the cart
 
     def is_in_auction(self):
         # Eligible if manually added or in store for > 3 days
         self.before_auction_price = self.price
-        return self.auction_manual or (self.in_store and self.created_at <= timezone.now() - timedelta(minutes=3)) and self.bid_submited == False and self.auction_item_is_in_cart == False
+        return self.auction_manual or (self.in_store and self.created_at <= timezone.now() - timedelta(minutes=3)) and self.bid_submited == False
 
     def get_auction_price(self):
         if not self.is_in_auction():

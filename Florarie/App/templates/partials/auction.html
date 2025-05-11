@@ -19,7 +19,7 @@
         <div 
             id="product-list"
             hx-get="{% url 'auction' %}"
-            hx-trigger="refreshProductList from:body"
+            hx-trigger="refreshProductList from:body, every 10s"
             hx-swap="innerHTML"
             class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
         >

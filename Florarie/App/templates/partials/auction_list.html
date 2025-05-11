@@ -1,4 +1,5 @@
 {% for product in products %}
+{% if not product.bid_submited %}
 <div class="card bg-base-100 shadow-xl">
     <figure>
         <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-48 object-cover">
@@ -10,7 +11,7 @@
         <p class="text-sm text-gray-500">Original price: ${{ product.before_auction_price }}</p>
         <div 
             hx-get="{% url 'auction_price_partial' product.pk %}"
-            hx-trigger="every 30s"
+            hx-trigger="every 100s"
             hx-swap="innerHTML"
             class="price-container mt-2"
         >
@@ -18,4 +19,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endfor %}
