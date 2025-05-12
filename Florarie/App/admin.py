@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from .forms import ProductForm
-from .models import Product, CartItem, Order, Flower, BouquetShape, Greenery, WrappingPaper, CustomBouquet, ContactMessage
+from .models import Product, CartItem, Order, Flower, BouquetShape, Greenery, WrappingPaper, CustomBouquet, ContactMessage, VisitorLog
 
 from django.utils.html import format_html
 
@@ -66,5 +66,6 @@ admin.site.register(Greenery)
 admin.site.register(WrappingPaper)
 admin.site.register(CustomBouquet, CustomBouquetAdmin)   
 admin.site.register(ContactMessage, ContactMessageAdmin)
+admin.site.register(VisitorLog)
 
 # admin.site.register(User)

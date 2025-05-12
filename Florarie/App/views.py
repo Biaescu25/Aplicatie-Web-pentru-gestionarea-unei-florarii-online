@@ -22,7 +22,7 @@ from django.utils.timezone import now, timedelta
 
 from django.db.models.functions import TruncDate
 from django.db.models import Sum, Count
-from datetime import datetime
+from datetime import datetime, date
 
 from .models import (
     Product, CartItem, Order, Payment, OrderItem,
@@ -39,7 +39,6 @@ import matplotlib.pyplot as plt
 import stripe
 
 stripe.api_key = settings.STRIPE_SECRET_KEY  # Set Stripe API key
-
 
 
 
@@ -865,6 +864,33 @@ def sales_data_api(request):
     top_product_names = [p.name for p in top_products]
     top_product_sold = [p.sold or 0 for p in top_products]
 
+    today = date.today()
+    start_date = today - timedelta(days=30)
+
+    sales = (
+        Order.objects
+        .filter(created_at__date__range=(start_date, today))
+        .annotate(date=TruncDate('created_at'))
+        .values('date')
+        .annotate(total=Sum('total_price'))
+        .order_by('date')
+    )
+
+    visits = (
+        VisitorLog.objects
+        .filter(timestamp__date__range=(start_date, today))
+        .annotate(date=TruncDate('timestamp'))
+        .values('date')
+        .annotate(count=Count('id'))
+        .order_by('date')
+    )
+
+    labels = [s['date'].strftime("%Y-%m-%d") for s in sales]
+    sales_totals = [s['total'] for s in sales]
+    visits_data = {v['date'].strftime("%Y-%m-%d"): v['count'] for v in visits}
+    visit_counts = [visits_data.get(label, 0) for label in labels]
+
+
     return JsonResponse({
         "sales": {
             "labels": labels,
@@ -874,5 +900,9 @@ def sales_data_api(request):
         "top_products": {
             "labels": top_product_names,
             "data": top_product_sold,
+        },
+         "visits": {
+            "labels": labels,
+            "counts": visit_counts,
         }
     })
