@@ -18,15 +18,11 @@ from django.http import HttpRequest
 from django.contrib.admin.views.decorators import staff_member_required
 from weasyprint import HTML
 from io import BytesIO
-from datetime import timedelta
-
-from django.shortcuts import render
-from .models import VisitorLog, Order  # Replace with your actual models
 from django.utils.timezone import now, timedelta
 
-from django.db.models import Sum, Q
+from django.db.models.functions import TruncDate
+from django.db.models import Sum, Count
 from datetime import datetime
-
 
 from .models import (
     Product, CartItem, Order, Payment, OrderItem,
@@ -822,73 +818,61 @@ def contact_view(request):
 
     return render(request, 'contact.html', {'form': form})
 
-
 def contact_success(request):
 
     return render(request, 'contact_success.html')
 
 
-def render_chart(fig):
-    buffer = BytesIO()
-    fig.tight_layout()
-    plt.savefig(buffer, format="png")
-    buffer.seek(0)
-    image_png = buffer.getvalue()
-    buffer.close()
-    plt.close(fig)
-    return base64.b64encode(image_png).decode("utf-8")
-
-
 @staff_member_required
 def admin_dashboard(request):
+    return render(request, "admin_dashboard.html")
 
-    start_date = request.GET.get("start_date")
-    end_date = request.GET.get("end_date")
-    category_id = request.GET.get("category")
-
-    # Default to last 30 days
-    today = now().date()
-    default_start = today - timedelta(days=30)
-    start = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else default_start
-    end = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else today
-
-    # Filter orders
-    order_filter = Q(created_at__date__range=[start, end])
-
+def sales_data_api(request):
+    start = request.GET.get("start")
+    end = request.GET.get("end")
     category = request.GET.get("category")
-    product_filter = Q()
-    if category:
-        product_filter &= Q(category=category)
 
-    # Sales revenue chart
-    date_range = [start + timedelta(days=i) for i in range((end - start).days + 1)]
-    revenue = [
-        Order.objects.filter(order_filter & Q(created_at__date=d)).aggregate(Sum("total_price"))["total_price__sum"] or 0 
-        for d in date_range
-    ]
-    fig2, ax2 = plt.subplots()
-    ax2.plot([d.strftime("%d %b") for d in date_range], revenue)
-    ax2.set_title("Sales Revenue")
-    sales_chart = render_chart(fig2)
+    # Default range: last 30 days
+    today = datetime.today().date()
+    start_date = datetime.strptime(start, "%Y-%m-%d").date() if start else today - timedelta(days=30)
+    end_date = datetime.strptime(end, "%Y-%m-%d").date() if end else today
 
-    # Top-selling products (filtered by category and date)
-    top_products = (
-        Product.objects.filter(product_filter)
-        .annotate(total_sold=Sum("orderitem__quantity", filter=Q(orderitem__order__created_at__date__range=(start, end))))
-        .order_by("-total_sold")[:5]
+    orders = Order.objects.filter(created_at__date__range=(start_date, end_date))
+
+    # Sales over time
+    daily_sales = (
+        orders.annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(total=Sum("total_price"), count=Count("id"))
+        .order_by("day")
     )
-    fig3, ax3 = plt.subplots()
-    ax3.bar([p.name for p in top_products], [p.total_sold or 0 for p in top_products])
-    ax3.set_title("Top Products")
-    product_chart = render_chart(fig3)
 
-    categories = Product.objects.values_list("category", flat=True).distinct()
+    labels = [d["day"].strftime("%Y-%m-%d") for d in daily_sales]
+    totals = [float(d["total"]) for d in daily_sales]
+    counts = [d["count"] for d in daily_sales]
 
-    return render(request, "admin_dashboard.html", {
-        "sales_chart": sales_chart,
-        "product_chart": product_chart,
-        "categories": categories,
-        "selected_category": category_id,
-        "start_date": start.strftime("%Y-%m-%d"),
-        "end_date": end.strftime("%Y-%m-%d"),
+    # Top products
+    product_qs = Product.objects.filter(orderitem__order__in=orders)
+    if category:
+        product_qs = product_qs.filter(category=category)
+
+    top_products = (
+        product_qs
+        .annotate(sold=Sum("orderitem__quantity"))
+        .order_by("-sold")[:5]
+    )
+
+    top_product_names = [p.name for p in top_products]
+    top_product_sold = [p.sold or 0 for p in top_products]
+
+    return JsonResponse({
+        "sales": {
+            "labels": labels,
+            "totals": totals,
+            "counts": counts,
+        },
+        "top_products": {
+            "labels": top_product_names,
+            "data": top_product_sold,
+        }
     })

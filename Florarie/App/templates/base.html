@@ -256,3 +256,47 @@ input[type="number"] {
         console.log("HTMX request completed", evt.detail);
     });
 </script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  fetch("{% url 'analytics_data' %}")
+
+    .then(res => res.json())
+    .then(data => {
+      new Chart(document.getElementById("salesChart"), {
+        type: "line",
+        data: {
+          labels: data.sales.labels,
+          datasets: [
+            {
+              label: "Sales ($)",
+              data: data.sales.totals,
+              borderColor: "rgb(59, 130, 246)",
+              backgroundColor: "rgba(59, 130, 246, 0.1)",
+              fill: true,
+              tension: 0.4,
+            }
+          ]
+        },
+        options: { responsive: true }
+      });
+
+      new Chart(document.getElementById("productsChart"), {
+        type: "bar",
+        data: {
+          labels: data.top_products.labels,
+          datasets: [{
+            label: "Units Sold",
+            data: data.top_products.data,
+            backgroundColor: "rgba(34, 197, 94, 0.5)",
+            borderColor: "rgba(34, 197, 94, 1)",
+            borderWidth: 1
+          }]
+        },
+        options: { responsive: true }
+      });
+    });
+});
+</script>
