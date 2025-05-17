@@ -824,19 +824,48 @@ def contact_success(request):
 
 @staff_member_required
 def admin_dashboard(request):
-    return render(request, "admin_dashboard.html")
+    categories = Product.objects.values_list('category', flat=True).distinct()
+    return render(request, "admin_dashboard.html", {"categories": categories})
+
+def product_list_api(request):
+    category = request.GET.get("category")
+    qs = Product.objects.all()
+    if category:
+        qs = qs.filter(category=category)
+    products = list(qs.values("id", "name"))
+    return JsonResponse({"products": products})
 
 def sales_data_api(request):
     start = request.GET.get("start")
     end = request.GET.get("end")
     category = request.GET.get("category")
+    product = request.GET.get("product")
+    user_segment = request.GET.get("user_segment")
+    compare_start = request.GET.get("compare_start")
+    compare_end = request.GET.get("compare_end")
 
-    # Default range: last 30 days
     today = datetime.today().date()
     start_date = datetime.strptime(start, "%Y-%m-%d").date() if start else today - timedelta(days=30)
     end_date = datetime.strptime(end, "%Y-%m-%d").date() if end else today
 
     orders = Order.objects.filter(created_at__date__range=(start_date, end_date))
+
+    # User segmentation
+    if user_segment == "new":
+        orders = orders.filter(user__date_joined__gte=start_date)
+    elif user_segment == "returning":
+        orders = orders.filter(user__date_joined__lt=start_date)
+    elif user_segment == "region":
+        # Example: filter by city (region)
+        region = request.GET.get("region")
+        if region:
+            orders = orders.filter(city=region)
+
+    # Category/Product filter
+    if category:
+        orders = orders.filter(items__product__category=category)
+    if product:
+        orders = orders.filter(items__product__id=product)
 
     # Sales over time
     daily_sales = (
@@ -845,7 +874,6 @@ def sales_data_api(request):
         .annotate(total=Sum("total_price"), count=Count("id"))
         .order_by("day")
     )
-
     labels = [d["day"].strftime("%Y-%m-%d") for d in daily_sales]
     totals = [float(d["total"]) for d in daily_sales]
     counts = [d["count"] for d in daily_sales]
@@ -854,39 +882,23 @@ def sales_data_api(request):
     product_qs = Product.objects.filter(orderitem__order__in=orders)
     if category:
         product_qs = product_qs.filter(category=category)
-
     top_products = (
         product_qs
         .annotate(sold=Sum("orderitem__quantity"))
         .order_by("-sold")[:5]
     )
-
     top_product_names = [p.name for p in top_products]
     top_product_sold = [p.sold or 0 for p in top_products]
 
-    today = date.today()
-    start_date = today - timedelta(days=30)
-
-    sales = (
-        Order.objects
-        .filter(created_at__date__range=(start_date, today))
-        .annotate(date=TruncDate('created_at'))
-        .values('date')
-        .annotate(total=Sum('total_price'))
-        .order_by('date')
-    )
-
+    # Visits
     visits = (
         VisitorLog.objects
-        .filter(timestamp__date__range=(start_date, today))
+        .filter(timestamp__date__range=(start_date, end_date))
         .annotate(date=TruncDate('timestamp'))
         .values('date')
         .annotate(count=Count('id'))
         .order_by('date')
     )
-
-    labels = [s['date'].strftime("%Y-%m-%d") for s in sales]
-    sales_totals = [s['total'] for s in sales]
     visits_data = {v['date'].strftime("%Y-%m-%d"): v['count'] for v in visits}
     visit_counts = [visits_data.get(label, 0) for label in labels]
 
@@ -897,6 +909,25 @@ def sales_data_api(request):
             conversion_rates.append(round((sales_count / visit_count) * 100, 2))
         else:
             conversion_rates.append(0)
+
+    # Compare periods
+    compare = None
+    if compare_start and compare_end:
+        cs = datetime.strptime(compare_start, "%Y-%m-%d").date()
+        ce = datetime.strptime(compare_end, "%Y-%m-%d").date()
+        compare_orders = Order.objects.filter(created_at__date__range=(cs, ce))
+        compare_daily_sales = (
+            compare_orders.annotate(day=TruncDate("created_at"))
+            .values("day")
+            .annotate(total=Sum("total_price"), count=Count("id"))
+            .order_by("day")
+        )
+        compare_labels = [d["day"].strftime("%Y-%m-%d") for d in compare_daily_sales]
+        compare_totals = [float(d["total"]) for d in compare_daily_sales]
+        compare = {
+            "labels": compare_labels,
+            "totals": compare_totals,
+        }
 
     return JsonResponse({
         "sales": {
@@ -915,5 +946,6 @@ def sales_data_api(request):
         "conversion": {
             "labels": labels,
             "rates": conversion_rates,
-        }
+        },
+        "compare": compare,
     })

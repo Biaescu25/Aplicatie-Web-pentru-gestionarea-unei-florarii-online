@@ -2,31 +2,122 @@
 {% load static %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-6 mt-32">
-  <h1 class="text-3xl font-bold mb-6">📊 Business Analytics</h1>
-    <a href="/admin/" class="text-blue-500 hover:text-blue-700 font-medium underline">Go to Admin Dashboard</a>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div class="card p-4 shadow">
-            <h2 class="text-xl font-semibold mb-2">Sales Over Time</h2>
+<div class="container mx-auto px-6 py-12 mt-32 flex gap-10">
+  <!-- Sidebar -->
+  <aside class="w-64">
+    <nav class="bg-white dark:bg-base-200 border border-gray-200 dark:border-base-300 rounded-lg p-5 sticky top-24">
+      <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Analytics Menu</h2>
+      <ul id="chart-filter-nav" class="flex flex-col gap-2">
+        <li>
+          <button class="chart-filter-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-base-300 transition font-medium text-gray-700 dark:text-gray-200 border border-transparent hover:border-gray-300" data-chart="all">All Charts</button>
+        </li>
+        <li>
+          <button class="chart-filter-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-base-300 transition text-gray-700 dark:text-gray-200 border border-transparent hover:border-gray-300" data-chart="sales">Sales Over Time</button>
+        </li>
+        <li>
+          <button class="chart-filter-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-base-300 transition text-gray-700 dark:text-gray-200 border border-transparent hover:border-gray-300" data-chart="products">Top Products</button>
+        </li>
+        <li>
+          <button class="chart-filter-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-base-300 transition text-gray-700 dark:text-gray-200 border border-transparent hover:border-gray-300" data-chart="visitors">Visitor Activity</button>
+        </li>
+        <li>
+          <button class="chart-filter-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-base-300 transition text-gray-700 dark:text-gray-200 border border-transparent hover:border-gray-300" data-chart="conversion">Conversion Rate</button>
+        </li>
+      </ul>
+     
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="flex-1">
+    <div class="flex items-center justify-between mb-10">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Business Analytics</h1>
+      <a href="/admin/" class="text-blue-600 hover:underline text-sm font-medium">Go to Django Admin</a>
+    </div>
+    <!-- Filters and Controls -->
+    <div class="bg-white dark:bg-base-200 border border-gray-200 dark:border-base-300 rounded-lg p-6 mb-10 flex flex-wrap items-center gap-6">
+      <!-- Date Range Filter -->
+      <div class="flex items-center gap-2">
+        <label class="font-medium text-gray-700 dark:text-gray-200">From</label>
+        <input type="date" id="chart-date-start" class="input input-bordered input-sm w-32">
+        <label class="font-medium text-gray-700 dark:text-gray-200">To</label>
+        <input type="date" id="chart-date-end" class="input input-bordered input-sm w-32">
+        <button id="chart-date-filter-btn" class="btn btn-sm bg-blue-600 text-white border-none hover:bg-blue-700">Filter</button>
+      </div>
+      <!-- Compare Periods -->
+      <div class="flex items-center gap-2">
+        <label class="font-medium text-gray-700 dark:text-gray-200">Compare</label>
+        <input type="date" id="compare-date-start" class="input input-bordered input-sm w-32">
+        <input type="date" id="compare-date-end" class="input input-bordered input-sm w-32">
+        <button id="compare-btn" class="btn btn-sm bg-gray-200 dark:bg-base-300 text-gray-700 dark:text-gray-200 border-none hover:bg-gray-300 dark:hover:bg-base-400">Compare</button>
+      </div>
+      <!-- Category/Product Filter -->
+      <div class="flex items-center gap-2">
+        <label class="font-medium text-gray-700 dark:text-gray-200">Category</label>
+        <select id="category-filter" class="select select-bordered select-sm w-32">
+          <option value="">All</option>
+          {% for cat in categories %}
+            <option value="{{ cat }}">{{ cat }}</option>
+          {% endfor %}
+        </select>
+        <label class="font-medium text-gray-700 dark:text-gray-200">Product</label>
+        <select id="product-filter" class="select select-bordered select-sm w-32">
+          <option value="">All</option>
+        </select>
+      </div>
+      <!-- User Segmentation -->
+      <!-- <div class="flex items-center gap-2">
+        <label class="font-medium text-gray-700 dark:text-gray-200">User Type</label>
+        <select id="user-segment-filter" class="select select-bordered select-sm w-32">
+          <option value="">All</option>
+          <option value="new">New</option>
+          <option value="returning">Returning</option>
+          <option value="region">By Region</option>
+        </select>
+      </div> -->
+      <!-- Chart Type -->
+      <div class="flex items-center gap-2">
+        <label class="font-medium text-gray-700 dark:text-gray-200">Chart Type</label>
+        <select id="chart-type-select" class="select select-bordered select-sm w-28">
+          <option value="default">Default</option>
+          <option value="bar">Bar</option>
+          <option value="line">Line</option>
+          <option value="pie">Pie</option>
+        </select>
+      </div>
+     
+      <!-- Auto Refresh -->
+      <!-- <div class="flex items-center gap-2">
+        <label class="font-medium text-gray-700 dark:text-gray-200">Auto Refresh</label>
+        <input type="checkbox" id="auto-refresh-toggle" class="toggle toggle-primary">
+        <select id="auto-refresh-interval" class="select select-bordered select-sm w-20">
+          <option value="10">10s</option>
+          <option value="30">30s</option>
+          <option value="60">1min</option>
+          <option value="300">5min</option>
+        </select>
+      </div> -->
+      
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div id="chart-sales" class="bg-white dark:bg-base-200 border border-gray-200 dark:border-base-300 rounded-lg p-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Sales Over Time</h2>
             <canvas id="salesChart" class="w-full h-64"></canvas>
         </div>
-        <div class="card p-4 shadow">
-            <h2 class="text-xl font-semibold mb-2">Top Products</h2>
+        <div id="chart-products" class="bg-white dark:bg-base-200 border border-gray-200 dark:border-base-300 rounded-lg p-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Top Products</h2>
             <canvas id="productsChart" class="w-full h-64"></canvas>
         </div>
-        <div class="card bg-base-100 shadow p-4">
-            <h2 class="text-xl font-bold mb-2">Visitor Activity</h2>
+        <div id="chart-visitors" class="bg-white dark:bg-base-200 border border-gray-200 dark:border-base-300 rounded-lg p-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Visitor Activity</h2>
             <canvas id="visitorsChart" class="w-full h-64"></canvas>
         </div>
-        <div class="card bg-base-100 shadow p-4">
-            <h2 class="text-xl font-bold mb-2">Conversion Rate</h2>
+        <div id="chart-conversion" class="bg-white dark:bg-base-200 border border-gray-200 dark:border-base-300 rounded-lg p-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-100">Conversion Rate</h2>
             <canvas id="conversionChart" class="w-full h-64"></canvas>
         </div>
-
     </div>
-   
+  </div>
 </div>
-
-
 {% endblock %}
 
