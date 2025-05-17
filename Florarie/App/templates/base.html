@@ -298,21 +298,54 @@ document.addEventListener("DOMContentLoaded", function () {
         options: { responsive: true }
       });
 
-      const ctx2 = document.getElementById('visitorsChart') /*.getContext('2d')*/;
-      new Chart(ctx2, {
-        type: 'bar',
-        data: {
-          labels: data.visits.labels,
-          datasets: [{
-            label: 'Visitors',
-            data: data.visits.counts,
-            backgroundColor: 'rgba(16, 185, 129, 0.5)',
-            borderColor: 'rgb(5, 150, 105)',
-            borderWidth: 1
-          }]
-        },
-        options: { responsive: true }
-      });
+      // Conversion Rate Chart
+      const ctx3 = document.getElementById('visitorsChart');
+      if (document.getElementById('visitorsChart')) {
+        new Chart(ctx3, {
+          type: 'bar',
+          data: {
+            labels: data.visits.labels,
+            datasets: [{
+              label: 'Visitors',
+              data: data.visits.counts,
+              backgroundColor: 'rgba(16, 185, 129, 0.5)',
+              borderColor: 'rgb(5, 150, 105)',
+              borderWidth: 1
+            }]
+          },
+          options: { responsive: true }
+        });
+      }
+
+      // Conversion Rate Chart
+      const conversionChartEl = document.getElementById('conversionChart');
+      if (conversionChartEl) {
+        new Chart(conversionChartEl, {
+          type: 'line',
+          data: {
+            labels: data.conversion.labels,
+            datasets: [{
+              label: 'Conversion Rate (%)',
+              data: data.conversion.rates,
+              borderColor: 'rgb(234, 88, 12)',
+              backgroundColor: 'rgba(251, 191, 36, 0.2)',
+              fill: true,
+              tension: 0.4,
+              yAxisID: 'y',
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                title: { display: true, text: 'Conversion Rate (%)' }
+              }
+            }
+          }
+        });
+      }
     });
 });
 </script>

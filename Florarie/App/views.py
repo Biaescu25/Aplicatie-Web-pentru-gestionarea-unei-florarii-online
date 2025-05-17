@@ -890,6 +890,13 @@ def sales_data_api(request):
     visits_data = {v['date'].strftime("%Y-%m-%d"): v['count'] for v in visits}
     visit_counts = [visits_data.get(label, 0) for label in labels]
 
+    # Conversion rate per day (as percentage)
+    conversion_rates = []
+    for sales_count, visit_count in zip(counts, visit_counts):
+        if visit_count > 0:
+            conversion_rates.append(round((sales_count / visit_count) * 100, 2))
+        else:
+            conversion_rates.append(0)
 
     return JsonResponse({
         "sales": {
@@ -901,8 +908,12 @@ def sales_data_api(request):
             "labels": top_product_names,
             "data": top_product_sold,
         },
-         "visits": {
+        "visits": {
             "labels": labels,
             "counts": visit_counts,
+        },
+        "conversion": {
+            "labels": labels,
+            "rates": conversion_rates,
         }
     })
