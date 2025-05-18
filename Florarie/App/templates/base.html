@@ -467,8 +467,18 @@ document.addEventListener("DOMContentLoaded", function () {
       document.querySelectorAll('.chart-filter-btn').forEach(b => b.classList.remove('bg-blue-200', 'font-bold'));
       this.classList.add('bg-blue-200', 'font-bold');
       const selected = this.dataset.chart;
+      // Show summary cards only for sales chart
+      const summary = document.getElementById('sales-summary-cards');
+      if (summary) summary.style.display = (selected === "sales") ? "flex" : "none";
       // Update chart type options for the selected chart
       updateChartTypeOptions(selected);
+
+      // Reset category and product filters when leaving "products" chart
+      if (selected !== "products") {
+        document.getElementById('category-filter').selectedIndex = 0;
+        document.getElementById('product-filter').innerHTML = '<option value="">All</option>';
+      }
+
       if (selected === "all") {
         Object.values(chartMap).forEach(id => {
           const el = document.getElementById(id);
@@ -602,4 +612,83 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
+</script>
+
+<script>
+function updateSalesSummary(start, end) {
+  fetch(`/api/sales-summary/?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
+    .then(res => res.json())
+    .then(data => {
+      // Orders
+      document.querySelector('#sales-summary-cards .orders-value').textContent = data.total_orders ?? "0";
+      let og = document.querySelector('#sales-summary-cards .orders-growth');
+      if (og) {
+        if (data.orders_growth === null) {
+          og.style.display = "none";
+        } else {
+          og.style.display = "";
+          const growth = Number(data.orders_growth);
+          og.innerHTML =
+            (growth >= 0
+              ? `<span class="flex items-center text-green-600 bg-green-50 rounded px-2 py-0.5 text-xs font-semibold">
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12l5-5 5 5"></path></svg>
+                  ${growth % 1 === 0 ? growth : growth.toFixed(2).replace(/\.?0+$/, '')}%
+                </span>`
+              : `<span class="flex items-center text-red-600 bg-red-50 rounded px-2 py-0.5 text-xs font-semibold">
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12l-5 5-5-5"></path></svg>
+                  ${growth % 1 === 0 ? growth : growth.toFixed(2).replace(/\.?0+$/, '')}%
+                </span>`);
+        }
+      }
+      // Revenue
+      document.querySelector('#sales-summary-cards .revenue-value').textContent = data.total_revenue ?? "0";
+      let rg = document.querySelector('#sales-summary-cards .revenue-growth');
+      if (rg) {
+        if (data.revenue_growth === null) {
+          rg.style.display = "none";
+        } else {
+          rg.style.display = "";
+          const growth = Number(data.revenue_growth);
+          rg.innerHTML =
+            (growth >= 0
+              ? `<span class="flex items-center text-green-600 bg-green-50 rounded px-2 py-0.5 text-xs font-semibold">
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12l5-5 5 5"></path></svg>
+                  ${growth % 1 === 0 ? growth : growth.toFixed(2).replace(/\.?0+$/, '')}%
+                </span>`
+              : `<span class="flex items-center text-red-600 bg-red-50 rounded px-2 py-0.5 text-xs font-semibold">
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12l-5 5-5-5"></path></svg>
+                  ${growth % 1 === 0 ? growth : growth.toFixed(2).replace(/\.?0+$/, '')}%
+                </span>`);
+        }
+      }
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+
+  function refreshSalesSummaryIfVisible() {
+    const summary = document.getElementById('sales-summary-cards');
+    if (summary && summary.style.display === "flex") {
+      const start = document.getElementById('chart-date-start').value;
+      const end = document.getElementById('chart-date-end').value;
+      updateSalesSummary(start, end);
+    }
+  }
+
+  // Update summary cards when date filter or compare is used
+  document.getElementById('chart-date-filter-btn').addEventListener('click', refreshSalesSummaryIfVisible);
+  document.getElementById('compare-btn').addEventListener('click', refreshSalesSummaryIfVisible);
+
+  // Also update when switching to sales chart
+  document.querySelectorAll('.chart-filter-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+
+      if (this.dataset.chart === "sales") {
+        refreshSalesSummaryIfVisible();
+      }
+    });
+  });
+
+
+});
 </script>

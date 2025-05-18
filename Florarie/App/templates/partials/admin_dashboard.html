@@ -43,6 +43,7 @@
             <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Business Analytics</h1>
             <a href="/admin/" class="text-blue-600 hover:underline text-sm font-medium">Go to Django Admin</a>
         </div>
+
         <!-- Filters and Controls -->
         <div class="bg-white dark:bg-base-200 border border-gray-200 dark:border-base-300 rounded-lg p-6 mb-10 flex flex-wrap items-center gap-6">
             <!-- Date Range Filter -->
@@ -86,6 +87,69 @@
                 </select>
             </div>
 
+        </div>
+
+        <!-- Summary Cards: only visible for Sales chart -->
+        <div id="sales-summary-cards" class="flex gap-6 mb-10" style="display:none;">
+            <!-- Orders Card -->
+            <div class="bg-white dark:bg-base-200 border border-gray-200 dark:border-base-300 rounded-xl px-8 py-6 flex flex-col justify-between min-w-[220px] shadow-sm">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="bg-gray-100 dark:bg-base-300 rounded-full p-2">
+                        <svg class="w-7 h-7 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M21 16V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z" />
+                            <path d="M3 6l9 6 9-6" />
+                        </svg>
+                    </div>
+                    <span class="text-gray-500 text-base font-medium">Orders</span>
+                </div>
+                <div class="flex items-end gap-2">
+                    <span class="orders-value text-3xl font-bold text-gray-900 dark:text-gray-100">{{ total_orders|default:"0" }}</span>
+                    <span class="orders-growth">
+                    {% if orders_growth is not None %}
+                        {% if orders_growth >= 0 %}
+                            <span class="flex items-center text-green-600 bg-green-50 rounded px-2 py-0.5 text-xs font-semibold">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12l5-5 5 5"></path></svg>
+                                {{ orders_growth|floatformat:2 }}%
+                            </span>
+                        {% else %}
+                            <span class="flex items-center text-red-600 bg-red-50 rounded px-2 py-0.5 text-xs font-semibold">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12l-5 5-5-5"></path></svg>
+                                {{ orders_growth|floatformat:2 }}%
+                            </span>
+                        {% endif %}
+                    {% endif %}
+                    </span>
+                </div>
+            </div>
+            <!-- Revenue Card -->
+            <div class="bg-white dark:bg-base-200 border border-gray-200 dark:border-base-300 rounded-xl px-8 py-6 flex flex-col justify-between min-w-[220px] shadow-sm">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="bg-gray-100 dark:bg-base-300 rounded-full p-2">
+                        <svg class="w-7 h-7 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 0V4m0 16v-4" />
+                        </svg>
+                    </div>
+                    <span class="text-gray-500 text-base font-medium">Revenue</span>
+                </div>
+                <div class="flex items-end gap-2">
+                    <span class="revenue-value text-3xl font-bold text-gray-900 dark:text-gray-100">{{ total_revenue|default:"0" }}<span class="text-lg font-medium text-gray-400"> RON</span></span>
+                    <span class="revenue-growth">
+                    {% if revenue_growth is not None %}
+                        {% if revenue_growth >= 0 %}
+                            <span class="flex items-center text-green-600 bg-green-50 rounded px-2 py-0.5 text-xs font-semibold">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12l5-5 5 5"></path></svg>
+                                {{ revenue_growth|floatformat:2 }}%
+                            </span>
+                        {% else %}
+                            <span class="flex items-center text-red-600 bg-red-50 rounded px-2 py-0.5 text-xs font-semibold">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12l-5 5-5-5"></path></svg>
+                                {{ revenue_growth|floatformat:2 }}%
+                            </span>
+                        {% endif %}
+                    {% endif %}
+                    </span>
+                </div>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">

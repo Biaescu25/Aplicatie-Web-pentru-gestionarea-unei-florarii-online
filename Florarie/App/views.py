@@ -11,7 +11,7 @@ from django.core.mail import send_mail, EmailMessage
 from django.template.loader import render_to_string
 from django.templatetags.static import static
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django.utils import timezone
 from django.conf import settings
 from django.http import HttpRequest
@@ -825,7 +825,31 @@ def contact_success(request):
 @staff_member_required
 def admin_dashboard(request):
     categories = Product.objects.values_list('category', flat=True).distinct()
-    return render(request, "admin_dashboard.html", {"categories": categories})
+
+    # Orders and revenue for this period (last 30 days)
+    today = datetime.today().date()
+    start_date = today - timedelta(days=30)
+    prev_start = start_date - timedelta(days=30)
+    prev_end = start_date
+
+    orders_qs = Order.objects.filter(created_at__date__range=(start_date, today))
+    prev_orders_qs = Order.objects.filter(created_at__date__range=(prev_start, prev_end))
+
+    total_orders = orders_qs.count()
+    prev_orders = prev_orders_qs.count()
+    orders_growth = ((total_orders - prev_orders) / prev_orders * 100) if prev_orders else None
+
+    total_revenue = orders_qs.aggregate(total=Sum('total_price'))['total'] or 0
+    prev_revenue = prev_orders_qs.aggregate(total=Sum('total_price'))['total'] or 0
+    revenue_growth = ((total_revenue - prev_revenue) / prev_revenue * 100) if prev_revenue else None
+
+    return render(request, "admin_dashboard.html", {
+        "categories": categories,
+        "total_orders": total_orders,
+        "orders_growth": orders_growth,
+        "total_revenue": total_revenue,
+        "revenue_growth": revenue_growth,
+    })
 
 def product_list_api(request):
     category = request.GET.get("category")
@@ -948,4 +972,36 @@ def sales_data_api(request):
             "rates": conversion_rates,
         },
         "compare": compare,
+    })
+
+@require_GET
+def sales_summary_api(request):
+    start = request.GET.get("start")
+    end = request.GET.get("end")
+    today = datetime.today().date()
+    start_date = datetime.strptime(start, "%Y-%m-%d").date() if start else today - timedelta(days=30)
+    end_date = datetime.strptime(end, "%Y-%m-%d").date() if end else today
+
+    prev_start = start_date - (end_date - start_date)
+    prev_end = start_date
+
+    orders_qs = Order.objects.filter(created_at__date__range=(start_date, end_date))
+    prev_orders_qs = Order.objects.filter(created_at__date__range=(prev_start, prev_end))
+
+    total_orders = orders_qs.count()
+    prev_orders = prev_orders_qs.count()
+    orders_growth = ((total_orders - prev_orders) / prev_orders * 100) if prev_orders else None
+
+    total_revenue = orders_qs.aggregate(total=Sum('total_price'))['total'] or 0
+    prev_revenue = prev_orders_qs.aggregate(total=Sum('total_price'))['total'] or 0
+    revenue_growth = ((total_revenue - prev_revenue) / prev_revenue * 100) if prev_revenue else None
+
+    # Format total_revenue to 2 decimal places
+    total_revenue = round(float(total_revenue), 2)
+
+    return JsonResponse({
+        "total_orders": total_orders,
+        "orders_growth": orders_growth,
+        "total_revenue": total_revenue,
+        "revenue_growth": revenue_growth,
     })
