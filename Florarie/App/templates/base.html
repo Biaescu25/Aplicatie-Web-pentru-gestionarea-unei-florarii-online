@@ -366,7 +366,7 @@ function renderAllCharts(data, chartTypeOverrides = {}) {
 }
 
 function fetchAndRenderCharts(
-  startDate, endDate, category, product, userSegment, compare, chartTypes
+   startDate, endDate, category, product, /*userSegment,*/ compare, chartTypes
 ) {
   let url = "{% url 'analytics_data' %}";
   const params = [];
@@ -374,7 +374,6 @@ function fetchAndRenderCharts(
   if (endDate) params.push(`end=${endDate}`);
   if (category) params.push(`category=${category}`);
   if (product) params.push(`product=${product}`);
-  if (userSegment) params.push(`user_segment=${userSegment}`);
   if (compare && compare.start && compare.end) {
     params.push(`compare_start=${compare.start}`);
     params.push(`compare_end=${compare.end}`);
@@ -385,62 +384,6 @@ function fetchAndRenderCharts(
     .then(data => renderAllCharts(data, chartTypes));
 }
 
-function exportChartToCSV(chart, filename) {
-  let csv = "Label,Value\n";
-  chart.data.labels.forEach((label, i) => {
-    csv += `"${label}",${chart.data.datasets[0].data[i]}\n`;
-  });
-  const blob = new Blob([csv], {type: "text/csv"});
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  link.click();
-}
-
-function exportChartToExcel(chart, filename) {
-  const ws = XLSX.utils.aoa_to_sheet([
-    ["Label", "Value"],
-    ...chart.data.labels.map((label, i) => [label, chart.data.datasets[0].data[i]])
-  ]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-  XLSX.writeFile(wb, filename);
-}
-
-function exportChartToPDF(chart, filename) {
-  const canvas = chart.canvas;
-  const imgData = canvas.toDataURL("image/png");
-  const pdf = new window.jspdf.jsPDF();
-  pdf.addImage(imgData, "PNG", 10, 10, 180, 80);
-  pdf.save(filename);
-}
-
-function saveView() {
-  const state = {
-    start: document.getElementById('chart-date-start').value,
-    end: document.getElementById('chart-date-end').value,
-    category: document.getElementById('category-filter').value,
-    product: document.getElementById('product-filter').value,
-    userSegment: document.getElementById('user-segment-filter').value,
-    chartType: document.getElementById('chart-type-select').value
-  };
-  localStorage.setItem("dashboardView", JSON.stringify(state));
-  alert("View saved!");
-}
-
-function shareView() {
-  const params = new URLSearchParams({
-    start: document.getElementById('chart-date-start').value,
-    end: document.getElementById('chart-date-end').value,
-    category: document.getElementById('category-filter').value,
-    product: document.getElementById('product-filter').value,
-    user_segment: document.getElementById('user-segment-filter').value,
-    chart_type: document.getElementById('chart-type-select').value
-  });
-  const url = window.location.origin + window.location.pathname + "?" + params.toString();
-  navigator.clipboard.writeText(url);
-  alert("Shareable link copied to clipboard!");
-}
 
 document.addEventListener("DOMContentLoaded", function () {
   // Set default date range (last 30 days)
@@ -504,9 +447,9 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById('chart-date-end').value,
       cat,
       "",
-    //   document.getElementById('user-segment-filter').value,
-    //   null,
-    //   chartTypeOverrides
+   
+      null,
+      chartTypeOverrides
     );
   });
   document.getElementById('product-filter').addEventListener('change', function() {
@@ -515,24 +458,11 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById('chart-date-end').value,
       document.getElementById('category-filter').value,
       this.value,
-    //   document.getElementById('user-segment-filter').value,
+
       null,
       chartTypeOverrides
     );
   });
-
-  // User segmentation filter
-//   document.getElementById('user-segment-filter').addEventListener('change', function() {
-//     fetchAndRenderCharts(
-//       document.getElementById('chart-date-start').value,
-//       document.getElementById('chart-date-end').value,
-//       document.getElementById('category-filter').value,
-//       document.getElementById('product-filter').value,
-//       this.value,
-//       null,
-//       chartTypeOverrides
-//     );
-//   });
 
   // Chart type selector
   document.getElementById('chart-type-select').addEventListener('change', function() {
@@ -551,22 +481,10 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById('chart-date-end').value,
       document.getElementById('category-filter').value,
       document.getElementById('product-filter').value,
-    //   document.getElementById('user-segment-filter').value,
       null,
       chartTypeOverrides
     );
   });
-
-  // Export buttons
-//   document.getElementById('export-csv').addEventListener('click', function() {
-//     exportChartToCSV(salesChart, 'sales.csv');
-//   });
-//   document.getElementById('export-xlsx').addEventListener('click', function() {
-//     exportChartToExcel(salesChart, 'sales.xlsx');
-//   });
-//   document.getElementById('export-pdf').addEventListener('click', function() {
-//     exportChartToPDF(salesChart, 'sales.pdf');
-//   });
 
   // Compare periods
   document.getElementById('compare-btn').addEventListener('click', function() {
@@ -575,7 +493,6 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById('chart-date-end').value,
       document.getElementById('category-filter').value,
       document.getElementById('product-filter').value,
-    //   document.getElementById('user-segment-filter').value,
       {
         start: document.getElementById('compare-date-start').value,
         end: document.getElementById('compare-date-end').value
@@ -583,33 +500,6 @@ document.addEventListener("DOMContentLoaded", function () {
       chartTypeOverrides
     );
   });
-
-  // Auto-refresh
-//   document.getElementById('auto-refresh-toggle').addEventListener('change', function() {
-//     if (this.checked) {
-//       const interval = parseInt(document.getElementById('auto-refresh-interval').value, 10) * 1000;
-//       autoRefreshIntervalId = setInterval(() => {
-//         fetchAndRenderCharts(
-//           document.getElementById('chart-date-start').value,
-//           document.getElementById('chart-date-end').value,
-//           document.getElementById('category-filter').value,
-//           document.getElementById('product-filter').value,
-//           document.getElementById('user-segment-filter').value,
-//           null,
-//           chartTypeOverrides
-//         );
-//       }, interval);
-//     } else if (autoRefreshIntervalId) {
-//       clearInterval(autoRefreshIntervalId);
-//       autoRefreshIntervalId = null;
-//     }
-//   });
-
-
-
-  // Save/Share view
-//   document.getElementById('save-view-btn').addEventListener('click', saveView);
-//   document.getElementById('share-view-btn').addEventListener('click', shareView);
 
   // Drilldown (example for salesChart)
   document.getElementById('salesChart').onclick = function(evt) {
@@ -627,7 +517,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('chart-date-end').value,
     document.getElementById('category-filter').value,
     document.getElementById('product-filter').value,
-    document.getElementById('user-segment-filter').value,
+    //document.getElementById('user-segment-filter').value,
     null,
     chartTypeOverrides
   );
