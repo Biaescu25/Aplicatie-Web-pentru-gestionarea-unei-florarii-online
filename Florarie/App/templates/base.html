@@ -19,6 +19,8 @@
     <link href="{% static 'output.css' %}" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.css" rel="stylesheet" type="text/css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     {% csrf_token %}
     <meta name="csrf-token" content="{{ csrf_token }}">
 </head>
@@ -423,19 +425,50 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 
-  // Chart subject filter logic
-  const chartMap = {
-    sales: "chart-sales",
-    products: "chart-products",
-    visitors: "chart-visitors",
-    conversion: "chart-conversion"
-  };
+    const allowedChartTypes = {
+        sales: ['default', 'bar', 'line'],
+        products: ['default', 'bar', 'line', 'pie'],
+        visitors: ['default', 'line'],
+        conversion: ['default', 'line'],
+    };
+
+
+    function updateChartTypeOptions(chartKey) {
+        const group = document.querySelector('[data-group="chart-type"]');
+        const select = document.getElementById('chart-type-select');
+        const allowed = allowedChartTypes[chartKey];
+
+        if (!allowed || allowed.length === 0) {
+            group.style.display = 'none';
+            return;
+        }
+
+        group.style.display = 'flex'; // or 'block' depending on layout
+        select.innerHTML = '';
+
+        allowed.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+            select.appendChild(option);
+        });
+    }
+
+    // Chart subject filter logic
+    const chartMap = {
+        sales: "chart-sales",
+        products: "chart-products",
+        visitors: "chart-visitors",
+        conversion: "chart-conversion"
+    };
 
   document.querySelectorAll('.chart-filter-btn').forEach(btn => {
     btn.addEventListener('click', function () {
       document.querySelectorAll('.chart-filter-btn').forEach(b => b.classList.remove('bg-blue-200', 'font-bold'));
       this.classList.add('bg-blue-200', 'font-bold');
       const selected = this.dataset.chart;
+      // Update chart type options for the selected chart
+      updateChartTypeOptions(selected);
       if (selected === "all") {
         Object.values(chartMap).forEach(id => {
           const el = document.getElementById(id);
@@ -488,6 +521,7 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById('chart-type-select').addEventListener('change', function() {
     const val = this.value;
     chartTypeOverrides = {};
+
     if (val !== "default") {
       chartTypeOverrides = {
         sales: val,
