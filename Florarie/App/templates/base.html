@@ -366,7 +366,7 @@ function renderAllCharts(data, chartTypeOverrides = {}) {
 }
 
 function fetchAndRenderCharts(
-   startDate, endDate, category, product, /*userSegment,*/ compare, chartTypes
+   startDate, endDate, category, product, compare, chartTypes
 ) {
   let url = "{% url 'analytics_data' %}";
   const params = [];
@@ -399,9 +399,29 @@ document.addEventListener("DOMContentLoaded", function () {
   fetchAndRenderCharts(startInput.value, endInput.value);
 
   // Date filter button
-  document.getElementById('chart-date-filter-btn').addEventListener('click', function() {
-    fetchAndRenderCharts(startInput.value, endInput.value);
-  });
+
+    document.getElementById('chart-date-filter-btn').addEventListener('click', function() {
+        const start = document.getElementById('chart-date-start').value;
+        const end   = document.getElementById('chart-date-end').value;
+        const category = document.getElementById('category-filter').value;
+        const product  = document.getElementById('product-filter').value;
+        // if you still have the compare inputs visible, grab those too:
+        const compareStart = document.getElementById('compare-date-start').value;
+        const compareEnd   = document.getElementById('compare-date-end').value;
+        const compare = (compareStart && compareEnd)
+            ? { start: compareStart, end: compareEnd }
+            : null;
+
+        fetchAndRenderCharts(
+            start,
+            end,
+            category,
+            product,
+            null,
+            chartTypeOverrides
+        );
+    });
+
 
   // Chart subject filter logic
   const chartMap = {
@@ -521,6 +541,30 @@ document.addEventListener("DOMContentLoaded", function () {
     null,
     chartTypeOverrides
   );
+
+
+
+  // Wire up chart‐filter buttons
+  document.querySelectorAll('.chart-filter-btn').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      // highlight
+      document.querySelectorAll('.chart-filter-btn').forEach(b=>b.classList.remove('bg-blue-200','font-bold'));
+      this.classList.add('bg-blue-200','font-bold');
+      // show/hide charts
+      const sel = this.dataset.chart;
+      Object.entries(chartMap).forEach(([k,id])=>{
+        document.getElementById(id).style.display = (sel==='all'||k===sel)?'':'none';
+      });
+      // show/hide filters
+      const allow = this.dataset.filters.split(',').map(s=>s.trim());
+      document.querySelectorAll('.filter-group').forEach(div=>{
+        div.style.display = allow.includes(div.dataset.group)?'flex':'none';
+      });
+    });
+  });
+
+  // Initialize on “All”
+  document.querySelector('[data-chart="all"]').click();
 });
 
 
