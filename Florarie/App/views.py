@@ -41,6 +41,9 @@ import stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY  # Set Stripe API key
 
 
+import json
+from PIL import Image, ImageDraw
+from django.conf import settings
 
 
 def home(request):
@@ -710,6 +713,54 @@ def save_custom_bouquet(request):
 
     return JsonResponse({"error": "Invalid request"}, status=400)
 
+@csrf_exempt
+def generate_bouquet_preview(request):
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    data = json.loads(request.body)
+
+    try:
+        shape = BouquetShape.objects.get(id=data.get("shape"))
+        wrapping = WrappingPaper.objects.get(id=data.get("wrapping"))
+        greenery = Greenery.objects.get(id=data.get("greens")[0])  # doar una pentru demo
+    except:
+        return HttpResponse(status=400)
+
+    flowers_data = data.get("flowers", [])
+
+    canvas_size = (400, 400)
+    image = Image.new("RGBA", canvas_size, (255, 255, 255, 0))
+
+    draw = ImageDraw.Draw(image)
+    draw.ellipse([(20, 20), (380, 380)], fill=wrapping.color)  # ex: "#ffcccc"
+
+    positions = [(150, 100), (100, 150), (200, 150), (130, 200), (170, 200)]
+
+    pos_index = 0
+    for flower_data in flowers_data:
+        try:
+            flower = Flower.objects.get(id=flower_data["id"])
+            flower_img = Image.open(flower.image.path).convert("RGBA")
+
+            for _ in range(int(flower_data["count"])):
+                if pos_index >= len(positions): break
+                x, y = positions[pos_index]
+                print(f"Placing flower at position: ({x}, {y})")  # Console log the position
+                image.paste(flower_img, (x, y), flower_img)
+                pos_index += 1
+        except:
+            continue
+
+    try:
+        green_img = Image.open(greenery.image.path).convert("RGBA")
+        image.paste(green_img, (100, 300), green_img)
+    except:
+        pass
+
+    response = HttpResponse(content_type="image/png")
+    image.save(response, "PNG")
+    return response
 
 def auction_view(request):
     products = Product.objects.all()

@@ -104,16 +104,103 @@
                     </div>
                 </div>
             </form>
+
         </div>
 
         <!-- SUMMARY -->
-        <div id="summary" class="mt-4 bg-gray-100 p-3 rounded">
-            <div class="text-gray-500 text-xs text-center">Selectează opțiuni pentru a vedea sumarul buchetului</div>
+        <div class="flex flex-col md:flex-row gap-6 mt-4">
+            <div id="summary" class="bg-gray-100 p-3 rounded md:w-1/2">
+                <div class="text-gray-500 text-xs text-center">Selectează opțiuni pentru a vedea sumarul buchetului</div>
+            </div>
+            <div class="md:w-1/2 flex flex-col items-center">
+                <h2 class="text-lg font-semibold mb-2">Preview buchet:</h2>
+                <div class="relative w-full max-w-2xl h-[20rem] flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-green-50 border rounded-lg shadow-lg overflow-hidden">
+                    <img id="bouquet-preview" src="" alt="Preview buchet"
+                         class="object-contain w-full h-full transition-opacity duration-500 opacity-80 hover:opacity-100 drop-shadow-lg" />
+                    <div id="bouquet-preview-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 pointer-events-none" style="display: none;">
+                        <svg class="w-24 h-24 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 48 48">
+                            <ellipse cx="24" cy="32" rx="14" ry="8" stroke="currentColor" fill="none"/>
+                            <path d="M24 32V10" stroke="currentColor" stroke-linecap="round"/>
+                            <circle cx="24" cy="10" r="4" stroke="currentColor" fill="none"/>
+                        </svg>
+                        <span class="text-lg">Aici va apărea previzualizarea buchetului</span>
+                    </div>
+                </div>
+                <script>
+                const previewImg = document.getElementById("bouquet-preview");
+                const placeholder = document.getElementById("bouquet-preview-placeholder");
+                function toggleBouquetPlaceholder() {
+                    if (!previewImg.src || previewImg.src.endsWith('/')) {
+                        placeholder.style.display = "";
+                        previewImg.style.opacity = 0;
+                    } else {
+                        placeholder.style.display = "none";
+                        previewImg.style.opacity = 1;
+                    }
+                }
+                previewImg.addEventListener("load", toggleBouquetPlaceholder);
+                toggleBouquetPlaceholder();
+                </script>
+            </div>
         </div>
+  
     </div>
 </section>
   
 
-{% endblock %}
 
+
+<script>
+function updateBouquetPreview() {
+    console.log("triggered"); // DEBUG
+    
+  const flowerInputs = document.querySelectorAll("input[name^='flower_']");
+  const flowers = Array.from(flowerInputs).map(input => ({
+    id: parseInt(input.name.replace("flower_", "")),
+    count: parseInt(input.value || "0")
+  })).filter(f => f.count > 0);
+
+  const shape = document.querySelector("input[name='shape']:checked")?.value;
+  const wrapping = document.querySelector("input[name='wrapping']:checked")?.value;
+  const greens = Array.from(document.querySelectorAll("input[name='greens']:checked")).map(g => g.value);
+
+  if (!shape || !wrapping || greens.length === 0 || flowers.length === 0) return;
+
+  const data = {
+    shape: shape,
+    wrapping: wrapping,
+    greens: greens,
+    flowers: flowers
+  };
+
+  fetch("{% url 'generate_bouquet_preview' %}", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  })
+  .then(res => res.blob())
+  .then(blob => {
+    const url = URL.createObjectURL(blob);
+    document.getElementById("bouquet-preview").src = url;
+  });
+}
+
+// ✅ atașează manual pe toate inputurile relevante
+function attachPreviewListeners() {
+  const inputs = document.querySelectorAll(
+    "input[name^='flower_'], input[name='shape'], input[name='wrapping'], input[name='greens']"
+  );
+  inputs.forEach(input => {
+    input.addEventListener("change", updateBouquetPreview);
+    input.addEventListener("input", updateBouquetPreview);
+  });
+}
+
+// ✅ rulează după ce HTMX reîncarcă părți de pagină
+document.addEventListener("DOMContentLoaded", attachPreviewListeners);
+document.addEventListener("htmx:afterSwap", attachPreviewListeners);
+</script>
+
+
+{% endblock %}
 

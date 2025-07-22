@@ -7,11 +7,11 @@
         <h1 class="text-4xl font-bold text-center mt-16">{{ category|title }}</h1>
     </div>
 </section>  
-
+<p class="text-center mt-6 text-lg text-gray-700">„O floare vorbește despre frumusețe fără a rosti vreun cuvânt.”</p>
 <section class="container mx-auto mt-10 px-4 py-8">
     <form method="get" class="text-center mb-8" hx-get="{% url 'products_by_category' category=category %}" hx-target="#productShowcase" hx-swap="innerHTML">
-        <div class="flex items-center justify-center mb-6 space-x-4">
-            <div class="w-[400px] bg-white">
+        <div class="flex items-center bg-gray-100 justify-center mb-6 space-x-4">
+            <div class="w-[400px] bg-gray-100">
             <div class="relative mt-4 slider-container">
                 <!-- Custom Range Inputs -->
                 <input type="range" id="minRange" name="min_price" min="{{ smallest_price }}" max="{{ largest_price }}"
@@ -26,8 +26,8 @@
             </div>
             
             <div class="flex justify-between mt-2 text-sm text-gray-600">
-                <span>Min: $<span id="minValue">{{ smallest_price }}</span></span>
-                <span>Max: $<span id="maxValue">{{ largest_price }}</span></span>
+                <span>LEI <span id="minValue">{{ smallest_price }}</span></span>
+                <span>LEI <span id="maxValue">{{ largest_price }}</span></span>
             </div>
             </div>
 
@@ -35,9 +35,8 @@
             <label for="sort" class="mr-2">Ordonare preț:</label>
             <select name="sort" id="sort" class="border rounded p-2"
                     hx-get="{% url 'products_by_category' category=category %}"
-                    hx-target="#productShowcase"
                     hx-include="closest form"
-                    hx-trigger="change">
+                    hx-trigger="change">     
                 <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Crescător</option>
                 <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Descrescător</option>
             </select>

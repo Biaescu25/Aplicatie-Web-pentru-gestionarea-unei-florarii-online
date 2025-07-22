@@ -7,7 +7,10 @@
     <!-- Carousel Container -->
     <div class="carousel w-full h-full">
         <!-- Glass Rectangle -->
-        <div id="glass-rectangle" class="glass"></div>
+        <div id="glass-rectangle" class="glass">
+            <h1 id="glass-title" class="text-7xl font-dancing font-bold text-white text-center mt-16">Flower Joy</h1>
+            <p id="glass-message" class="text-2xl text-black text-center mt-4">Aducem bucurie prin flori!</p>
+        </div>
         <!-- Slide 1 -->
         <div id="slide1" class="carousel-item w-full h-full hidden">
             <img src="/static/banner1.jpg" class="w-full h-full object-cover" alt="Flower Banner 1">
@@ -40,7 +43,7 @@
 <section class="container mx-auto px-4 pb-4 pt-16">
     <div class="text-center mb-10 opacity-0 transform translate-y-10 transition-all duration-1000 ease-out" id="welcome-section">
         <h2 class="text-8xl font-dancing text-gray-900 text-center mb-6">
-            <span class="font-dancing">Welcome to Flower Joy</span>
+            <span class="font-dancing">Bine ați venit la Flower Joy</span>
         </h2>
         <h2 class="text-3xl font-bold text-center mt-12">Best-Sellers</h2>
     </div>
@@ -59,10 +62,9 @@
                 <h1 class="text-4xl font-bold mb-6">Despre noi</h1>
                 <div class="about-section">
                     <img class="mx-auto mb-4 w-32 h-32 rounded-full object-cover" src="/static/Logo.png" alt="Despre noi">
-                    <p class="text-lg font-semibold">Bine ati venit!</p>
                     <p class="mt-4 transition duration-500 transform hover:scale-110">
-                        Vreti sa luminati ziua cuiva? Ofera-i un buchet frumos! La FlowerJoy, avem o selectie mare de flori si aranjamente realizate cu pasiune si mult suflet, pentru fiecare ocazie. Florile noastre provin direct din Olanda si ne permit sa oferim zilnic selectii proaspete si superbe. Vizitati site-ul nostru si vedeti ce avem de oferit!
-                    </p>
+                        Vreți să luminați ziua cuiva? Oferiți-i un buchet frumos! La FlowerJoy, avem o selecție mare de flori și aranjamente realizate cu pasiune și mult suflet, pentru fiecare ocazie.
+                       <br> Aveți un eveniment special? Vă putem crea o atmosferă de poveste cu florile noastre. Hai să ne cunoaștem și să facem împreună o zi specială!</p>
                     <a class="btn btn-primary mt-6 px-6 py-3 rounded-full shadow-lg
                             hover:bg-blue-700 transition duration-300 ease-in-out transform hover:scale-105" 
                             href="contact" title="Vezi detalii">Vezi detalii</a>
@@ -78,7 +80,7 @@
                         <a href="{% url 'products_by_category' category='aranjamente' %}" title="Aranjamente">
                             <div class="overflow-hidden border-white border-4">
                                 <img 
-                                    class="shadow-lg brightness-50 hover:brightness-100 transition duration-300 transform hover:scale-110" 
+                                    class="shadow-lg brightness-70 hover:brightness-100 transition duration-300 transform hover:scale-110" 
                                     src="static\media\Pictures\Aranjament-Floral-Cu-Flori-In-Culori-Deschise.jpg" 
                                     alt="Aranjamente"
                                 />
@@ -93,7 +95,7 @@
                         <a href="{% url 'products_by_category' category='buchete' %}" title="Buchete" class="relative -left-20">
                             <div class="overflow-hidden border-white border-4">
                                 <img 
-                                    class="shadow-lg brightness-50 hover:brightness-100 transition duration-300 transform hover:scale-110"  
+                                    class="shadow-lg brightness-70 hover:brightness-100 transition duration-300 transform hover:scale-110"  
                                     src="/static/banner3.jpg" 
                                     alt="Buchete">
                             </div>
