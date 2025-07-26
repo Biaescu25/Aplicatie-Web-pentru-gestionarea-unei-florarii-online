@@ -8,7 +8,7 @@
     </div>
 </section>  
 
-<section class="pt-8 bg-gray-50 h-full">
+<section class="pt-8 bg-gray-50 h-full mb-10">
     <div class="container mx-auto px-2 max-w-4xl">
 
 
@@ -53,7 +53,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         {% for flower in flowers %}
                         <div class="border rounded p-2 hover:shadow transition">
-                            <img src="{{ flower.image.url }}" alt="{{ flower.name }}" class="w-full h-24 object-cover rounded">
+                            <img src="{{ flower.image.url }}" alt="{{ flower.name }}" class="h-24 w-auto mx-auto object-contain rounded">
                             <div class="mt-1 text-center">
                                 <p class="text-sm font-medium">{{ flower.name }}</p>
                                 <p class="text-xs text-gray-600">{{ flower.price }} LEI</p>
@@ -74,11 +74,11 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {% for green in greens %}
                     <div class="relative">
-                        <input type="checkbox" name="greens" value="{{ green.id }}" id="green_{{ green.id }}" class="hidden peer">
+                        <input type="checkbox" name="greens" value="{{ green.id }}" id="green_{{ green.id }}" class="hidden peer ">
                         <label for="green_{{ green.id }}" 
                             class="cursor-pointer border rounded p-2 hover:shadow transition block 
                                     peer-checked:ring-2 peer-checked:ring-success peer-checked:border-success">
-                        <img src="{{ green.image.url }}" alt="{{ green.name }}" class="w-full h-20 object-cover rounded">
+                        <img src="{{ green.image.url }}" alt="{{ green.name }}" class="h-24 w-auto mx-auto object-contain rounded">
                         <p class="text-center mt-1 text-sm font-medium">{{ green.name }} ({{ green.price }} LEI)</p>
                         </label>
                     </div>

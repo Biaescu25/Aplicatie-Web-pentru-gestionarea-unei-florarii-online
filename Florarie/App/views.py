@@ -729,7 +729,13 @@ def generate_bouquet_preview(request):
     try:
         shape = BouquetShape.objects.get(id=data.get("shape"))
         wrapping = WrappingPaper.objects.get(id=data.get("wrapping"))
-        greenery = Greenery.objects.get(id=data.get("greens")[0])  # doar una pt demo
+        # Accept both list and single id for greenery
+        greens_val = data.get("greens")
+        if isinstance(greens_val, list):
+            greenery_id = greens_val[0] if greens_val else None
+        else:
+            greenery_id = greens_val
+        greenery = Greenery.objects.get(id=greenery_id) if greenery_id else None
     except:
         return HttpResponse(status=400)
 
@@ -773,6 +779,18 @@ def generate_bouquet_preview(request):
     if num_flowers == 0:
         return HttpResponse(status=400)
 
+    # Prepare greenery images for insertion
+    greenery_images = []
+    if greenery:
+        try:
+            green_img = Image.open(greenery.image.path).convert("RGBA")
+        except:
+            green_img = None
+        if green_img:
+            # Number of greenery images: at least 1, or 5% of flower count (rounded up)
+            num_greenery = max(1, math.ceil(num_flowers * 0.05))
+            greenery_images = [green_img.resize((60, 60), Image.LANCZOS) for _ in range(num_greenery)]
+
     # Dynamic concentric circles logic
     # Example: max 8 flowers on first, 12 on second, 16 on third, etc.
     circle_max = [1, 8, 12, 16, 20, 24]
@@ -784,6 +802,14 @@ def generate_bouquet_preview(request):
     min_size = 50
     shrink_step = 18  # pixels to shrink per circle
 
+    # If few flowers, reduce the radius so they are closer to center
+    # For example, if only 2-5 flowers, use a smaller base_radius
+    adjusted_base_radius = base_radius
+    if num_flowers <= 5:
+        adjusted_base_radius = int(base_radius * 0.6)
+    elif num_flowers <= 8:
+        adjusted_base_radius = int(base_radius * 0.8)
+
     for circle_num, max_on_circle in enumerate(circle_max):
         if flower_idx >= num_flowers:
             break
@@ -793,12 +819,11 @@ def generate_bouquet_preview(request):
             size = max(min_size, base_size - int((base_size - min_size) * min(num_flowers, 50) / 50))
             # Center flower
             flower = all_flowers[flower_idx]
-            flower_positions.append((center[1], center[0], flower, size))
+            flower_positions.append((center[1], center[0], flower, size, "flower"))
             flower_idx += 1
         else:
             size = max(min_size, base_size - int((base_size - min_size) * min(num_flowers, 50) / 50))
-            # Decrease radius at the same rate as flower size decreases
-            radius = base_radius + circle_num * radius_step - (base_size - size)
+            radius = adjusted_base_radius + circle_num * radius_step - (base_size - size)
             angle_step = 360 / flowers_in_this_circle if flowers_in_this_circle > 0 else 360
             for i in range(flowers_in_this_circle):
                 flower = all_flowers[flower_idx]
@@ -806,24 +831,45 @@ def generate_bouquet_preview(request):
                 r = radius + random.randint(-10, 10)
                 x = int(center[0] + r * math.cos(angle))
                 y = int(center[1] + r * math.sin(angle))
-                flower_positions.append((y, x, flower, size))
+                flower_positions.append((y, x, flower, size, "flower"))
                 flower_idx += 1
                 if flower_idx >= num_flowers:
                     break
 
-    # Sort flowers so those with smaller y (top) are drawn first (behind), larger y (bottom) last (in front)
-    flower_positions.sort()
+    # Insert greenery images among the flowers on the circles
+    if greenery_images:
+        positions_for_greenery = [i for i, pos in enumerate(flower_positions) if pos[4] == "flower" and pos[0] != center[1] and pos[1] != center[0]]
+        if positions_for_greenery:
+            step = max(1, len(positions_for_greenery) // len(greenery_images))
+            for idx, green_img in enumerate(greenery_images):
+                pos_idx = positions_for_greenery[idx * step % len(positions_for_greenery)]
+                y, x, _, size, _ = flower_positions[pos_idx]
+                flower_positions.insert(pos_idx, (y, x, green_img, size, "greenery"))
+        # else: do not insert greenery if there are no positions available
 
-    for y, x, flower, size in flower_positions:
+    # Sort positions by y (ascending), then x (ascending) to avoid comparing Flower/Image objects
+    flower_positions.sort(key=lambda tup: (tup[0], tup[1]))
+
+    for y, x, obj, size, obj_type in flower_positions:
         try:
-            print("Flower:", flower.name, "Position:", (x, y))  # Debugging output
+            if obj_type == "flower":
+                flower_img = Image.open(obj.image.path).convert("RGBA") if hasattr(obj, "image") else obj
+                flower_img = flower_img.resize((size, size), Image.LANCZOS)
+                bottom_center_x = center[0]
+                bottom_center_y = canvas_size[1]
+                dx = bottom_center_x - x
+                dy = bottom_center_y - y
+                angle_rad = math.atan2(dx, dy)
+                angle_deg = math.degrees(angle_rad)
+                rotated_img = flower_img.rotate(angle_deg, expand=True)
+            else:  # greenery
+                rotated_img = obj  # greenery already resized, no rotation for simplicity
 
-            flower_img = Image.open(flower.image.path).convert("RGBA")
-            flower_img = flower_img.resize((size, size), Image.LANCZOS)
-            image.paste(flower_img, (x - size // 2, y - size // 2), flower_img)
+            rx, ry = rotated_img.size
+            image.paste(rotated_img, (x - rx // 2, y - ry // 2), rotated_img)
         except:
             continue
-
+ 
     # Returnează imaginea
     response = HttpResponse(content_type="image/png")
     image.save(response, "PNG")
@@ -1123,3 +1169,4 @@ def sales_summary_api(request):
         "total_revenue": total_revenue,
         "revenue_growth": revenue_growth,
     })
+
