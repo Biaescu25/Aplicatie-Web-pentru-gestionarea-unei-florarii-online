@@ -45,6 +45,12 @@ import json
 from PIL import Image, ImageDraw
 from django.conf import settings
 
+import math
+import random
+from PIL import Image, ImageDraw, ImageOps
+from django.http import HttpResponse
+from .models import BouquetShape, WrappingPaper, Greenery, Flower
+import json
 
 def home(request):
     all_products = Product.objects.all().order_by('-number_of_purcheses', '-created_at')
@@ -723,41 +729,102 @@ def generate_bouquet_preview(request):
     try:
         shape = BouquetShape.objects.get(id=data.get("shape"))
         wrapping = WrappingPaper.objects.get(id=data.get("wrapping"))
-        greenery = Greenery.objects.get(id=data.get("greens")[0])  # doar una pentru demo
+        greenery = Greenery.objects.get(id=data.get("greens")[0])  # doar una pt demo
     except:
         return HttpResponse(status=400)
 
     flowers_data = data.get("flowers", [])
 
-    canvas_size = (400, 400)
+    canvas_size = (500, 500)
+    center = (canvas_size[0] // 2, canvas_size[1] // 2)
+    base_radius = 120  # inner circle radius
+    radius_step = 50   # distance between circles
+
+    # Creează canvas
     image = Image.new("RGBA", canvas_size, (255, 255, 255, 0))
-
     draw = ImageDraw.Draw(image)
-    draw.ellipse([(20, 20), (380, 380)], fill=wrapping.color)  # ex: "#ffcccc"
 
-    positions = [(150, 100), (100, 150), (200, 150), (130, 200), (170, 200)]
+    # Desenează cercul foliei
+    draw.ellipse([
+        (center[0] - base_radius, center[1] - base_radius),
+        (center[0] + base_radius, center[1] + base_radius)
+    ], fill=wrapping.color)
 
-    pos_index = 0
-    for flower_data in flowers_data:
-        try:
-            flower = Flower.objects.get(id=flower_data["id"])
-            flower_img = Image.open(flower.image.path).convert("RGBA")
-
-            for _ in range(int(flower_data["count"])):
-                if pos_index >= len(positions): break
-                x, y = positions[pos_index]
-                print(f"Placing flower at position: ({x}, {y})")  # Console log the position
-                image.paste(flower_img, (x, y), flower_img)
-                pos_index += 1
-        except:
-            continue
-
+    # Adaugă verdeața la bază
     try:
         green_img = Image.open(greenery.image.path).convert("RGBA")
-        image.paste(green_img, (100, 300), green_img)
+        green_img = green_img.resize((150, 150), Image.LANCZOS)
+        image.paste(green_img, (center[0] - 75, center[1] + 100), green_img)
     except:
         pass
 
+    #Construim lista completă cu toate florile + numărul lor
+    all_flowers = []
+    for flower_data in flowers_data:
+        try:
+            flower = Flower.objects.get(id=flower_data["id"])
+            count = int(flower_data["count"])
+            for _ in range(count):
+                all_flowers.append(flower)
+        except:
+            continue
+
+    num_flowers = len(all_flowers)
+    if num_flowers == 0:
+        return HttpResponse(status=400)
+
+    # Dynamic concentric circles logic
+    # Example: max 8 flowers on first, 12 on second, 16 on third, etc.
+    circle_max = [1, 8, 12, 16, 20, 24]
+    flower_positions = []
+    flower_idx = 0
+    random.shuffle(all_flowers)
+
+    base_size = 300
+    min_size = 50
+    shrink_step = 18  # pixels to shrink per circle
+
+    for circle_num, max_on_circle in enumerate(circle_max):
+        if flower_idx >= num_flowers:
+            break
+        flowers_in_this_circle = min(max_on_circle, num_flowers - flower_idx)
+        # Calculate flower size for this circle (same as rendering logic)
+        if circle_num == 0:
+            size = max(min_size, base_size - int((base_size - min_size) * min(num_flowers, 50) / 50))
+            # Center flower
+            flower = all_flowers[flower_idx]
+            flower_positions.append((center[1], center[0], flower, size))
+            flower_idx += 1
+        else:
+            size = max(min_size, base_size - int((base_size - min_size) * min(num_flowers, 50) / 50))
+            # Decrease radius at the same rate as flower size decreases
+            radius = base_radius + circle_num * radius_step - (base_size - size)
+            angle_step = 360 / flowers_in_this_circle if flowers_in_this_circle > 0 else 360
+            for i in range(flowers_in_this_circle):
+                flower = all_flowers[flower_idx]
+                angle = math.radians(i * angle_step)
+                r = radius + random.randint(-10, 10)
+                x = int(center[0] + r * math.cos(angle))
+                y = int(center[1] + r * math.sin(angle))
+                flower_positions.append((y, x, flower, size))
+                flower_idx += 1
+                if flower_idx >= num_flowers:
+                    break
+
+    # Sort flowers so those with smaller y (top) are drawn first (behind), larger y (bottom) last (in front)
+    flower_positions.sort()
+
+    for y, x, flower, size in flower_positions:
+        try:
+            print("Flower:", flower.name, "Position:", (x, y))  # Debugging output
+
+            flower_img = Image.open(flower.image.path).convert("RGBA")
+            flower_img = flower_img.resize((size, size), Image.LANCZOS)
+            image.paste(flower_img, (x - size // 2, y - size // 2), flower_img)
+        except:
+            continue
+
+    # Returnează imaginea
     response = HttpResponse(content_type="image/png")
     image.save(response, "PNG")
     return response

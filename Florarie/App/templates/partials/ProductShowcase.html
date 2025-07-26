@@ -16,7 +16,7 @@
                 </a>
                 <div class="p-4 h-1/3 flex flex-col justify-end">
                     <h3 class="text-xl font-bold text-gray-800">{{ product.name }}</h3>
-                    <p class="text-gray-600 mt-2">{{ product.description }}</p>
+                    <!-- <p class="text-gray-600 mt-2">{{ product.description }}</p> -->
                     <div id="add-to-cart-container-{{ product.id }}">
                         {% if product.id not in cart_product_ids %}
                         <form id="add-to-cart-form-{{ product.id }}" 
