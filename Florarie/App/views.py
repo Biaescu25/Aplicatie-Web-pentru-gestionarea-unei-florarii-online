@@ -576,12 +576,22 @@ def custom_bouquet_builder(request):
     wrapping = WrappingPaper.objects.all()
     greenery = Greenery.objects.all()
     flower = Flower.objects.all()
+    wrapping_colors = [
+        {"hex": "#ffffff", "name": "Alb"},
+        {"hex": "#ff69b4", "name": "Roz"},
+        {"hex": "#f87171", "name": "Roșu"},
+        {"hex": "#34d399", "name": "Verde"},
+        {"hex": "#60a5fa", "name": "Albastru"},
+        {"hex": "#fbbf24", "name": "Galben"},
+        {"hex": "#9ca3af", "name": "Gri"},
+    ]
        
     return render(request, "custom_bouquet_builder.html", {
             "shapes": shape,
             "wrappings": wrapping,
             "greens": greenery,
             "flowers": flower,
+            "wrapping_colors": wrapping_colors,
         })
 
 def create_custom_bouquet(request):
@@ -719,13 +729,14 @@ def save_custom_bouquet(request):
 
     return JsonResponse({"error": "Invalid request"}, status=400)
 
+
 @csrf_exempt
 def generate_bouquet_preview(request):
     if request.method != "POST":
         return HttpResponse(status=405)
 
     data = json.loads(request.body)
-
+    
     try:
         shape = BouquetShape.objects.get(id=data.get("shape"))
         wrapping = WrappingPaper.objects.get(id=data.get("wrapping"))
@@ -736,8 +747,10 @@ def generate_bouquet_preview(request):
         else:
             greenery_id = greens_val
         greenery = Greenery.objects.get(id=greenery_id) if greenery_id else None
+        wrapping_color = data.get("wrapping_color") 
     except:
         return HttpResponse(status=400)
+
 
     flowers_data = data.get("flowers", [])
 
@@ -757,15 +770,16 @@ def generate_bouquet_preview(request):
     ], fill=wrapping.color)
 
     # Adaugă verdeața la bază
-    try:
-        green_img = Image.open(greenery.image.path).convert("RGBA")
-        green_img = green_img.resize((150, 150), Image.LANCZOS)
-        image.paste(green_img, (center[0] - 75, center[1] + 100), green_img)
-    except:
-        pass
+    # try:
+    #     green_img = Image.open(greenery.image.path).convert("RGBA")
+    #     green_img = green_img.resize((150, 150), Image.LANCZOS)
+    #     image.paste(green_img, (center[0] - 75, center[1] + 100), green_img)
+    # except:
+    #     pass
 
     #Construim lista completă cu toate florile + numărul lor
     all_flowers = []
+    # Add flowers
     for flower_data in flowers_data:
         try:
             flower = Flower.objects.get(id=flower_data["id"])
@@ -775,21 +789,33 @@ def generate_bouquet_preview(request):
         except:
             continue
 
+    # Add greenery (if provided in data)
+    greenery_data = data.get("greenery", [])
+    for green_data in greenery_data:
+        try:
+            green = Greenery.objects.get(id=green_data["id"])
+            #count = int(green_data["count"])
+            count = int(flower_data["count"]) * 0.05
+            for _ in range(count):
+                all_flowers.append(green)
+        except:
+            continue
+
     num_flowers = len(all_flowers)
     if num_flowers == 0:
         return HttpResponse(status=400)
 
     # Prepare greenery images for insertion
-    greenery_images = []
-    if greenery:
-        try:
-            green_img = Image.open(greenery.image.path).convert("RGBA")
-        except:
-            green_img = None
-        if green_img:
-            # Number of greenery images: at least 1, or 5% of flower count (rounded up)
-            num_greenery = max(1, math.ceil(num_flowers * 0.05))
-            greenery_images = [green_img.resize((60, 60), Image.LANCZOS) for _ in range(num_greenery)]
+    # greenery_images = []
+    # if greenery:
+    #     try:
+    #         green_img = Image.open(greenery.image.path).convert("RGBA")
+    #     except:
+    #         green_img = None
+    #     if green_img:
+    #         # Number of greenery images: at least 1, or 5% of flower count (rounded up)
+    #         num_greenery = max(1, math.ceil(num_flowers * 0.05))
+    #         greenery_images = [green_img.resize((60, 60), Image.LANCZOS) for _ in range(num_greenery)]
 
     # Dynamic concentric circles logic
     # Example: max 8 flowers on first, 12 on second, 16 on third, etc.
@@ -802,13 +828,6 @@ def generate_bouquet_preview(request):
     min_size = 50
     shrink_step = 18  # pixels to shrink per circle
 
-    # If few flowers, reduce the radius so they are closer to center
-    # For example, if only 2-5 flowers, use a smaller base_radius
-    adjusted_base_radius = base_radius
-    if num_flowers <= 5:
-        adjusted_base_radius = int(base_radius * 0.6)
-    elif num_flowers <= 8:
-        adjusted_base_radius = int(base_radius * 0.8)
 
     for circle_num, max_on_circle in enumerate(circle_max):
         if flower_idx >= num_flowers:
@@ -822,8 +841,21 @@ def generate_bouquet_preview(request):
             flower_positions.append((center[1], center[0], flower, size, "flower"))
             flower_idx += 1
         else:
-            size = max(min_size, base_size - int((base_size - min_size) * min(num_flowers, 50) / 50))
-            radius = adjusted_base_radius + circle_num * radius_step - (base_size - size)
+            # Calculate flower size for this circle (shrinks as number of flowers increases)
+            size = max(min_size, base_size - int((base_size - min_size) * num_flowers / 50)) 
+            # Calculate the radius for this circle, adjusting for flower size
+            # Make outer circles tighter as number of flowers increases
+            max_tight_radius = base_radius + (len(circle_max) - 1) * radius_step
+            min_tight_radius = base_radius + (len(circle_max) - 1) * radius_step // 2
+            # Interpolate between max_tight_radius and min_tight_radius based on num_flowers
+            tight_radius = int(
+                max_tight_radius - (max_tight_radius - min_tight_radius) * min(num_flowers, 60) / 60
+            )
+            # Use tight_radius for the outermost circle, otherwise normal calculation
+            if circle_num == len(circle_max) - 1:
+                radius = tight_radius - (base_size - size)
+            else:
+                radius = base_radius + circle_num * radius_step - (base_size - size)
             angle_step = 360 / flowers_in_this_circle if flowers_in_this_circle > 0 else 360
             for i in range(flowers_in_this_circle):
                 flower = all_flowers[flower_idx]
@@ -837,14 +869,14 @@ def generate_bouquet_preview(request):
                     break
 
     # Insert greenery images among the flowers on the circles
-    if greenery_images:
-        positions_for_greenery = [i for i, pos in enumerate(flower_positions) if pos[4] == "flower" and pos[0] != center[1] and pos[1] != center[0]]
-        if positions_for_greenery:
-            step = max(1, len(positions_for_greenery) // len(greenery_images))
-            for idx, green_img in enumerate(greenery_images):
-                pos_idx = positions_for_greenery[idx * step % len(positions_for_greenery)]
-                y, x, _, size, _ = flower_positions[pos_idx]
-                flower_positions.insert(pos_idx, (y, x, green_img, size, "greenery"))
+    # if greenery_images:
+    #     positions_for_greenery = [i for i, pos in enumerate(flower_positions) if pos[4] == "flower" and pos[0] != center[1] and pos[1] != center[0]]
+    #     if positions_for_greenery:
+    #         step = max(1, len(positions_for_greenery) // len(greenery_images))
+    #         for idx, green_img in enumerate(greenery_images):
+    #             pos_idx = positions_for_greenery[idx * step % len(positions_for_greenery)]
+    #             y, x, _, size, _ = flower_positions[pos_idx]
+    #             flower_positions.insert(pos_idx, (y, x, green_img, size, "greenery"))
         # else: do not insert greenery if there are no positions available
 
     # Sort positions by y (ascending), then x (ascending) to avoid comparing Flower/Image objects

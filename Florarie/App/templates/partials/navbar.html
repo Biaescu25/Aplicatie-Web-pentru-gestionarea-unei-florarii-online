@@ -15,7 +15,7 @@
             <a href="{% url 'products_by_category' category='buchete' %}" class="hover:text-gray-900">Buchete</a>
             <a href="{% url 'products_by_category' category='aranjamente' %}" class="hover:text-gray-900">Aranjamente</a>
             <a href="{% url 'products_by_category' category='plante' %}" class="hover:text-gray-900">Plante</a>
-            <a href="/auction/" class="hover:text-gray-900">Auction</a>
+            <a href="/auction/" class="hover:text-gray-900">Reduceri</a>
         </div>
 
         <!-- Logo in the Center -->
@@ -28,7 +28,7 @@
         <!-- Right Links -->
         <div class="flex items-center">
             <div class="hidden md:flex gap-6 uppercase text-sm font-semibold text-gray-700">
-                <a href="{% url 'products_by_category' category='cadouri' %}" class="hover:text-gray-900">Cadouri</a>
+                <a href="{% url 'products_by_category' category='Gifts' %}" class="hover:text-gray-900">Cadouri</a>
                 <a href="{% url 'contact' %}" class="hover:text-gray-900">Contact</a>
                 <a href="{% url 'custom_bouquet_builder' %}" class="hover:text-gray-900">Make your own</a>
                 {% if user.is_authenticated and user.is_staff %}

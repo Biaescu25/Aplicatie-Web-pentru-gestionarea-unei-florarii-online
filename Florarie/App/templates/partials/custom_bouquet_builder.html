@@ -59,7 +59,7 @@
                                 <p class="text-xs text-gray-600">{{ flower.price }} LEI</p>
                                 <div class="flex items-center justify-center mt-2">
                                     <button type="button" class="px-2 py-1 bg-gray-200 rounded-l hover:bg-gray-300" onclick="decrementValue('flower_{{ flower.id }}')">-</button>
-                                    <input type="number" name="flower_{{ flower.id }}" id="flower_{{ flower.id }}" min="0" max="100" value="0" 
+                                    <input type="number" name="flower_{{ flower.id }}" id="flower_{{ flower.id }}" min="0" max="50" value="0" 
                                            class="w-12 text-center border-t border-b border-gray-300 focus:outline-none">
                                     <button type="button" class="px-2 py-1 bg-gray-200 rounded-r hover:bg-gray-300" onclick="incrementValue('flower_{{ flower.id }}')">+</button>
                                 </div>
@@ -88,21 +88,44 @@
 
                 <!-- WRAPPING SECTION -->
                 <div id="step-wrapping" class="step hidden">
-
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {% for wrap in wrappings %}
-                    <div class="relative">
+                        {% for wrap in wrappings %}
+                        <div class="relative">
                         <input type="radio" name="wrapping" value="{{ wrap.id }}" id="wrap_{{ wrap.id }}" class="hidden peer">
                         <label for="wrap_{{ wrap.id }}" 
-                            class="cursor-pointer border rounded p-2 hover:shadow transition block 
-                                    peer-checked:ring-2 peer-checked:ring-success peer-checked:border-success">
-                        <img src="{{ wrap.image.url }}" alt="{{ wrap.name }}" class="w-full h-20 object-cover rounded">
-                        <p class="text-center mt-1 text-sm font-medium">{{ wrap.name }} ({{ wrap.price }} LEI)</p>
+                                class="cursor-pointer border rounded p-2 hover:shadow transition block 
+                                        peer-checked:ring-2 peer-checked:ring-success peer-checked:border-success">
+                            <img src="{{ wrap.image.url }}" alt="{{ wrap.name }}" class="w-full h-20 object-cover rounded">
+                            <p class="text-center mt-1 text-sm font-medium">{{ wrap.name }} ({{ wrap.price }} LEI)</p>
                         </label>
+                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
-                    </div>
+
+                  <div>
+                    <label class="block text-xl font-bold text-color-black mb-4 mt-6 select-none">
+                        Alege culoarea ambalajului:
+                    </label>
+                        <div class="flex flex-wrap gap-4">
+                        {% for color in wrapping_colors %}
+                        <label class="relative cursor-pointer group">
+                            <input type="radio" name="wrapping_color" value="{{ color.hex }}" class="sr-only peer" />
+                            <div class="w-10 h-10 rounded-full border-2 border-gray-300
+                                        group-hover:scale-110 group-hover:shadow-lg
+                                        peer-checked:ring-2 peer-checked:ring-success peer-checked:border-success
+                                        transition transform duration-200 ease-in-out"
+                                title="{{ color.name }}"
+                                style="background-color: {{ color.hex }};">
+                            </div>
+                        </label>
+                        {% endfor %}
+                        </div>
                 </div>
+             </div>
+                <!-- Hidden inputs for shape, wrapping, greens -->
+                <input type="hidden" name="shape" value="">
+                <input type="hidden" name="wrapping" value="">
+                <input type="hidden" name="greens" value="">    
             </form>
 
         </div>
@@ -151,10 +174,12 @@
 
 
 <script>
+   
 function updateBouquetPreview() {
     console.log("triggered"); // DEBUG
     
   const flowerInputs = document.querySelectorAll("input[name^='flower_']");
+  const wrappingColor = document.getElementById("wrapping_color")?.value || null;
   const flowers = Array.from(flowerInputs).map(input => ({
     id: parseInt(input.name.replace("flower_", "")),
     count: parseInt(input.value || "0")
@@ -164,11 +189,15 @@ function updateBouquetPreview() {
   const wrapping = document.querySelector("input[name='wrapping']:checked")?.value;
   const greens = Array.from(document.querySelectorAll("input[name='greens']:checked")).map(g => g.value);
 
-  if (!shape || !wrapping || greens.length === 0 || flowers.length === 0) return;
+  if (!shape || flowers.length === 0) {
+    document.getElementById("bouquet-preview").src = "";
+    return;
+  }
 
   const data = {
     shape: shape,
     wrapping: wrapping,
+    wrapping_color: wrappingColor,
     greens: greens,
     flowers: flowers
   };
