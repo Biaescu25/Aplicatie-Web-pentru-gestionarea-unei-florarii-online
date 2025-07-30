@@ -26,7 +26,7 @@ from datetime import datetime, date
 
 from .models import (
     Product, CartItem, Order, Payment, OrderItem,
-    BouquetShape, Flower, Greenery, WrappingPaper, CustomBouquet, BouquetFlower, VisitorLog
+    BouquetShape, Flower, Greenery, WrappingPaper, CustomBouquet, BouquetFlower, VisitorLog, WrappingPaperColor
 )
 from .forms import ContactForm, UserForm
 
@@ -573,25 +573,16 @@ def checkout_step_3(request):
 
 def custom_bouquet_builder(request):
     shape = BouquetShape.objects.all()
-    wrapping = WrappingPaper.objects.all()
+    wrapping = WrappingPaper.objects.filter(in_stock=True).prefetch_related("color_variants__color")
     greenery = Greenery.objects.all()
     flower = Flower.objects.all()
-    wrapping_colors = [
-        {"hex": "#ffffff", "name": "Alb"},
-        {"hex": "#ff69b4", "name": "Roz"},
-        {"hex": "#f87171", "name": "Roșu"},
-        {"hex": "#34d399", "name": "Verde"},
-        {"hex": "#60a5fa", "name": "Albastru"},
-        {"hex": "#fbbf24", "name": "Galben"},
-        {"hex": "#9ca3af", "name": "Gri"},
-    ]
+
        
     return render(request, "custom_bouquet_builder.html", {
             "shapes": shape,
             "wrappings": wrapping,
             "greens": greenery,
             "flowers": flower,
-            "wrapping_colors": wrapping_colors,
         })
 
 def create_custom_bouquet(request):
@@ -644,6 +635,8 @@ def create_custom_bouquet(request):
         # Calculate total price
         total_price = wrapping_price + greenery_price + total_flower_price
 
+        color_name = data.get("wrapping_color_name", "")
+
         # Render the summary
         return render(request, "custom_bouquet_summary.html", {
             "shape": shape,
@@ -651,6 +644,7 @@ def create_custom_bouquet(request):
             "greens": greenery_list,
             "flower_summary": flower_summary,
             "total_price": total_price,
+            "color": color_name,
         })
     return JsonResponse({"error": "Invalid request"}, status=400)
 
@@ -664,9 +658,20 @@ def save_custom_bouquet(request):
         except BouquetShape.DoesNotExist:
             return JsonResponse({"error": "Invalid shape selected."}, status=400)
 
-        # Wrapping
-        wrapping_id = data.get("wrapping")
-        wrapping = WrappingPaper.objects.filter(id=wrapping_id).first()
+        # WrappingPaperColor (variantă hârtie + culoare)
+        variant_id = data.get("wrapping_variant_id")
+        try:
+            wrapping_variant = WrappingPaperColor.objects.select_related("wrapping_paper").get(id=variant_id)
+        except WrappingPaperColor.DoesNotExist:
+            return JsonResponse({"error": "Hârtia selectată nu este validă."}, status=400)
+
+        # Verifică stoc
+        if wrapping_variant.quantity < 1:
+            return JsonResponse({"error": "Stoc insuficient pentru hârtia selectată."}, status=400)
+
+        # Scade stocul
+        wrapping_variant.quantity -= 1
+        wrapping_variant.save()
 
         # Greenery
         greenery_ids = data.getlist("greens")
@@ -682,15 +687,15 @@ def save_custom_bouquet(request):
         # Calculate total price
         total_price = float(data.get("total_price", 0))
 
-        # Save the bouquet
+        # Creează buchetul
         custom_bouquet = CustomBouquet.objects.create(
             user=request.user if request.user.is_authenticated else None,
             shape=shape,
-            wrapping=wrapping,
+            wrapping=wrapping_variant.wrapping_paper,
         )
         custom_bouquet.greenery.set(greenery_list)
 
-        # Add flowers with quantities
+        # Adaugă florile
         for flower_id, quantity in flower_quantities.items():
             BouquetFlower.objects.create(
                 bouquet=custom_bouquet,
@@ -698,21 +703,20 @@ def save_custom_bouquet(request):
                 quantity=quantity
             )
 
-        # Create a Product representing this custom bouquet
+        # Creează produsul corespunzător
         custom_product = Product.objects.create(
             name=f"Buchet personalizat #{custom_bouquet.id}",
             price=total_price,
             is_custom=True,
-            #custom_bouquet=custom_bouquet,
             image='Logo.png',
             category='CustomBouquet'  
         )
 
-        # Link product to bouquet
+        # Asociază produsul cu buchetul
         custom_bouquet.product = custom_product
         custom_bouquet.save()
 
-        # Add to cart
+        # Adaugă în coș
         if request.user.is_authenticated:
             cart_item, _ = CartItem.objects.get_or_create(user=request.user, product=custom_product)
         else:
@@ -722,12 +726,13 @@ def save_custom_bouquet(request):
         cart_item.quantity = 1
         cart_item.save()
 
-        # Redirect to the cart page
+        # Redirect către coș
         response = HttpResponse()
         response["HX-Redirect"] = "/cart/"
         return response
 
     return JsonResponse({"error": "Invalid request"}, status=400)
+
 
 
 @csrf_exempt
@@ -737,19 +742,21 @@ def generate_bouquet_preview(request):
 
     data = json.loads(request.body)
     
+    shape_id = data.get("shape")
+    wrapping_id = data.get("wrapping")
+
+    if not shape_id or not str(shape_id).isdigit():
+        return JsonResponse({"error": "Forma buchetului este invalidă."}, status=400)
+
+    if not wrapping_id or not str(wrapping_id).isdigit():
+        return JsonResponse({"error": "Ambalajul este invalid."}, status=400)
+
     try:
-        shape = BouquetShape.objects.get(id=data.get("shape"))
-        wrapping = WrappingPaper.objects.get(id=data.get("wrapping"))
-        # Accept both list and single id for greenery
-        greens_val = data.get("greens")
-        if isinstance(greens_val, list):
-            greenery_id = greens_val[0] if greens_val else None
-        else:
-            greenery_id = greens_val
-        greenery = Greenery.objects.get(id=greenery_id) if greenery_id else None
-        wrapping_color = data.get("wrapping_color") 
-    except:
-        return HttpResponse(status=400)
+        shape = BouquetShape.objects.get(id=int(shape_id))
+        wrapping = WrappingPaper.objects.get(id=int(wrapping_id))
+    except (BouquetShape.DoesNotExist, WrappingPaper.DoesNotExist):
+        return JsonResponse({"error": "Datele introduse nu sunt valide."}, status=400)
+
 
 
     flowers_data = data.get("flowers", [])
@@ -764,10 +771,11 @@ def generate_bouquet_preview(request):
     draw = ImageDraw.Draw(image)
 
     # Desenează cercul foliei
+    color_hex = data.get("wrapping_color", "#FFFFFF")
     draw.ellipse([
         (center[0] - base_radius, center[1] - base_radius),
         (center[0] + base_radius, center[1] + base_radius)
-    ], fill=wrapping.color)
+    ], fill=color_hex)
 
     # Adaugă verdeața la bază
     # try:

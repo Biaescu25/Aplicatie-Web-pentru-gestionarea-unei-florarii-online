@@ -1,5 +1,5 @@
 <div class="p-4 bg-white shadow rounded-lg space-y-2">
-  <h3 class="text-lg font-bold">Summary</h3>
+  <h3 class="text-lg font-bold">Rezumat buchet</h3>
 
   {% if error %}
     <div class="text-red-500 text-sm">{{ error }}</div>
@@ -7,19 +7,20 @@
   {% else %}
 
   <ul class="text-sm space-y-1">
-    <li>Formă: {{ shape.name }}</li>
+    <li><strong>Formă:</strong> {{ shape.name }}</li>
     {% for wrap in wrapping %}
-    <li>Ambalaj: {{ wrap.name }} - {{ wrap.price }} Lei</li>
+    <li><strong>Ambalaj:</strong> {{ wrap.name }} - {{ wrap.price }} Lei</li>
+    <li><strong>Culoare ambalaj:</strong> {{ color }}</li>
     {% endfor %}
     {% for green in greens %}
-      <li>Verdeață: {{ green.name }} - {{ green.price }} Lei</li>
+      <li><strong>Verdeață:</strong> {{ green.name }} - {{ green.price }} Lei</li>
     {% endfor %}
   </ul>
 
   <h4 class="mt-2 font-semibold">Flori:</h4>
   <ul class="text-sm">
     {% for flower in flower_summary %}
-      <li>{{ flower.name }} × {{ flower.quantity }} = {{ flower.subtotal }} Lei</li>
+      <li>{{ flower.name }} × <strong>{{ flower.quantity }}</strong> = <strong>{{ flower.subtotal }}</strong> Lei</li>
     {% empty %}
       <li>Nu ai selectat flori</li>
     {% endfor %}
@@ -33,13 +34,13 @@
   <input type="hidden" name="total_price" value="{{ total_price }}">
 
   <button 
-    hx-post="{% url 'save_custom_bouquet' %}" 
-    hx-include="[name='shape'], [name='wrapping'], [name='greens'], [name^='flower_'], [name='total_price']" 
-    hx-target="body" 
-    hx-swap="none" 
-    class="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg">
-    Salvează buchetul
-  </button>
+  hx-post="{% url 'save_custom_bouquet' %}" 
+  hx-include="[name='shape'], [name='wrapping'], [name='greens'], [name^='flower_'], [name='total_price']" 
+  hx-target="body" 
+  hx-swap="none" 
+  class="mt-4 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition">
+  Comandă buchetul
+</button>
 
   {% endif %}
 </div>

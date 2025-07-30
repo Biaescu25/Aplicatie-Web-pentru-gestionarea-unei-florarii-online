@@ -53,13 +53,14 @@
 
 {% include 'partials/ProductShowcase.html'%}
 
+
 <!-- About Us -->
 <section class="bg-gray-300 py-16">
     <div class="container mx-auto px-4">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Left Column -->
             <div class="col-span-1 text-center">
-                <h1 class="text-4xl font-bold mb-6">Despre noi</h1>
+                <h1 class="text-4xl font-dancing font-bold mb-6">Despre noi</h1>
                 <div class="about-section">
                     <img class="mx-auto mb-4 w-32 h-32 rounded-full object-cover" src="/static/Logo.png" alt="Despre noi">
                     <p class="mt-4 transition duration-500 transform hover:scale-110">
@@ -76,11 +77,11 @@
                 <!-- First Image -->
                 <div class="about-img opacity-0 transform translate-y-10 transition-all duration-1000 ease-out" id="aranjamente-section">
                     <figure>
-                        <h3 class="text-xl font-bold mb-2"><a href="{% url 'products_by_category' category='aranjamente' %}" title="Aranjamente">Aranjamente</a></h3>
+                        <h3 class="text-3xl font-bold mb-2"><a href="{% url 'products_by_category' category='aranjamente' %}" title="Aranjamente">Aranjamente</a></h3>
                         <a href="{% url 'products_by_category' category='aranjamente' %}" title="Aranjamente">
                             <div class="overflow-hidden border-white border-4">
                                 <img 
-                                    class="shadow-lg brightness-70 hover:brightness-100 transition duration-300 transform hover:scale-110" 
+                                    class=" h-100 shadow-lg brightness-70 hover:brightness-100 transition duration-300 transform hover:scale-110" 
                                     src="static\media\Pictures\Aranjament-Floral-Cu-Flori-In-Culori-Deschise.jpg" 
                                     alt="Aranjamente"
                                 />
@@ -91,12 +92,12 @@
                 <!-- Second Image -->
                 <div class="about-img flex items-center justify-center opacity-0 transform translate-y-10 transition-all duration-1000 ease-out" id="buchete-section">
                     <figure>
-                        <h3 class="text-xl font-bold mb-2"><a href="{% url 'products_by_category' category='buchete' %}" title="Buchete">Buchete</a></h3>
+                        <h3 class="text-3xl handwriting font-bold mb-2"><a href="{% url 'products_by_category' category='buchete' %}" title="Buchete">Buchete</a></h3>
                         <a href="{% url 'products_by_category' category='buchete' %}" title="Buchete" class="relative -left-20">
                             <div class="overflow-hidden border-white border-4">
                                 <img 
-                                    class="shadow-lg brightness-70 hover:brightness-100 transition duration-300 transform hover:scale-110"  
-                                    src="/static/banner3.jpg" 
+                                    class=" w-80 h-80 shadow-lg brightness-70 hover:brightness-100 transition duration-300 transform hover:scale-110 "  
+                                    src="/static/buchet.jpg" 
                                     alt="Buchete">
                             </div>
                         </a>

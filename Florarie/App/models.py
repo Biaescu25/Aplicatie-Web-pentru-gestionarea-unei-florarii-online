@@ -152,6 +152,7 @@ class Flower(models.Model):
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='flowers/')
     price = models.DecimalField(max_digits=6, decimal_places=2)
+    
     def __str__(self):
         return self.name
 
@@ -162,13 +163,33 @@ class Greenery(models.Model):
     def __str__(self):
         return self.name
 
+class WrappingColor(models.Model):
+    name = models.CharField(max_length=50)
+    hex = models.CharField(max_length=7)  # e.g. "#FFFFFF"
+
+    def __str__(self):
+        return self.name
+
 class WrappingPaper(models.Model):
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='wrappings/')
     price = models.DecimalField(max_digits=6, decimal_places=2)
-    color = models.CharField(max_length=7, null=True, blank=True, help_text="Hex color code, e.g. #FFFFFF")
+    colors = models.ManyToManyField('WrappingColor', through='WrappingPaperColor')
+    in_stock = models.BooleanField(default=True)
+
+    def is_in_stock(self):
+        return any(variant.quantity > 0 for variant in self.color_variants.all())
+class WrappingPaperColor(models.Model):
+    wrapping_paper = models.ForeignKey('WrappingPaper', on_delete=models.CASCADE, related_name='color_variants')
+    color = models.ForeignKey('WrappingColor', on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=0)
+
+    @property
+    def in_stock(self):
+        return self.quantity > 0
+    
     def __str__(self):
-        return self.name
+         return f"{self.wrapping_paper.name} - {self.color.name} ({self.quantity} disponibile)"
 
 class CustomBouquet(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)

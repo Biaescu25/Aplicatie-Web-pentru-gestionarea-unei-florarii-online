@@ -1,10 +1,12 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
+from django.contrib.admin.widgets import FilteredSelectMultiple
 from .forms import ProductForm
-from .models import Product, CartItem, Order, Flower, BouquetShape, Greenery, WrappingPaper, CustomBouquet, ContactMessage, VisitorLog
+from .models import Product, CartItem, Order, Flower, BouquetShape, Greenery, WrappingPaper, WrappingColor, WrappingPaperColor, CustomBouquet, ContactMessage, VisitorLog
 
-from django.utils.html import format_html
+
+
 
 class ProductAdmin(admin.ModelAdmin):
     form = ProductForm
@@ -55,6 +57,23 @@ class ContactMessageAdmin(admin.ModelAdmin):
     #list_display = ('name', 'email', 'submitted_at')
     readonly_fields = ('name', 'email', 'message', 'submitted_at')
 
+class WrappingPaperColorInline(admin.TabularInline):
+    model = WrappingPaperColor
+    extra = 1  # pentru rânduri goale
+    
+
+class WrappingPaperAdmin(admin.ModelAdmin):
+    list_display = ('name', 'price', 'display_colors')
+    inlines = [WrappingPaperColorInline]
+
+    def display_colors(self, obj):
+        colors = obj.color_variants.all()
+        return ", ".join(
+            f"{c.color.name}{' (✓)' if c.in_stock else ' (✗)'}"
+            for c in colors
+        )
+    display_colors.short_description = "Culori (cu stoc)"
+
 
 admin.site.site_header = "Florarie Admin"
 admin.site.register(Product, ProductAdmin)
@@ -63,7 +82,8 @@ admin.site.register(Order, OrderAdmin)
 admin.site.register(Flower)
 admin.site.register(BouquetShape)
 admin.site.register(Greenery)
-admin.site.register(WrappingPaper)
+admin.site.register(WrappingColor)
+admin.site.register(WrappingPaper, WrappingPaperAdmin)
 admin.site.register(CustomBouquet, CustomBouquetAdmin)   
 admin.site.register(ContactMessage, ContactMessageAdmin)
 admin.site.register(VisitorLog)
