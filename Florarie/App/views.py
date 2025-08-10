@@ -51,6 +51,7 @@ from PIL import Image, ImageDraw, ImageOps
 from django.http import HttpResponse
 from .models import BouquetShape, WrappingPaper, Greenery, Flower
 import json
+import os
 
 def home(request):
     all_products = Product.objects.all().order_by('-number_of_purcheses', '-created_at')
@@ -909,8 +910,27 @@ def generate_bouquet_preview(request):
             image.paste(rotated_img, (x - rx // 2, y - ry // 2), rotated_img)
         except:
             continue
- 
-    # Returnează imaginea
+
+    # După ce ai lipit toate florile:
+    folie_path = os.path.join(settings.BASE_DIR, 'App', 'static', 'folie1.png')
+    print(f"Calea foliei: {folie_path}")
+
+    try:
+        wrapping_img = Image.open(folie_path).convert("RGBA")
+        wrapping_img = wrapping_img.resize(canvas_size, Image.LANCZOS)
+
+        # Ajustează opacitatea
+        alpha = wrapping_img.split()[3]
+        alpha = alpha.point(lambda p: int(p * 0.5))  # 50% opacitate
+        wrapping_img.putalpha(alpha)
+
+        # Combină imaginile
+        image = Image.alpha_composite(image, wrapping_img)
+
+    except Exception as e:
+        print(f"Eroare la suprapunerea foliei: {e}")
+
+        # Returnează imaginea finală
     response = HttpResponse(content_type="image/png")
     image.save(response, "PNG")
     return response

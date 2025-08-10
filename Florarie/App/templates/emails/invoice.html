@@ -4,7 +4,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Invoice #{{ order.id }}</title>
+    <title>Factura #{{ order.id }}</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
@@ -15,17 +15,17 @@
 </head>
 <body>
     <h2>Invoice #{{ order.id }}</h2>
-    <p><strong>Date:</strong> {{ order.created_at|date:"d M Y" }}</p>
-    <p><strong>Customer:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+    <p><strong>Data:</strong> {{ order.created_at|date:"d M Y" }}</p>
+    <p><strong>Client:</strong> {{ user.first_name }} {{ user.last_name }}</p>
     <p><strong>Email:</strong> {{ user.email }}</p>
 
     <table>
         <thead>
             <tr>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Unit Price</th>
-                <th>Line Total</th>
+                <th>Produs</th>
+                <th>Cantitate</th>
+                <th>Subtotal</th>
+                <th>Total</th>
             </tr>
         </thead>
         <tbody>

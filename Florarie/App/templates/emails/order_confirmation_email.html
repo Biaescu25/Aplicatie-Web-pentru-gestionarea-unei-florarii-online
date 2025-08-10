@@ -1,14 +1,15 @@
-<h2>Thank you for your order, {{ user.first_name }}!</h2>
+<h2>Mulțumim pentru cumpărături, {{ user.first_name }}!</h2>
 
-<p>Order ID: <strong>#{{ order.id }}</strong></p>
-<p>Date: {{ order.created_at }}</p>
+<p>ID Comandă: <strong>#{{ order.id }}</strong></p>
+<p>Data: {{ order.created_at }}</p>
+<br> <p> <b><u>Detaliile comenzii tale sunt următoarele:</u></b></p>
 
 <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; margin-top: 20px;">
     <thead>
         <tr style="background-color: #f2f2f2; border-bottom: 2px solid #ddd;"></tr>
-            <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Product</th>
-            <th style="text-align: center; padding: 10px; border: 1px solid #ddd;">Quantity</th>
-            <th style="text-align: right; padding: 10px; border: 1px solid #ddd;">Price</th>
+            <th style="text-align: left; padding: 10px; border: 1px solid #ddd;">Produs</th>
+            <th style="text-align: center; padding: 10px; border: 1px solid #ddd;">Cantitate</th>
+            <th style="text-align: right; padding: 10px; border: 1px solid #ddd;">Preț</th>
         </tr>
     </thead>
     <tbody>
@@ -24,4 +25,4 @@
 
 <p><strong>Total: {{ order.total_price }}</strong></p>
 
-<p>We’ll notify you when it ships!</p>
+<p>Te vom anunța când comanda ta va fi expediată!</p>
