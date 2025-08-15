@@ -19,7 +19,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from weasyprint import HTML
 from io import BytesIO
 from django.utils.timezone import now, timedelta
-
+from django.utils.html import format_html
 from django.db.models.functions import TruncDate
 from django.db.models import Sum, Count
 from datetime import datetime, date
@@ -49,9 +49,11 @@ import math
 import random
 from PIL import Image, ImageDraw, ImageOps
 from django.http import HttpResponse
-from .models import BouquetShape, WrappingPaper, Greenery, Flower
 import json
 import os
+
+
+
 
 def home(request):
     all_products = Product.objects.all().order_by('-number_of_purcheses', '-created_at')
@@ -233,6 +235,15 @@ def products_by_category(request: HttpRequest, category):
     elif sort_order == 'desc':
         products = products.order_by('-price')
 
+    # Mark products as new (added in last 48 hours)
+    now = timezone.now()
+    new_threshold = now - timedelta(hours=48)
+    products = list(products)  # Materialize queryset
+
+    for product in products:
+        product.is_new = product.created_at >= new_threshold
+
+
     cart_product_ids = get_cart_items(request).values_list('product_id', flat=True)
 
     context = {
@@ -245,10 +256,8 @@ def products_by_category(request: HttpRequest, category):
     }
 
     if request.headers.get('HX-Request'):
-        # Return only the product showcase partial for HTMX requests
         return render(request, 'partials/ProductShowcase.html', context)
     else:
-        # Return the full page for standard requests
         return render(request, 'products_by_category.html', context)
 
 
@@ -287,19 +296,34 @@ def register(request):
         password1 = request.POST["password1"]
         password2 = request.POST["password2"]
 
+        # Password restrictions
+        errors = []
+        if len(password1) < 8:
+            errors.append("Password must be at least 8 characters long.")
+        if not any(c.isdigit() for c in password1):
+            errors.append("Password must contain at least one digit.")
+        if not any(c.isalpha() for c in password1):
+            errors.append("Password must contain at least one letter.")
+        if not any(c.isupper() for c in password1):
+            errors.append("Password must contain at least one uppercase letter.")
+        if not any(c.islower() for c in password1):
+            errors.append("Password must contain at least one lowercase letter.")
+
         # Check if passwords match
         if password1 != password2:
-            messages.error(request, "Passwords do not match.")
-            return redirect("register")
+            errors.append("Passwords do not match.")
 
         # Check if username already exists
         if User.objects.filter(username=username).exists():
-            messages.error(request, "Username is already taken.")
-            return redirect("register")
+            errors.append("Username is already taken.")
 
         # Check if email is already used
         if User.objects.filter(email=email).exists():
-            messages.error(request, "Email is already in use.")
+            errors.append("Email is already in use.")
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
             return redirect("register")
 
         # Create user
@@ -307,7 +331,9 @@ def register(request):
         user.save()
 
         # Log the user in automatically after registration
-        login(request, user)
+        from django.contrib.auth import authenticate
+        user = authenticate(request, username=username, password=password1)
+        login(request, user, backend='django.contrib.auth.backends.ModelBackend')
 
         #messages.success(request, "Registration successful! You are now logged in.")
         return redirect("home")  # Redirect to homepage
@@ -912,8 +938,8 @@ def generate_bouquet_preview(request):
             continue
 
     # După ce ai lipit toate florile:
-    folie_path = os.path.join(settings.BASE_DIR, 'App', 'static', 'folie1.png')
-    print(f"Calea foliei: {folie_path}")
+    # folie_path = os.path.join(settings.BASE_DIR, 'App', 'static', 'folie1.png')
+    # print(f"Calea foliei: {folie_path}")
 
     try:
         wrapping_img = Image.open(folie_path).convert("RGBA")
@@ -1023,18 +1049,30 @@ def contact_view(request):
         contact_message.submitted_at = timezone.now()
         contact_message.save()
 
-        # Send email to business
+        # Email către administrator
         subject = f"New Contact Message from {contact_message.name}"
-        message = contact_message.message
         from_email = contact_message.email
         to_email = [settings.DEFAULT_FROM_EMAIL]
 
+        # Conținut HTML cu bold pentru "Nume"
+        message_html = format_html(
+            "<b>Nume:</b> {}<br>"
+            "<b>Email:</b> {}<br>"
+            "<b>Mesaj:</b> {}<br>"
+            "<b>Trimis la:</b> {}",
+            contact_message.name,
+            contact_message.email,
+            contact_message.message,
+            timezone.localtime(contact_message.submitted_at).strftime('%d-%m-%Y %H:%M:%S')
+        )
+
         send_mail(
             subject,
-            message,
+            '',  # mesaj simplu (poți lăsa gol dacă folosești doar HTML)
             from_email,
             to_email,
             fail_silently=False,
+            html_message=message_html  # versiunea HTML
         )
 
         return redirect('contact_success')

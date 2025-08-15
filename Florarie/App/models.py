@@ -4,6 +4,7 @@ from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 from django.core.exceptions import ValidationError
+from ckeditor.fields import RichTextField
 
 # Create your models here.
 
@@ -26,7 +27,7 @@ from django.core.exceptions import ValidationError
 
 class Product(models.Model):
     name = models.CharField(max_length=100, null=False, blank=False)
-    description = models.TextField()
+    description = RichTextField()
     category = models.CharField(
         max_length=100,
         choices=[
@@ -39,7 +40,7 @@ class Product(models.Model):
         ],
         default="General"
     )
-    price = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    price = models.DecimalField(max_digits=10, decimal_places=0, null=False, blank=False)
     image = models.ImageField(upload_to="Pictures/", null=False, blank=False)
     created_at = models.DateTimeField(auto_now_add=True, null=False, blank=False)
 
@@ -76,15 +77,17 @@ class Product(models.Model):
 
     def get_auction_price(self):
         if not self.is_in_auction():
-            return self.price
+            return self.price, 0, 0  # Return original price, no discount, no percentage reduction
  
         minutes_passed = (timezone.now() - self.auction_start_time).total_seconds() / 60
-        discount = min(0.05 * int(minutes_passed / self.auction_interval_minutes), 0.50)  # 5% per interval, up to 50%
-        discount_decimal = Decimal(str(discount))
+        total_drops = int(minutes_passed / self.auction_interval_minutes)
+        discount = min(self.auction_drop_amount * total_drops, self.price - self.auction_floor_price)  # Ensure price doesn't go below floor price
 
-        auction_bid_price = self.price * (Decimal("1.0") - discount_decimal) # Calculate the auction price
+        auction_bid_price = self.price - Decimal(discount)  # Calculate the auction price
+        price_difference = self.price - auction_bid_price  # Calculate the price difference
+        percentage_reduction = (price_difference / self.price) * 100  # Calculate percentage reduction
          
-        return auction_bid_price
+        return auction_bid_price, price_difference, percentage_reduction
     
     def __str__(self):
         return self.name
@@ -217,6 +220,7 @@ class ContactMessage(models.Model):
     name = models.CharField(max_length=100)
     email = models.EmailField()
     message = models.TextField()
+    phone = models.CharField(max_length=15, null=True, blank=True)  # Optional phone field
     submitted_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

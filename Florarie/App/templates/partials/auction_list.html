@@ -1,15 +1,23 @@
 {% for product in products %}
 {% if not product.bid_submited %}
-<div class="card bg-base-100 shadow-xl">
+<div class="card bg-base-100 shadow-xl relative">
+    <!-- Percentage reduction badge -->
+    {% with auction_data=product.get_auction_price %}
+        {% if auction_data.2 > 0 %}
+            <div class="absolute top-2 right-2 bg-red-600 text-white text-lg font-bold px-4 py-2 rounded-lg shadow-lg z-20">
+                -{{ auction_data.2|floatformat:0 }}%
+            </div>
+        {% endif %}
+    {% endwith %}
     <figure>
         <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-48 object-cover">
     </figure>
     <div class="card-body">
         <h2 class="card-title">{{ product.name }}</h2>
-        <p class="text-gray-600">{{ product.description }}</p>
-        <p class="text-sm text-gray-500">Auction start: {{ product.auction_start_time|date:"d M Y H:i" }}</p>
-        <p class="text-sm text-gray-500">Original price: ${{ product.before_auction_price }}</p>
-        <div 
+        <!-- <p class="text-gray-600">{{ product.description }}</p> -->
+        <p class="text-sm text-gray-500"><strong>Oferta a inceput la:</strong> {{ product.auction_start_time|date:"d M Y H:i" }}</p>
+        <p class="text-sm text-gray-500"><strong>Pretul original:</strong> {{ product.before_auction_price }} Lei</p>
+        <div
             hx-get="{% url 'auction_price_partial' product.pk %}"
             hx-trigger="every 100s"
             hx-swap="innerHTML"

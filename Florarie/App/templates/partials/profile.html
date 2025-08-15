@@ -2,12 +2,12 @@
 {% block content %}
 <section class="container mx-auto px-4 py-20 mt-24">
 
-    <h1 class="text-3xl font-bold mb-8 text-center">My Account</h1>
+    <h1 class="text-3xl font-bold mb-8 text-center">Contul meu</h1>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Left: User Info Form -->
         <div class="bg-white rounded-2xl shadow p-6">
-            <h2 class="text-xl font-semibold mb-4">Profile Details</h2>
+            <h2 class="text-xl font-semibold mb-4">Detalii profil</h2>
 
             <form method="post" class="space-y-4">
                 {% csrf_token %}
@@ -28,15 +28,15 @@
                     </div>
                 {% endfor %}
 
-                <button type="submit" class="btn btn-primary w-full">Save Changes</button>
+                <button type="submit" class="btn btn-primary w-full">Salvează modificările</button>
             </form>
 
-            <a href="{% url 'password_change' %}" class="block text-center mt-4 text-blue-500 hover:underline">Change Password</a>
+            <a href="{% url 'password_change' %}" class="block text-center mt-4 text-blue-500 hover:underline">Schimbă parola</a>
         </div>
 
         <!-- Order History -->
         <div class="lg:col-span-2 bg-white rounded-2xl shadow p-6">
-            <div id="order-history" hx-get="{% url 'order_history' %}" hx-trigger="load" hx-target="this" hx-swap="innerHTML hx-indicator="#loading-spinner"">
+            <div id="order-history" hx-get="{% url 'order_history' %}" hx-trigger="load" hx-target="this" hx-swap="innerHTML hx-indicator="#loading-spinner">
                 Loading orders...
             </div>
         </div>

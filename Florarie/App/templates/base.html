@@ -283,7 +283,7 @@ function renderAllCharts(data, chartTypeOverrides = {}) {
       labels: data.sales.labels,
       datasets: [
         {
-          label: "Sales ($)",
+          label: "Vânzări (Lei)",
           data: data.sales.totals,
           borderColor: "rgb(59, 130, 246)",
           backgroundColor: "rgba(59, 130, 246, 0.1)",
@@ -330,7 +330,7 @@ function renderAllCharts(data, chartTypeOverrides = {}) {
     data: {
       labels: data.conversion.labels,
       datasets: [{
-        label: 'Conversion Rate (%)',
+        label: 'Rata de conversie (%)',
         data: data.conversion.rates,
         borderColor: 'rgb(234, 88, 12)',
         backgroundColor: 'rgba(251, 191, 36, 0.2)',
@@ -345,7 +345,7 @@ function renderAllCharts(data, chartTypeOverrides = {}) {
         y: {
           beginAtZero: true,
           max: 100,
-          title: { display: true, text: 'Conversion Rate (%)' }
+          title: { display: true, text: 'Rata de conversie (%)' }
         }
       }
     }

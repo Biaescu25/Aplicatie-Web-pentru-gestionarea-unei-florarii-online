@@ -47,7 +47,6 @@ urlpatterns = [
     path('product/<int:pk>/', product_detail, name='product_detail'),
     path('profile/', profile, name='profile'),
     path('order/<int:order_id>/', order_detail, name='order_detail'),
-    #path('order/<int:order_id>/reorder/', reorder, name='reorder'),
     path('password_change/', auth_views.PasswordChangeView.as_view(template_name='password_change.html'), name='password_change'),
     path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(template_name='password_change_done.html'), name='password_change_done'),
     path('profile/orders/', order_history, name='order_history'),

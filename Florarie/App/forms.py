@@ -38,4 +38,4 @@ class UserForm(forms.ModelForm):
 class ContactForm(forms.ModelForm):
     class Meta:
         model = ContactMessage
-        fields = ['name', 'email', 'message']
+        fields = ['name', 'email', 'message', 'phone']  # Include phone field

@@ -4,5 +4,5 @@
     hx-target="#modal-container"
     hx-swap="innerHTML"
 >
-    {{ product.get_auction_price|floatformat:2 }} LEI
+    {{ product.get_auction_price.0|floatformat:2 }} LEI
 </button>

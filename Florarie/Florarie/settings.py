@@ -32,6 +32,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'colorfield', 
+    'admin_interface',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,7 +42,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'App',  # the app
     'django_htmx',  # HTMX Middleware
-    'social_django',  # Social Auth
+    'social_django',
+    'ckeditor'
+
 ]
 
 MIDDLEWARE = [

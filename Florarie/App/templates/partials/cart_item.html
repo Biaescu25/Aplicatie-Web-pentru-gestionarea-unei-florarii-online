@@ -40,14 +40,14 @@
 
         </div>
         <div class="center" style="min-width: 120px; text-align: right;">
-            <p class="card-text">Subtotal: {{ cart_item.total_price }}</p>
+            <p class="card-text">Subtotal: {{ cart_item.total_price }} LEI </p>
         </div>
         <div class="center">
             <a href="{% url 'remove_from_cart' product_id=cart_item.product.id %}" 
                class="btn btn-danger btn-sm"
                hx-get="{% url 'remove_from_cart' product_id=cart_item.product.id %}" 
                hx-target="#cart-item-{{ cart_item.id }}" 
-               hx-swap="outerHTML">Remove</a>
+               hx-swap="outerHTML">Șterge</a>
         </div>
     </div>
 </div>
