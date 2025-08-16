@@ -9,7 +9,6 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.core.mail import send_mail, EmailMessage
 from django.template.loader import render_to_string
-from django.templatetags.static import static
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from django.utils import timezone
@@ -18,11 +17,11 @@ from django.http import HttpRequest
 from django.contrib.admin.views.decorators import staff_member_required
 from weasyprint import HTML
 from io import BytesIO
-from django.utils.timezone import now, timedelta
+from django.utils.timezone import timedelta
 from django.utils.html import format_html
 from django.db.models.functions import TruncDate
 from django.db.models import Sum, Count
-from datetime import datetime, date
+from datetime import datetime
 
 from .models import (
     Product, CartItem, Order, Payment, OrderItem,
@@ -30,30 +29,17 @@ from .models import (
 )
 from .forms import ContactForm, UserForm
 
-import base64
 import matplotlib
 matplotlib.use('Agg')  # Use non-GUI backend
 
-import matplotlib.pyplot as plt
-
 import stripe
-
 stripe.api_key = settings.STRIPE_SECRET_KEY  # Set Stripe API key
-
 
 import json
 from PIL import Image, ImageDraw
 from django.conf import settings
-
 import math
 import random
-from PIL import Image, ImageDraw, ImageOps
-from django.http import HttpResponse
-import json
-import os
-
-
-
 
 def home(request):
     all_products = Product.objects.all().order_by('-number_of_purcheses', '-created_at')
@@ -997,21 +983,12 @@ def auction_confirm(request, pk):
 
   
     if product.is_in_auction():
-        cart_item.product.price = product.get_auction_price()
+        auction_price, _, _ = product.get_auction_price()  # Unpack only the price
+        cart_item.product.price = auction_price  # Set only the price, not the tuple
         cart_item.product.bid_submited = True
 
         cart_item.product.save()
 
-
-    # Always refresh the product list (optional), and cart count
-    # if request.headers.get("HX-Request"):
-    #     cart_count = get_cart_items(request).count()
-    #     cart_html = render_to_string("partials/cart_count.html", {"cart_count": cart_count}, request=request)
-
-    #     # Return a response that updates the cart count (via hx-swap-oob)
-    #     response = HttpResponse(cart_html)
-    #     response["HX-Trigger"] = "refreshProductList"
-    #     return response
 
     return redirect("auction")
 
@@ -1054,7 +1031,6 @@ def contact_view(request):
         from_email = contact_message.email
         to_email = [settings.DEFAULT_FROM_EMAIL]
 
-        # Conținut HTML cu bold pentru "Nume"
         message_html = format_html(
             "<b>Nume:</b> {}<br>"
             "<b>Email:</b> {}<br>"
@@ -1068,11 +1044,11 @@ def contact_view(request):
 
         send_mail(
             subject,
-            '',  # mesaj simplu (poți lăsa gol dacă folosești doar HTML)
+            '', 
             from_email,
             to_email,
             fail_silently=False,
-            html_message=message_html  # versiunea HTML
+            html_message=message_html  
         )
 
         return redirect('contact_success')

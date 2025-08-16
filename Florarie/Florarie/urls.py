@@ -68,7 +68,6 @@ urlpatterns = [
     path("api/products/", product_list_api, name="product_list_api"),
     path("api/sales-summary/", sales_summary_api, name="sales_summary_api"),
     path("generate-bouquet-preview/", generate_bouquet_preview, name="generate_bouquet_preview"),
-
 ]
 
 

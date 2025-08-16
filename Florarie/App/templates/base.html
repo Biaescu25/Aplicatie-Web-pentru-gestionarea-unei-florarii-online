@@ -401,7 +401,6 @@ document.addEventListener("DOMContentLoaded", function () {
   fetchAndRenderCharts(startInput.value, endInput.value);
 
   // Date filter button
-
     document.getElementById('chart-date-filter-btn').addEventListener('click', function() {
         const start = document.getElementById('chart-date-start').value;
         const end   = document.getElementById('chart-date-end').value;
@@ -424,14 +423,12 @@ document.addEventListener("DOMContentLoaded", function () {
         );
     });
 
-
     const allowedChartTypes = {
         sales: ['default', 'bar', 'line'],
         products: ['default', 'bar', 'line', 'pie'],
         visitors: ['default', 'line'],
         conversion: ['default', 'line'],
     };
-
 
     function updateChartTypeOptions(chartKey) {
         const group = document.querySelector('[data-group="chart-type"]');
@@ -586,8 +583,6 @@ document.addEventListener("DOMContentLoaded", function () {
     chartTypeOverrides
   );
 
-
-
   // Wire up chart‐filter buttons
   document.querySelectorAll('.chart-filter-btn').forEach(btn=>{
     btn.addEventListener('click', function(){
@@ -612,9 +607,6 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
-</script>
-
-<script>
 function updateSalesSummary(start, end) {
   fetch(`/api/sales-summary/?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
     .then(res => res.json())

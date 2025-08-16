@@ -71,8 +71,9 @@ class Product(models.Model):
 
 
     def is_in_auction(self):
-        # Eligible if manually added or in store for > 3 days
-        self.before_auction_price = self.price
+        # Only set before_auction_price if not already set
+        if not self.before_auction_price or self.before_auction_price == 0:
+            self.before_auction_price = self.price
         return self.auction_manual or (self.in_store and self.created_at <= timezone.now() - timedelta(minutes=3)) and self.bid_submited == False
 
     def get_auction_price(self):
@@ -80,12 +81,17 @@ class Product(models.Model):
             return self.price, 0, 0  # Return original price, no discount, no percentage reduction
  
         minutes_passed = (timezone.now() - self.auction_start_time).total_seconds() / 60
-        total_drops = int(minutes_passed / self.auction_interval_minutes)
+        total_drops = max(1, int(minutes_passed / self.auction_interval_minutes))
         discount = min(self.auction_drop_amount * total_drops, self.price - self.auction_floor_price)  # Ensure price doesn't go below floor price
 
         auction_bid_price = self.price - Decimal(discount)  # Calculate the auction price
         price_difference = self.price - auction_bid_price  # Calculate the price difference
-        percentage_reduction = (price_difference / self.price) * 100  # Calculate percentage reduction
+
+        # Prevent division by zero
+        if self.price == 0:
+            percentage_reduction = Decimal(0)
+        else:
+            percentage_reduction = Decimal((price_difference / self.price) * 100)  # Calculate percentage reduction as Decimal
          
         return auction_bid_price, price_difference, percentage_reduction
     

@@ -4,7 +4,7 @@
         <h2 class="text-xl font-bold mb-4">Confirm Your Bid</h2>
         <p class="mb-4">
             Are you sure you want to bid 
-            <strong>{{ product.get_auction_price|floatformat:2 }} LEI</strong> 
+            <strong>{{ product.get_auction_price.0|floatformat:2 }} LEI</strong> 
             for <strong>{{ product.name }}</strong>?
         </p>
         <div class="flex justify-end space-x-3">

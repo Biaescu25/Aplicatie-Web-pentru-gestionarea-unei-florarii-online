@@ -6,8 +6,6 @@ from .forms import ProductForm
 from .models import Product, CartItem, Order, Flower, BouquetShape, Greenery, WrappingPaper, WrappingColor, WrappingPaperColor, CustomBouquet, ContactMessage, VisitorLog
 
 
-
-
 class ProductAdmin(admin.ModelAdmin):
     form = ProductForm
     list_display = ('name', 'price', 'in_store', 'bid_submited', 'number_of_purcheses', 'delete_link')
@@ -21,7 +19,6 @@ class ProductAdmin(admin.ModelAdmin):
         url = reverse('admin:App_product_delete', args=[obj.pk])
         return format_html('<a class="button" href="{}">Delete</a>', url)
     delete_link.short_description = 'Delete'
-
 
 
 class OrderAdmin(admin.ModelAdmin):
@@ -50,16 +47,16 @@ class OrderAdmin(admin.ModelAdmin):
 
 class CustomBouquetAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'shape', 'wrapping', 'created_at', 'related_flowers')
-    readonly_fields = ('related_flowers',)  # Display related flowers in the detail view
+    readonly_fields = ('related_flowers',)
 
 
 class ContactMessageAdmin(admin.ModelAdmin):
-    #list_display = ('name', 'email', 'submitted_at')
+
     readonly_fields = ('name', 'email', 'message', 'submitted_at')
 
 class WrappingPaperColorInline(admin.TabularInline):
     model = WrappingPaperColor
-    extra = 1  # pentru rânduri goale
+    extra = 1
     
 
 class WrappingPaperAdmin(admin.ModelAdmin):
