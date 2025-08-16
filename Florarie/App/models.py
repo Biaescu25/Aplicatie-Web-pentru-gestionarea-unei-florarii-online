@@ -103,6 +103,10 @@ class CartItem(models.Model):
     session_id = models.CharField(max_length=255, null=True, blank=True) # Store session ID for anonymous users
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
+    reserved_until = models.DateTimeField(null=True, blank=True)
+
+    def is_expired(self):
+        return self.reserved_until and timezone.now() > self.reserved_until
     
     def total_price(self):
         return self.product.price * self.quantity

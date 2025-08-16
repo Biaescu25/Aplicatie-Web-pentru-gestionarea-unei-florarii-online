@@ -949,8 +949,18 @@ def generate_bouquet_preview(request):
 
 def auction_view(request):
     products = Product.objects.all()
+
+    # Check for expired reservations
+    for product in products.filter(bid_submited=True):
+        cart_items = CartItem.objects.filter(product=product)
+        for cart_item in cart_items:
+            if cart_item.is_expired():
+                cart_item.delete()
+                product.bid_submited = False
+                product.save()
+
     auction_products = [p for p in products if p.is_in_auction()]
-    
+
     if request.headers.get("HX-Request"):
         return render(request, "partials/auction_list.html", {"products": auction_products})
 
@@ -959,7 +969,6 @@ def auction_view(request):
 def auction_price_partial(request, pk):
     product = get_object_or_404(Product, pk=pk)
     return render(request, "partials/auction_price.html", {"product": product})
-
 
 def  auction_confirm_popup(request, pk):
     if not request.headers.get("HX-Request"):
@@ -981,14 +990,13 @@ def auction_confirm(request, pk):
         session_id = get_or_create_session_id(request)
         cart_item, created = CartItem.objects.get_or_create(session_id=session_id, product=product)
 
-  
     if product.is_in_auction():
-        auction_price, _, _ = product.get_auction_price()  # Unpack only the price
-        cart_item.product.price = auction_price  # Set only the price, not the tuple
+        auction_price, _, _ = product.get_auction_price()
+        cart_item.product.price = auction_price
         cart_item.product.bid_submited = True
-
+        cart_item.reserved_until = timezone.now() + timedelta(minutes=1)  # rezervare 10 min
+        cart_item.save()
         cart_item.product.save()
-
 
     return redirect("auction")
 
