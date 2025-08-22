@@ -99,9 +99,12 @@ def add_to_cart(request, product_id):
         session_id = get_or_create_session_id(request)
         cart_item, created = CartItem.objects.get_or_create(session_id=session_id, product=product)
 
-    if not created:
-        cart_item.quantity += 1
+    # Limit quantity to stock
+    current_quantity = cart_item.quantity if not created else 0
+    if current_quantity < product.stock:
+        cart_item.quantity = current_quantity + 1
         cart_item.save()
+    # else: do not add more than stock
 
     # Check if the request is from HTMX
     if request.headers.get("HX-Request"):
@@ -155,15 +158,24 @@ def remove_from_cart(request, product_id):
 def update_cart(request, product_id, quantity):
     cart_item = CartItem.objects.filter(product_id=product_id).first()
     if cart_item:
-        cart_item.quantity = quantity
+        # Only allow up to product stock
+        cart_item.quantity = min(quantity, cart_item.product.stock)
         cart_item.save()
     return JsonResponse({"success": True, "total_price": cart_item.total_price()})
 
 def increment_quantity(request, product_id):
     cart_item = CartItem.objects.filter(product_id=product_id, user=request.user).first()
     if cart_item:
-        cart_item.quantity += 1
-        cart_item.save()
+        # For buchete and aranjamente, allow up to 10 without stock check
+        if cart_item.product.category in ['buchete', 'aranjamente']:
+            if cart_item.quantity < 10:
+                cart_item.quantity += 1
+                cart_item.save()
+        else:
+            # For other products, check against stock
+            if cart_item.quantity < cart_item.product.stock:
+                cart_item.quantity += 1
+                cart_item.save()
 
     total_price = sum(item.total_price() for item in CartItem.objects.filter(user=request.user))
 
@@ -361,13 +373,13 @@ def product_detail(request, pk):
 
 @login_required
 def profile(request):
-    #form = UserForm(instance=request.user)
+   
     user = request.user
     if request.method == 'POST':
         form = UserForm(request.POST, instance=user)
         if form.is_valid():
             form.save()
-            return redirect('profile')  # or show a success message
+            return redirect('profile')  
     else:
         form = UserForm(instance=user)
 
@@ -543,13 +555,18 @@ def checkout_step_3(request):
 
             # Update order payment status
             try:
-
                 order_id = request.session.get("order_id")
                 order = Order.objects.get(id=order_id)
                 order.payment_status = True
                 order.save()
 
                 send_order_email(order, request.user)
+
+                # Decrement stock for each product in the order
+                for item in order.items.all():
+                    if item.product.stock is not None and item.product.stock > 0:
+                        item.product.stock = max(0, item.product.stock - item.quantity)
+                        item.product.save()
 
                 # Clear the cart after successful payment
                 user = request.user if request.user.is_authenticated else None
@@ -561,17 +578,14 @@ def checkout_step_3(request):
                     item.product.save()
 
                 cart_items.delete()
-
             except Order.DoesNotExist:
                 return JsonResponse({"success": False, "message": "No matching order found."})
-
 
             #return JsonResponse({"success": True, "message": "Payment successful!"})
             if request.headers.get("HX-Request"):
                 return render(request, 'checkout_step_3.html')
             else:
                 return redirect("order_success")  # fallback if not HTMX
-
         
         except stripe.error.CardError as e:
             return JsonResponse({"success": False, "message": f"Card error: {str(e)}"})
@@ -582,14 +596,11 @@ def checkout_step_3(request):
 
     return JsonResponse({"success": False, "message": "Invalid request"})
 
-    #return redirect('checkout_step_1')
-
 def custom_bouquet_builder(request):
     shape = BouquetShape.objects.all()
     wrapping = WrappingPaper.objects.filter(in_stock=True).prefetch_related("color_variants__color")
     greenery = Greenery.objects.all()
     flower = Flower.objects.all()
-
        
     return render(request, "custom_bouquet_builder.html", {
             "shapes": shape,
@@ -770,8 +781,6 @@ def generate_bouquet_preview(request):
     except (BouquetShape.DoesNotExist, WrappingPaper.DoesNotExist):
         return JsonResponse({"error": "Datele introduse nu sunt valide."}, status=400)
 
-
-
     flowers_data = data.get("flowers", [])
 
     canvas_size = (500, 500)
@@ -789,14 +798,6 @@ def generate_bouquet_preview(request):
         (center[0] - base_radius, center[1] - base_radius),
         (center[0] + base_radius, center[1] + base_radius)
     ], fill=color_hex)
-
-    # Adaugă verdeața la bază
-    # try:
-    #     green_img = Image.open(greenery.image.path).convert("RGBA")
-    #     green_img = green_img.resize((150, 150), Image.LANCZOS)
-    #     image.paste(green_img, (center[0] - 75, center[1] + 100), green_img)
-    # except:
-    #     pass
 
     #Construim lista completă cu toate florile + numărul lor
     all_flowers = []
@@ -826,20 +827,6 @@ def generate_bouquet_preview(request):
     if num_flowers == 0:
         return HttpResponse(status=400)
 
-    # Prepare greenery images for insertion
-    # greenery_images = []
-    # if greenery:
-    #     try:
-    #         green_img = Image.open(greenery.image.path).convert("RGBA")
-    #     except:
-    #         green_img = None
-    #     if green_img:
-    #         # Number of greenery images: at least 1, or 5% of flower count (rounded up)
-    #         num_greenery = max(1, math.ceil(num_flowers * 0.05))
-    #         greenery_images = [green_img.resize((60, 60), Image.LANCZOS) for _ in range(num_greenery)]
-
-    # Dynamic concentric circles logic
-    # Example: max 8 flowers on first, 12 on second, 16 on third, etc.
     circle_max = [1, 8, 12, 16, 20, 24]
     flower_positions = []
     flower_idx = 0
@@ -848,7 +835,6 @@ def generate_bouquet_preview(request):
     base_size = 300
     min_size = 50
     shrink_step = 18  # pixels to shrink per circle
-
 
     for circle_num, max_on_circle in enumerate(circle_max):
         if flower_idx >= num_flowers:
@@ -864,8 +850,7 @@ def generate_bouquet_preview(request):
         else:
             # Calculate flower size for this circle (shrinks as number of flowers increases)
             size = max(min_size, base_size - int((base_size - min_size) * num_flowers / 50)) 
-            # Calculate the radius for this circle, adjusting for flower size
-            # Make outer circles tighter as number of flowers increases
+
             max_tight_radius = base_radius + (len(circle_max) - 1) * radius_step
             min_tight_radius = base_radius + (len(circle_max) - 1) * radius_step // 2
             # Interpolate between max_tight_radius and min_tight_radius based on num_flowers
@@ -994,7 +979,7 @@ def auction_confirm(request, pk):
         auction_price, _, _ = product.get_auction_price()
         cart_item.product.price = auction_price
         cart_item.product.bid_submited = True
-        cart_item.reserved_until = timezone.now() + timedelta(minutes=1)  # rezervare 10 min
+        cart_item.reserved_until = timezone.now() + timedelta(minutes=10)  # rezervare 10 min
         cart_item.save()
         cart_item.product.save()
 

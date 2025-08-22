@@ -1,30 +1,30 @@
-<h2 class="text-xl font-semibold mb-4">Order History</h2>
+<h2 class="text-xl font-semibold mb-4">Istoric Comenzi</h2>
 
 {% if orders %}
     <ul class="divide-y">
         {% for order in orders %}
         <li class="py-4 flex justify-between items-center">
             <div>
-                <p class="font-medium">Order #{{ order.id }}</p>
+                <p class="font-medium">Comanda #{{ order.id }}</p>
                 <p class="text-gray-500 text-sm">{{ order.created_at|date:"M d, Y H:i" }}</p>
             </div>
-            <a href="{% url 'order_detail' order.id %}" class="text-blue-500 hover:underline">View Details</a>
+            <a href="{% url 'order_detail' order.id %}" class="text-blue-500 hover:underline">Vezi Detalii</a>
         </li>
         {% endfor %}
     </ul>
 
     <div class="mt-6 flex justify-center items-center space-x-4">
         {% if orders.has_previous %}
-            <a hx-get="{% url 'order_history' %}?page={{ orders.previous_page_number }}" hx-target="#order-history" hx-swap="innerHTML" class="btn btn-secondary">Previous</a>
+            <a hx-get="{% url 'order_history' %}?page={{ orders.previous_page_number }}" hx-target="#order-history" hx-swap="innerHTML" class="btn btn-secondary">Precedent</a>
         {% endif %}
 
-        <span>Page {{ orders.number }} of {{ orders.paginator.num_pages }}</span>
+        <span>Pagina {{ orders.number }} din {{ orders.paginator.num_pages }}</span>
 
         {% if orders.has_next %}
-            <a hx-get="{% url 'order_history' %}?page={{ orders.next_page_number }}" hx-target="#order-history" hx-swap="innerHTML" class="btn btn-secondary">Next</a>
+            <a hx-get="{% url 'order_history' %}?page={{ orders.next_page_number }}" hx-target="#order-history" hx-swap="innerHTML" class="btn btn-secondary">Următor</a>
         {% endif %}
     </div>
 
 {% else %}
-    <p class="text-gray-500">You haven't placed any orders yet.</p>
+    <p class="text-gray-500">Nu ai plasat încă comenzi.</p>
 {% endif %}

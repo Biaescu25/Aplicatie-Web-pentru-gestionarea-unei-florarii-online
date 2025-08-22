@@ -2,8 +2,8 @@
 {% block content %}
 
 <div class="container mx-auto py-36 mt-24 h-screen ">
-    <h2 class="text-2xl font-bold mb-4">Order #{{ order.id }}</h2>
-    <p class="text-sm text-gray-500 mb-2">Placed on: {{ order.created_at|date:"F j, Y, g:i a" }}</p>
+    <h2 class="text-2xl font-bold mb-4">Comanda #{{ order.id }}</h2>
+    <p class="text-sm text-gray-500 mb-2">Plasată pe: {{ order.created_at|date:"F j, Y, g:i a" }}</p>
     <p class="text-sm font-semibold mb-4">Total: {{ order.total_price }} Lei</p>
 
     <div class="border-t pt-4 mt-4">
@@ -22,7 +22,7 @@
     </div>
 
     <div class="mt-6">
-        <a href="{% url 'profile' %}" class="btn btn-primary">Back to Orders</a>
+        <a href="{% url 'profile' %}" class="btn btn-primary">Înapoi la Comenzi</a>
     </div>
 </div>
 

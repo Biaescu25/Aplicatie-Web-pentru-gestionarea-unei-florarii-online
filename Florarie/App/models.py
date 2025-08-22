@@ -44,6 +44,8 @@ class Product(models.Model):
     image = models.ImageField(upload_to="Pictures/", null=False, blank=False)
     created_at = models.DateTimeField(auto_now_add=True, null=False, blank=False)
 
+    stock = models.PositiveIntegerField(default=0)
+
     is_custom = models.BooleanField(default=False)
  
     in_store = models.BooleanField(default=False)
@@ -59,22 +61,34 @@ class Product(models.Model):
     number_of_purcheses = models.PositiveIntegerField(default=0)  # Track the number of purchases
 
     def clean(self):
-        if self.in_store:
-            if not self.auction_start_time:
-                raise ValidationError("Auction start time is required when the product is in store.")
-            if not self.auction_floor_price:
-                raise ValidationError("Auction floor price is required when the product is in store.")
-            if not self.auction_interval_minutes:
-                raise ValidationError("Auction interval minutes are required when the product is in store.")
-            if not self.auction_drop_amount:
-                raise ValidationError("Auction drop amount is required when the product is in store.")
+        # Set in_store if stock > 0 and category is buchete or aranjamente
+        if self.stock > 0 and (self.category == "buchete" or self.category == "aranjamente"):
+            self.in_store = True
+        else:
+            self.in_store = False
 
+        if self.in_store:
+            if self.auction_manual:
+                if not self.auction_start_time:
+                    raise ValidationError("Auction start time is required when the product is in store.")
+                if not self.auction_floor_price:
+                    raise ValidationError("Auction floor price is required when the product is in store.")
+                if not self.auction_interval_minutes:
+                    raise ValidationError("Auction interval minutes are required when the product is in store.")
+                if not self.auction_drop_amount:
+                    raise ValidationError("Auction drop amount is required when the product is in store.")
+            elif not self.auction_manual:
+                if not self.pk or not Product.objects.filter(pk=self.pk, in_store=True).exists():
+                    # Only set these values if in_store has just now changed to true So that now means the moment they were added to the stock.
+                    self.auction_start_time = timezone.now() + timedelta(hours=36) #use now as reference point so that if the products exist for a long time, they will not enter in auction imediately
+                    self.auction_floor_price = self.price * Decimal(0.4)
+                    self.auction_drop_amount = self.price * Decimal(0.05)
 
     def is_in_auction(self):
         # Only set before_auction_price if not already set
         if not self.before_auction_price or self.before_auction_price == 0:
             self.before_auction_price = self.price
-        return self.auction_manual or (self.in_store and self.created_at <= timezone.now() - timedelta(minutes=3)) and self.bid_submited == False
+        return self.auction_manual or (self.in_store and self.auction_start_time and self.auction_start_time <= timezone.now()) and self.bid_submited == False
 
     def get_auction_price(self):
         if not self.is_in_auction():

@@ -1,8 +1,11 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const inStoreCheckbox = document.querySelector('#id_in_store');
+    const stockInput = document.querySelector('#id_stock');
+    const auctionManualInput = document.querySelector('#id_auction_manual');
 
-    const auctionFields = [
-        'auction_manual',
+    // Only auction_manual field
+    const auctionManualField = 'auction_manual';
+    // All other auction fields
+    const otherAuctionFields = [
         'auction_start_time',
         'auction_floor_price',
         'auction_interval_minutes',
@@ -10,32 +13,33 @@ document.addEventListener('DOMContentLoaded', function () {
     ];
 
     function toggleAuctionFields() {
-        const show = inStoreCheckbox.checked;
-    
-        auctionFields.forEach(fieldName => {
-            // First try a direct lookup by ID for regular inputs
+        const stock = parseInt(stockInput ? stockInput.value : "0", 10);
+        const showManual = stock > 0;
+
+        // Show/hide auction_manual based on stock
+        let manualInput = document.querySelector(`#id_${auctionManualField}`);
+        let manualRow = manualInput ? manualInput.closest('.form-row') : document.querySelector(`.field-${auctionManualField}`);
+        if (manualRow) {
+            manualRow.style.display = showManual ? '' : 'none';
+        }
+
+        // Show/hide other auction fields based on auction_manual checked
+        const showOthers = showManual && auctionManualInput && auctionManualInput.checked;
+        otherAuctionFields.forEach(fieldName => {
             let input = document.querySelector(`#id_${fieldName}`);
-            let row = null;
-    
-            if (input) {
-                row = input.closest('.form-row');
-            }
-    
-            // If not found, fall back to field-specific class (always present)
-            if (!row) {
-                row = document.querySelector(`.field-${fieldName}`);
-            }
-    
+            let row = input ? input.closest('.form-row') : document.querySelector(`.field-${fieldName}`);
             if (row) {
-                row.style.display = show ? '' : 'none';
+                row.style.display = showOthers ? '' : 'none';
             }
         });
     }
-    
 
-    if (inStoreCheckbox) {
+    if (stockInput) {
         toggleAuctionFields();
-        inStoreCheckbox.addEventListener('change', toggleAuctionFields);
+        stockInput.addEventListener('input', toggleAuctionFields);
+    }
+    if (auctionManualInput) {
+        auctionManualInput.addEventListener('change', toggleAuctionFields);
     }
 });
 

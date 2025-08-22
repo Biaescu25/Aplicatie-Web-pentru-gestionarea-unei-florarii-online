@@ -14,6 +14,11 @@
         <div class="center" style="flex: 1; max-width: 200px; text-align: left; padding-right: 10px;">
             <p class="card-text font-medium truncate" style="margin: 0;">{{ cart_item.product.name }}</p>
             <p class="card-text font-medium" style="margin: 0;">{{ cart_item.product.price }} LEI</p>
+            {% if cart_item.product.category not in 'buchete,aranjamente' %}
+                <p class="card-text text-sm text-gray-500" style="margin: 0;">Stoc: {{ cart_item.product.stock }}</p>
+            {% else %}
+                <p class="card-text text-sm text-gray-500" style="margin: 0;">10 max</p>
+            {% endif %}
         </div>
 
         <div class="flex items-center space-x-2">
@@ -32,11 +37,29 @@
 
             {% if not cart_item.product.bid_submited %}
             <a href="{% url 'increment_quantity' product_id=cart_item.product.id %}" 
-               class="btn btn-primary btn-sm center bg-green-600 text-white"
-               hx-get="{% url 'increment_quantity' product_id=cart_item.product.id %}" 
-               hx-target="#cart-item-{{ cart_item.id }}" 
-               hx-swap="outerHTML">+</a>
+               class="btn btn-primary btn-sm center bg-green-600 text-white 
+               {% if cart_item.product.category in 'buchete,aranjamente' %}
+                   {% if cart_item.quantity >= 10 %}opacity-50 cursor-not-allowed pointer-events-none{% endif %}
+               {% else %}
+                   {% if cart_item.quantity >= cart_item.product.stock %}opacity-50 cursor-not-allowed pointer-events-none{% endif %}
+               {% endif %}"
+               {% if cart_item.product.category in 'buchete,aranjamente' %}
+                   {% if cart_item.quantity < 10 %}
+                       hx-get="{% url 'increment_quantity' product_id=cart_item.product.id %}" 
+                       hx-target="#cart-item-{{ cart_item.id }}" 
+                       hx-swap="outerHTML"
+                   {% endif %}
+               {% else %}
+                   {% if cart_item.quantity < cart_item.product.stock %}
+                       hx-get="{% url 'increment_quantity' product_id=cart_item.product.id %}" 
+                       hx-target="#cart-item-{{ cart_item.id }}" 
+                       hx-swap="outerHTML"
+                   {% endif %}
+               {% endif %}
+            >+</a>
             {%endif %}
+
+             
 
         </div>
         <div class="center" style="min-width: 120px; text-align: right;">
