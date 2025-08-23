@@ -22,8 +22,22 @@ class ProductAdmin(admin.ModelAdmin):
 
 
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user','total_price', 'created_at', 'payment_status', 'linked_products')
+    list_display = ('id', 'user', 'delivery_type', 'desired_delivery_date', 'delivery_time_slot', 'total_price', 'delivery_fee', 'created_at', 'payment_status_display', 'linked_products')
+    list_filter = ('delivery_type', 'payment_status', 'created_at', 'desired_delivery_date')
     readonly_fields = ('linked_products_table',)  # Make linked_products visible in the detail view
+
+    def payment_status_display(self, obj):
+        if obj.payment_method == 'cash':
+            if obj.payment_status:
+                return format_html('<span style="color: green;"> Plătit la livrare</span>')
+            else:
+                return format_html('<span style="color: orange;"> În așteptare (plata la livrare)</span>')
+        else:  # card payment
+            if obj.payment_status:
+                return format_html('<span style="color: green;">Plătit cu cardul</span>')
+            else:
+                return format_html('<span style="color: red;"> Neplătit</span>')
+    payment_status_display.short_description = 'Status plată'
 
     def linked_products(self, obj):
         return ", ".join([f"{item.quantity} x {item.product.name}" for item in obj.items.all()])

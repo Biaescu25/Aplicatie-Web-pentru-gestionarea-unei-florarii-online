@@ -27,13 +27,31 @@ from .models import Product, CustomBouquet
 
 @receiver(post_delete, sender=Product)
 def delete_related_custom_bouquet(sender, instance, **kwargs):
-    try:
-        bouquet = instance.linked_custom_bouquet
-        bouquet.delete()
-    except CustomBouquet.DoesNotExist:
-        pass
+    # Only delete custom bouquet if this product was a custom bouquet product
+    if hasattr(instance, 'linked_custom_bouquet') and instance.linked_custom_bouquet:
+        try:
+            bouquet = instance.linked_custom_bouquet
+            # Set product to None first to break the circular reference
+            bouquet.product = None
+            bouquet.save()
+            bouquet.delete()
+        except CustomBouquet.DoesNotExist:
+            pass
 
 @receiver(post_delete, sender=CustomBouquet)
 def delete_related_product(sender, instance, **kwargs):
-    if instance.product:
-        instance.product.delete()
+    # Only delete product if it exists and is a custom product
+    try:
+        # Safely check if the product exists and is a custom product
+        if hasattr(instance, 'product') and instance.product and instance.product.is_custom:
+            # Set the custom_bouquet reference to None first to break circular reference
+            instance.product.linked_custom_bouquet = None
+            instance.product.save()
+            instance.product.delete()
+    except Product.DoesNotExist:
+        # Product was already deleted, nothing to do
+        pass
+    except Exception as e:
+        # Handle any other unexpected errors
+        print(f"Error in delete_related_product signal: {e}")
+        pass

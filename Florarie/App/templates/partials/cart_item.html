@@ -14,11 +14,13 @@
         <div class="center" style="flex: 1; max-width: 200px; text-align: left; padding-right: 10px;">
             <p class="card-text font-medium truncate" style="margin: 0;">{{ cart_item.product.name }}</p>
             <p class="card-text font-medium" style="margin: 0;">{{ cart_item.product.price }} LEI</p>
-            {% if cart_item.product.category not in 'buchete,aranjamente' %}
-                <p class="card-text text-sm text-gray-500" style="margin: 0;">Stoc: {{ cart_item.product.stock }}</p>
-            {% else %}
-                <p class="card-text text-sm text-gray-500" style="margin: 0;">10 max</p>
-            {% endif %}
+             {% if cart_item.product.category not in 'CustomBouquet' %}
+                {% if cart_item.product.category not in 'buchete,aranjamente' %}
+                    <p class="card-text text-sm text-gray-500" style="margin: 0;">Stoc: {{ cart_item.product.stock }}</p>
+                {% else %}
+                    <p class="card-text text-sm text-gray-500" style="margin: 0;">10 max</p>
+                {% endif %}
+             {% endif %}
         </div>
 
         <div class="flex items-center space-x-2">

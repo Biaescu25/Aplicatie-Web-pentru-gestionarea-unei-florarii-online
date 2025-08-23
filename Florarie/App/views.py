@@ -25,7 +25,7 @@ from datetime import datetime
 
 from .models import (
     Product, CartItem, Order, Payment, OrderItem,
-    BouquetShape, Flower, Greenery, WrappingPaper, CustomBouquet, BouquetFlower, VisitorLog, WrappingPaperColor
+    BouquetShape, Flower, Greenery, WrappingPaper, WrappingColor, CustomBouquet, BouquetFlower, VisitorLog, WrappingPaperColor
 )
 from .forms import ContactForm, UserForm
 
@@ -99,12 +99,18 @@ def add_to_cart(request, product_id):
         session_id = get_or_create_session_id(request)
         cart_item, created = CartItem.objects.get_or_create(session_id=session_id, product=product)
 
-    # Limit quantity to stock
+    # Limit quantity to stock (except for buchete, aranjamente, and custom bouquets)
     current_quantity = cart_item.quantity if not created else 0
-    if current_quantity < product.stock:
-        cart_item.quantity = current_quantity + 1
-        cart_item.save()
-    # else: do not add more than stock
+    if product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
+        # For these categories, allow up to 10 without stock check
+        if current_quantity < 10:
+            cart_item.quantity = current_quantity + 1
+            cart_item.save()
+    else:
+        # For other products, check against stock
+        if current_quantity < product.stock:
+            cart_item.quantity = current_quantity + 1
+            cart_item.save()
 
     # Check if the request is from HTMX
     if request.headers.get("HX-Request"):
@@ -117,12 +123,26 @@ def add_to_cart(request, product_id):
 def remove_from_cart(request, product_id):
     cart_item = CartItem.objects.filter(product_id=product_id).first()
     if cart_item:
-        if cart_item.product.bid_submited:
-            # If the product is in auction, set bid_submited to False
-            cart_item.product.bid_submited = False
-            cart_item.product.price = cart_item.product.before_auction_price  # Reset to original price
-            cart_item.product.save() 
-        cart_item.delete()
+        # Check if this is a custom bouquet product
+        if cart_item.product.is_custom and cart_item.product.category == 'CustomBouquet':
+            # Delete the custom bouquet and its associated product
+            try:
+                custom_bouquet = CustomBouquet.objects.get(product=cart_item.product)
+                # Delete the product first (which will cascade to cart items)
+                cart_item.product.delete()
+                # Delete the custom bouquet
+                custom_bouquet.delete()
+            except CustomBouquet.DoesNotExist:
+                # If no custom bouquet found, just delete the product
+                cart_item.product.delete()
+        else:
+            # For regular products, handle auction logic
+            if cart_item.product.bid_submited:
+                # If the product is in auction, set bid_submited to False
+                cart_item.product.bid_submited = False
+                cart_item.product.price = cart_item.product.before_auction_price  # Reset to original price
+                cart_item.product.save() 
+            cart_item.delete()
 
     if request.user.is_authenticated:
         cart_items = CartItem.objects.filter(user=request.user)
@@ -158,16 +178,20 @@ def remove_from_cart(request, product_id):
 def update_cart(request, product_id, quantity):
     cart_item = CartItem.objects.filter(product_id=product_id).first()
     if cart_item:
-        # Only allow up to product stock
-        cart_item.quantity = min(quantity, cart_item.product.stock)
-        cart_item.save()
+        # For buchete, aranjamente, and custom bouquets, allow up to 10
+        if cart_item.product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
+            cart_item.quantity = min(quantity, 10)
+        else:
+            # For other products, check against stock
+            cart_item.quantity = min(quantity, cart_item.product.stock)
+            cart_item.save()
     return JsonResponse({"success": True, "total_price": cart_item.total_price()})
 
 def increment_quantity(request, product_id):
     cart_item = CartItem.objects.filter(product_id=product_id, user=request.user).first()
     if cart_item:
-        # For buchete and aranjamente, allow up to 10 without stock check
-        if cart_item.product.category in ['buchete', 'aranjamente']:
+        # For buchete, aranjamente, and custom bouquets, allow up to 10 without stock check
+        if cart_item.product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
             if cart_item.quantity < 10:
                 cart_item.quantity += 1
                 cart_item.save()
@@ -419,7 +443,7 @@ def checkout(request):
     cart_items = CartItem.objects.filter(user=user) if user else CartItem.objects.filter(session_id=session_id)
 
     subtotal = sum(item.total_price() for item in cart_items)
-    delivery_fee = 10  # Example delivery fee
+    delivery_fee = 29  # Default delivery fee for address delivery
     total_price = subtotal + delivery_fee
 
     if request.method == "POST":
@@ -473,50 +497,73 @@ def get_cart_items(request):
 
 def checkout_step_2(request):
     if request.method == 'POST':
-        request.session['checkout_data'] = {
-            'full_name': request.POST.get('full_name'),
-            'email': request.POST.get('email'),
-            'phone_number': request.POST.get('phone_number'),
-            'address': request.POST.get('address'),
-            'city': request.POST.get('city'),
-            'zip_code': request.POST.get('zip_code'),
-            'payment_method': request.POST.get('payment_method'),
-        }
-
-        # Calculate total here just like in `checkout()`
+        # Get form data
+        delivery_type = request.POST.get('delivery_type', 'delivery')
+        payment_method = request.POST.get('payment_method')
+        desired_delivery_date = request.POST.get("desired_delivery_date")
+        
+        # Validate delivery date (must be at least 48 hours from now)
+        if desired_delivery_date:
+            from datetime import datetime, timedelta
+            try:
+                delivery_date = datetime.strptime(desired_delivery_date, '%Y-%m-%d').date()
+                min_date = (datetime.now() + timedelta(hours=48)).date()
+                
+                if delivery_date < min_date:
+                    # Return error message
+                    return render(request, 'partials/checkout_step_1.html', {
+                        'error_message': f'Data de livrare trebuie să fie cel puțin 48 de ore în viitor. Data minimă permisă: {min_date.strftime("%d/%m/%Y")}'
+                    })
+            except ValueError:
+                return render(request, 'partials/checkout_step_1.html', {
+                    'error_message': 'Data de livrare nu este validă.'
+                })
+        
+        # Calculate delivery fee based on delivery type
+        delivery_fee = 0 if delivery_type == 'pickup' else 29
+        
+        # Calculate total
         user = request.user if request.user.is_authenticated else None
         session_id = request.session.session_key or request.session.create()
-
         cart_items = get_cart_items(request)
         subtotal = sum(item.total_price() for item in cart_items)
-        delivery_fee = 10
         total_price = subtotal + delivery_fee
 
-        # Save total price for payment
-        request.session["total_price"] = float(total_price)
-
-        # Create the Order
+        # Create the Order with new fields
         order = Order.objects.create(
             user=user,
             session_id=None if user else session_id,
             full_name=request.POST.get("full_name"),
             email=request.POST.get("email"),
-            address=request.POST.get("address"),
+            address=request.POST.get("address") if delivery_type == 'delivery' else None,
             phone_number=request.POST.get("phone_number"),
-            city=request.POST.get("city"),
-            zip_code=request.POST.get("zip_code"),
+            city=request.POST.get("city") if delivery_type == 'delivery' else None,
+            zip_code=request.POST.get("zip_code") if delivery_type == 'delivery' else None,
             total_price=subtotal,
             delivery_fee=delivery_fee,
-            payment_method=request.POST.get("payment_method"),
-            payment_status=False  # Will update after payment
+            payment_method=payment_method,
+            payment_status=False if payment_method == 'cash' else False,  # Cash on delivery is not paid yet, card payments will be updated after successful payment
+            delivery_type=delivery_type,
+            desired_delivery_date=request.POST.get("desired_delivery_date"),
+            delivery_time_slot=request.POST.get("delivery_time_slot"),
+            delivery_notes=request.POST.get("delivery_notes", "")
         )
-
-        # Save order ID in session for later update
-        request.session["order_id"] = order.id
 
         # Save CartItems to OrderItems
         for item in cart_items:
             OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, price=item.product.price)
+
+        # Clear the cart
+        cart_items.delete()
+
+        # Handle payment method logic
+        if payment_method == 'cash':
+            # For cash on delivery, go directly to success page
+            return render(request, 'partials/order_success.html')
+        else:
+            # For card payment, continue to step 2
+            request.session["order_id"] = order.id
+            request.session["total_price"] = float(total_price)
 
         return render(request, 'checkout_step_2.html', {
             'stripe_public_key': settings.STRIPE_PUBLIC_KEY,
@@ -595,6 +642,150 @@ def checkout_step_3(request):
             return JsonResponse({"success": False, "message": f"Unexpected error: {str(e)}"})
 
     return JsonResponse({"success": False, "message": "Invalid request"})
+
+def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greenery_data=None, wrapping_color_hex="#FFFFFF"):
+    """
+    Generate a bouquet image based on the provided parameters.
+    Returns the PIL Image object.
+    """
+    try:
+        shape = BouquetShape.objects.get(id=shape_id)
+        # Make wrapping optional - use default if not provided
+        if wrapping_id is None:
+            wrapping = WrappingPaper.objects.first()  # Use first available wrapping
+        else:
+            wrapping = WrappingPaper.objects.get(id=wrapping_id)
+    except (BouquetShape.DoesNotExist, WrappingPaper.DoesNotExist):
+        return None
+
+    canvas_size = (500, 500)
+    center = (canvas_size[0] // 2, canvas_size[1] // 2)
+    base_radius = 120  # inner circle radius
+    radius_step = 50   # distance between circles
+
+    # Create canvas
+    image = Image.new("RGBA", canvas_size, (255, 255, 255, 0))
+    draw = ImageDraw.Draw(image)
+
+    # Draw wrapping circle
+    draw.ellipse([
+        (center[0] - base_radius, center[1] - base_radius),
+        (center[0] + base_radius, center[1] + base_radius)
+    ], fill=wrapping_color_hex)
+
+    # Build complete item list (flowers and greenery)
+    all_items = []
+    
+    # Add flowers
+    for flower_data in flowers_data:
+        try:
+            flower = Flower.objects.get(id=flower_data["id"])
+            count = int(flower_data["count"])
+            for _ in range(count):
+                all_items.append((flower, "flower"))
+        except (Flower.DoesNotExist, KeyError, ValueError):
+            continue
+
+    # Add greenery (if provided)
+    if greenery_data:
+        for green_data in greenery_data:
+            try:
+                green = Greenery.objects.get(id=green_data["id"])
+                count = int(green_data.get("count", 1))
+                for _ in range(count):
+                    all_items.append((green, "greenery"))
+            except (Greenery.DoesNotExist, KeyError, ValueError):
+                continue
+
+    num_items = len(all_items)
+    print(f"Generated {num_items} items for image")
+    if num_items == 0:
+        print("No items to generate image")
+        return None
+
+    # Dynamic spiral-based positioning algorithm
+    item_positions = []
+    
+    # Adaptive sizing based on flower count
+    if num_items <= 5:
+        # Small bouquets: larger flowers, closer together
+        base_size = 250
+        min_size = 120
+        spiral_tightness = 0.8
+    elif num_items <= 15:
+        # Medium bouquets: balanced sizing
+        base_size = 200
+        min_size = 100
+        spiral_tightness = 1.0
+    elif num_items <= 30:
+        # Large bouquets: smaller flowers, more spread
+        base_size = 180
+        min_size = 85
+        spiral_tightness = 1.0
+    else:
+        # Very large bouquets: smallest flowers, maximum spread
+        base_size = 160
+        min_size = 80
+        spiral_tightness = 1.2
+    
+    # Calculate adaptive spacing
+    spacing_factor = max(0.6, min(1.5, 20 / num_items))  # More flowers = tighter spacing
+    
+    for i, (item, item_type) in enumerate(all_items):
+        # Calculate size based on position (center flowers larger)
+        distance_from_center = i / num_items
+        size_factor = 1.0 - (distance_from_center * 0.3)  # Center flowers 30% larger
+        size = max(min_size, int(base_size * size_factor))
+        
+        # Spiral positioning
+        if i == 0:
+            # First flower in center
+            x, y = center[0], center[1]
+        else:
+            # Spiral outward
+            angle = i * 137.5 * (math.pi / 180) * spiral_tightness  # Golden angle for natural distribution
+            radius = (i ** 0.5) * spacing_factor * 25  # Square root for natural spread
+            
+            # Add some natural variation to radius
+            # radius_variation = math.sin(i * 0.7) * 10
+            # radius += radius_variation
+            
+            x = int(center[0] + radius * math.cos(angle))
+            y = int(center[1] + radius * math.sin(angle))
+            
+            # Ensure flowers stay within reasonable bounds
+            max_offset = 180
+            x = max(center[0] - max_offset, min(center[0] + max_offset, x))
+            y = max(center[1] - max_offset, min(center[1] + max_offset, y))
+        
+        item_positions.append((y, x, item, size, item_type))
+
+    # Sort positions and draw items
+    item_positions.sort(key=lambda tup: (tup[0], tup[1]))
+
+    for y, x, obj, size, obj_type in item_positions:
+        try:
+            if obj_type == "flower":
+                flower_img = Image.open(obj.image.path).convert("RGBA")
+                flower_img = flower_img.resize((size, size), Image.LANCZOS)
+                bottom_center_x = center[0]
+                bottom_center_y = canvas_size[1]
+                dx = bottom_center_x - x
+                dy = bottom_center_y - y
+                angle_rad = math.atan2(dx, dy)
+                angle_deg = math.degrees(angle_rad)
+                rotated_img = flower_img.rotate(angle_deg, expand=True)
+            else:  # greenery
+                rotated_img = Image.open(obj.image.path).convert("RGBA")
+                rotated_img = rotated_img.resize((size, size), Image.LANCZOS)
+
+            rx, ry = rotated_img.size
+            image.paste(rotated_img, (x - rx // 2, y - ry // 2), rotated_img)
+        except Exception as e:
+            print(f"Error processing flower/greenery: {e}")
+            continue
+
+    return image
 
 def custom_bouquet_builder(request):
     shape = BouquetShape.objects.all()
@@ -676,26 +867,29 @@ def create_custom_bouquet(request):
 def save_custom_bouquet(request):
     if request.method == "POST":
         data = request.POST
+        
+        # Debug logging
+        print(f"Save custom bouquet request data: {dict(data)}")
 
         try:
             shape = BouquetShape.objects.get(id=data.get("shape"))
         except BouquetShape.DoesNotExist:
+            print(f"Invalid shape ID: {data.get('shape')}")
             return JsonResponse({"error": "Invalid shape selected."}, status=400)
 
-        # WrappingPaperColor (variantă hârtie + culoare)
-        variant_id = data.get("wrapping_variant_id")
-        try:
-            wrapping_variant = WrappingPaperColor.objects.select_related("wrapping_paper").get(id=variant_id)
-        except WrappingPaperColor.DoesNotExist:
-            return JsonResponse({"error": "Hârtia selectată nu este validă."}, status=400)
-
-        # Verifică stoc
-        if wrapping_variant.quantity < 1:
-            return JsonResponse({"error": "Stoc insuficient pentru hârtia selectată."}, status=400)
-
-        # Scade stocul
-        wrapping_variant.quantity -= 1
-        wrapping_variant.save()
+        # Get wrapping paper (not variant)
+        wrapping_id = data.get("wrapping")
+        wrapping = None
+        if wrapping_id:
+            try:
+                wrapping = WrappingPaper.objects.get(id=wrapping_id)
+            except WrappingPaper.DoesNotExist:
+                return JsonResponse({"error": "Hârtia selectată nu este validă."}, status=400)
+        else:
+            # Use first available wrapping if none selected
+            wrapping = WrappingPaper.objects.first()
+            if not wrapping:
+                return JsonResponse({"error": "Nu există hârtie de ambalaj disponibilă."}, status=400)
 
         # Greenery
         greenery_ids = data.getlist("greens")
@@ -707,19 +901,79 @@ def save_custom_bouquet(request):
             qty = int(data.get(f"flower_{flower.id}", 0))
             if qty > 0:
                 flower_quantities[flower.id] = qty
+        
+        print(f"Flower quantities: {flower_quantities}")
+        print(f"Greenery list: {list(greenery_list.values_list('id', flat=True))}")
 
         # Calculate total price
         total_price = float(data.get("total_price", 0))
 
-        # Creează buchetul
+        # Generate the bouquet preview image
+        import os
+        from django.conf import settings
+        
+        # Get wrapping color
+        wrapping_color_name = data.get("wrapping_color_name", "")
+        color_hex = "#FFFFFF"  # Default white
+        
+        # Try to get the color from WrappingColor if name is provided
+        if wrapping_color_name:
+            try:
+                wrapping_color = WrappingColor.objects.get(name=wrapping_color_name)
+                color_hex = wrapping_color.hex
+            except WrappingColor.DoesNotExist:
+                pass  # Use default white
+
+        # Convert flower quantities to flowers_data format
+        flowers_data = []
+        for flower_id, quantity in flower_quantities.items():
+            flowers_data.append({"id": flower_id, "count": quantity})
+
+        # Convert greenery to greenery_data format (same as preview)
+        greenery_data = []
+        for green in greenery_list:
+            greenery_data.append({"id": green.id, "count": 1})  # Use same format as preview
+
+        print(f"Calling generate_bouquet_image with:")
+        print(f"  shape_id: {shape.id}")
+        print(f"  wrapping_id: {wrapping.id}")
+        print(f"  flowers_data: {flowers_data}")
+        print(f"  greenery_data: {greenery_data}")
+        print(f"  color_hex: {color_hex}")
+
+        # Generate the image using the reusable function
+        image = generate_bouquet_image(
+            shape_id=shape.id,
+            wrapping_id=wrapping.id,
+            flowers_data=flowers_data,
+            greenery_data=greenery_data,
+            wrapping_color_hex=color_hex
+        )
+
+        if image is None:
+            return JsonResponse({"error": "Nu ai selectat flori."}, status=400)
+
+        # Save the generated image
+        media_root = settings.MEDIA_ROOT
+        custom_images_dir = os.path.join(media_root, 'custom_bouquets')
+        os.makedirs(custom_images_dir, exist_ok=True)
+        
+        image_filename = f"custom_bouquet_{int(timezone.now().timestamp())}.png"
+        image_path = os.path.join(custom_images_dir, image_filename)
+        image.save(image_path, "PNG")
+        
+        # Relative path for database
+        relative_image_path = f"custom_bouquets/{image_filename}"
+
+        # Create the bouquet
         custom_bouquet = CustomBouquet.objects.create(
             user=request.user if request.user.is_authenticated else None,
             shape=shape,
-            wrapping=wrapping_variant.wrapping_paper,
+            wrapping=wrapping,
         )
         custom_bouquet.greenery.set(greenery_list)
 
-        # Adaugă florile
+        # Add flowers
         for flower_id, quantity in flower_quantities.items():
             BouquetFlower.objects.create(
                 bouquet=custom_bouquet,
@@ -727,20 +981,21 @@ def save_custom_bouquet(request):
                 quantity=quantity
             )
 
-        # Creează produsul corespunzător
+        # Create the product with generated image
         custom_product = Product.objects.create(
             name=f"Buchet personalizat #{custom_bouquet.id}",
             price=total_price,
             is_custom=True,
-            image='Logo.png',
-            category='CustomBouquet'  
+            image=relative_image_path,
+            category='CustomBouquet',
+            stock=0  # Like buchete/aranjamente, no stock limit
         )
 
-        # Asociază produsul cu buchetul
+        # Associate product with bouquet
         custom_bouquet.product = custom_product
         custom_bouquet.save()
 
-        # Adaugă în coș
+        # Add to cart
         if request.user.is_authenticated:
             cart_item, _ = CartItem.objects.get_or_create(user=request.user, product=custom_product)
         else:
@@ -750,7 +1005,7 @@ def save_custom_bouquet(request):
         cart_item.quantity = 1
         cart_item.save()
 
-        # Redirect către coș
+        # Redirect to cart
         response = HttpResponse()
         response["HX-Redirect"] = "/cart/"
         return response
@@ -769,165 +1024,69 @@ def generate_bouquet_preview(request):
     shape_id = data.get("shape")
     wrapping_id = data.get("wrapping")
 
-    if not shape_id or not str(shape_id).isdigit():
+    # More lenient validation - allow preview even without shape/wrapping
+    if not shape_id:
         return JsonResponse({"error": "Forma buchetului este invalidă."}, status=400)
 
-    if not wrapping_id or not str(wrapping_id).isdigit():
-        return JsonResponse({"error": "Ambalajul este invalid."}, status=400)
-
-    try:
-        shape = BouquetShape.objects.get(id=int(shape_id))
-        wrapping = WrappingPaper.objects.get(id=int(wrapping_id))
-    except (BouquetShape.DoesNotExist, WrappingPaper.DoesNotExist):
-        return JsonResponse({"error": "Datele introduse nu sunt valide."}, status=400)
-
     flowers_data = data.get("flowers", [])
+    greens = data.get("greens", [])  # Frontend sends 'greens' not 'greenery'
+    wrapping_color_hex = data.get("wrapping_color", "#FFFFFF")
 
-    canvas_size = (500, 500)
-    center = (canvas_size[0] // 2, canvas_size[1] // 2)
-    base_radius = 120  # inner circle radius
-    radius_step = 50   # distance between circles
+    # Debug logging
+    print(f"Preview request - shape_id: {shape_id}, wrapping_id: {wrapping_id}")
+    print(f"Flowers: {flowers_data}, Greens: {greens}")
 
-    # Creează canvas
-    image = Image.new("RGBA", canvas_size, (255, 255, 255, 0))
-    draw = ImageDraw.Draw(image)
+    # Convert greens array to greenery_data format
+    greenery_data = []
+    for green_id in greens:
+        greenery_data.append({"id": int(green_id), "count": 1})
 
-    # Desenează cercul foliei
-    color_hex = data.get("wrapping_color", "#FFFFFF")
-    draw.ellipse([
-        (center[0] - base_radius, center[1] - base_radius),
-        (center[0] + base_radius, center[1] + base_radius)
-    ], fill=color_hex)
-
-    #Construim lista completă cu toate florile + numărul lor
-    all_flowers = []
-    # Add flowers
-    for flower_data in flowers_data:
+    # Check if we have any items to generate
+    if not flowers_data and not greens:
+        # Return a simple placeholder image with just the wrapping
         try:
-            flower = Flower.objects.get(id=flower_data["id"])
-            count = int(flower_data["count"])
-            for _ in range(count):
-                all_flowers.append(flower)
-        except:
-            continue
+            shape = BouquetShape.objects.get(id=shape_id)
+            # Use first available wrapping if none selected
+            if wrapping_id is None:
+                wrapping = WrappingPaper.objects.first()
+            else:
+                wrapping = WrappingPaper.objects.get(id=wrapping_id)
+        except (BouquetShape.DoesNotExist, WrappingPaper.DoesNotExist):
+            return JsonResponse({"error": "Forma sau ambalajul nu există."}, status=400)
 
-    # Add greenery (if provided in data)
-    greenery_data = data.get("greenery", [])
-    for green_data in greenery_data:
-        try:
-            green = Greenery.objects.get(id=green_data["id"])
-            #count = int(green_data["count"])
-            count = int(flower_data["count"]) * 0.05
-            for _ in range(count):
-                all_flowers.append(green)
-        except:
-            continue
+        canvas_size = (500, 500)
+        center = (canvas_size[0] // 2, canvas_size[1] // 2)
+        base_radius = 120
 
-    num_flowers = len(all_flowers)
-    if num_flowers == 0:
+        # Create canvas with just wrapping
+        image = Image.new("RGBA", canvas_size, (255, 255, 255, 0))
+        draw = ImageDraw.Draw(image)
+
+        # Draw wrapping circle
+        draw.ellipse([
+            (center[0] - base_radius, center[1] - base_radius),
+            (center[0] + base_radius, center[1] + base_radius)
+        ], fill=wrapping_color_hex)
+
+        # Return the placeholder image
+        response = HttpResponse(content_type="image/png")
+        image.save(response, "PNG")
+        return response
+
+    # Generate the image using the reusable function
+    image = generate_bouquet_image(
+        shape_id=int(shape_id),
+        wrapping_id=int(wrapping_id) if wrapping_id else None,  # Pass None if not selected
+        flowers_data=flowers_data,
+        greenery_data=greenery_data,
+        wrapping_color_hex=wrapping_color_hex
+    )
+
+    if image is None:
+        print("Failed to generate image - no items found")
         return HttpResponse(status=400)
 
-    circle_max = [1, 8, 12, 16, 20, 24]
-    flower_positions = []
-    flower_idx = 0
-    random.shuffle(all_flowers)
-
-    base_size = 300
-    min_size = 50
-    shrink_step = 18  # pixels to shrink per circle
-
-    for circle_num, max_on_circle in enumerate(circle_max):
-        if flower_idx >= num_flowers:
-            break
-        flowers_in_this_circle = min(max_on_circle, num_flowers - flower_idx)
-        # Calculate flower size for this circle (same as rendering logic)
-        if circle_num == 0:
-            size = max(min_size, base_size - int((base_size - min_size) * min(num_flowers, 50) / 50))
-            # Center flower
-            flower = all_flowers[flower_idx]
-            flower_positions.append((center[1], center[0], flower, size, "flower"))
-            flower_idx += 1
-        else:
-            # Calculate flower size for this circle (shrinks as number of flowers increases)
-            size = max(min_size, base_size - int((base_size - min_size) * num_flowers / 50)) 
-
-            max_tight_radius = base_radius + (len(circle_max) - 1) * radius_step
-            min_tight_radius = base_radius + (len(circle_max) - 1) * radius_step // 2
-            # Interpolate between max_tight_radius and min_tight_radius based on num_flowers
-            tight_radius = int(
-                max_tight_radius - (max_tight_radius - min_tight_radius) * min(num_flowers, 60) / 60
-            )
-            # Use tight_radius for the outermost circle, otherwise normal calculation
-            if circle_num == len(circle_max) - 1:
-                radius = tight_radius - (base_size - size)
-            else:
-                radius = base_radius + circle_num * radius_step - (base_size - size)
-            angle_step = 360 / flowers_in_this_circle if flowers_in_this_circle > 0 else 360
-            for i in range(flowers_in_this_circle):
-                flower = all_flowers[flower_idx]
-                angle = math.radians(i * angle_step)
-                r = radius + random.randint(-10, 10)
-                x = int(center[0] + r * math.cos(angle))
-                y = int(center[1] + r * math.sin(angle))
-                flower_positions.append((y, x, flower, size, "flower"))
-                flower_idx += 1
-                if flower_idx >= num_flowers:
-                    break
-
-    # Insert greenery images among the flowers on the circles
-    # if greenery_images:
-    #     positions_for_greenery = [i for i, pos in enumerate(flower_positions) if pos[4] == "flower" and pos[0] != center[1] and pos[1] != center[0]]
-    #     if positions_for_greenery:
-    #         step = max(1, len(positions_for_greenery) // len(greenery_images))
-    #         for idx, green_img in enumerate(greenery_images):
-    #             pos_idx = positions_for_greenery[idx * step % len(positions_for_greenery)]
-    #             y, x, _, size, _ = flower_positions[pos_idx]
-    #             flower_positions.insert(pos_idx, (y, x, green_img, size, "greenery"))
-        # else: do not insert greenery if there are no positions available
-
-    # Sort positions by y (ascending), then x (ascending) to avoid comparing Flower/Image objects
-    flower_positions.sort(key=lambda tup: (tup[0], tup[1]))
-
-    for y, x, obj, size, obj_type in flower_positions:
-        try:
-            if obj_type == "flower":
-                flower_img = Image.open(obj.image.path).convert("RGBA") if hasattr(obj, "image") else obj
-                flower_img = flower_img.resize((size, size), Image.LANCZOS)
-                bottom_center_x = center[0]
-                bottom_center_y = canvas_size[1]
-                dx = bottom_center_x - x
-                dy = bottom_center_y - y
-                angle_rad = math.atan2(dx, dy)
-                angle_deg = math.degrees(angle_rad)
-                rotated_img = flower_img.rotate(angle_deg, expand=True)
-            else:  # greenery
-                rotated_img = obj  # greenery already resized, no rotation for simplicity
-
-            rx, ry = rotated_img.size
-            image.paste(rotated_img, (x - rx // 2, y - ry // 2), rotated_img)
-        except:
-            continue
-
-    # După ce ai lipit toate florile:
-    # folie_path = os.path.join(settings.BASE_DIR, 'App', 'static', 'folie1.png')
-    # print(f"Calea foliei: {folie_path}")
-
-    try:
-        wrapping_img = Image.open(folie_path).convert("RGBA")
-        wrapping_img = wrapping_img.resize(canvas_size, Image.LANCZOS)
-
-        # Ajustează opacitatea
-        alpha = wrapping_img.split()[3]
-        alpha = alpha.point(lambda p: int(p * 0.5))  # 50% opacitate
-        wrapping_img.putalpha(alpha)
-
-        # Combină imaginile
-        image = Image.alpha_composite(image, wrapping_img)
-
-    except Exception as e:
-        print(f"Eroare la suprapunerea foliei: {e}")
-
-        # Returnează imaginea finală
+    # Return the image
     response = HttpResponse(content_type="image/png")
     image.save(response, "PNG")
     return response
@@ -1049,8 +1208,33 @@ def contact_view(request):
     return render(request, 'contact.html', {'form': form})
 
 def contact_success(request):
-
     return render(request, 'contact_success.html')
+
+def order_success(request):
+    return render(request, 'partials/order_success.html')
+
+def update_order_summary(request):
+    """Update order summary based on delivery type"""
+    if request.method == 'POST':
+        delivery_type = request.POST.get('delivery_type', 'delivery')
+        delivery_fee = 0 if delivery_type == 'pickup' else 29
+        
+        user = request.user if request.user.is_authenticated else None
+        session_id = request.session.session_key or request.session.create()
+        cart_items = CartItem.objects.filter(user=user) if user else CartItem.objects.filter(session_id=session_id)
+        
+        subtotal = sum(item.total_price() for item in cart_items)
+        total_price = subtotal + delivery_fee
+        
+        return render(request, 'partials/order_summary.html', {
+            'cart_items': cart_items,
+            'subtotal': subtotal,
+            'delivery_fee': delivery_fee,
+            'total_price': total_price,
+            'delivery_type': delivery_type
+        })
+    
+    return JsonResponse({'error': 'Invalid request'})
 
 
 @staff_member_required

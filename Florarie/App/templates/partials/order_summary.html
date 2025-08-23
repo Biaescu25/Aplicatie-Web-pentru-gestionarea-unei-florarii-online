@@ -1,0 +1,35 @@
+<h3 class="text-lg font-bold text-gray-700">Rezumat comandă</h3>
+<div class="max-h-44 overflow-y-auto space-y-2 mt-3">
+  {% for item in cart_items %}
+  <div class="flex items-center justify-between bg-gray-100 p-2 rounded-lg">
+    <div class="flex items-center gap-3">
+      <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="w-12 h-12 rounded-lg">
+      <div>
+        <p class="text-sm font-semibold">{{ item.product.name }}</p>
+        <p class="text-xs text-gray-500">Qty: {{ item.quantity }}</p>
+      </div>
+    </div>
+    <p class="text-sm font-semibold">{{ item.total_price }} Lei</p>
+  </div>
+  {% endfor %}
+</div>
+<hr class="my-3">
+<div class="flex justify-between mt-2">
+  <p>Subtotal:</p>
+  <p>{{ subtotal }} Lei</p>
+</div>
+<div class="flex justify-between mt-2">
+  <p>Taxă livrare:</p>
+  <p>
+    {% if delivery_type == 'pickup' %}
+      <span class="text-green-600 font-semibold">Gratuită</span>
+    {% else %}
+      {{ delivery_fee }} Lei
+    {% endif %}
+  </p>
+</div>
+<hr class="my-3">
+<div class="flex justify-between text-lg font-semibold">
+  <p>Total:</p>
+  <p>{{ total_price }} Lei</p>
+</div>

@@ -59,7 +59,7 @@
                                 <p class="text-xs text-gray-600">{{ flower.price }} LEI</p>
                                 <div class="flex items-center justify-center mt-2">
                                     <button type="button" class="px-2 py-1 bg-gray-200 rounded-l hover:bg-gray-300" onclick="decrementValue('flower_{{ flower.id }}')">-</button>
-                                    <input type="number" name="flower_{{ flower.id }}" id="flower_{{ flower.id }}" min="0" max="50" value="0" 
+                                    <input type="number" name="flower_{{ flower.id }}" id="flower_{{ flower.id }}" min="0" max="100" value="0" 
                                            class="w-12 text-center border-t border-b border-gray-300 focus:outline-none">
                                     <button type="button" class="px-2 py-1 bg-gray-200 rounded-r hover:bg-gray-300" onclick="incrementValue('flower_{{ flower.id }}')">+</button>
                                 </div>
@@ -257,6 +257,27 @@ function attachPreviewListeners() {
   inputs.forEach(input => {
     input.addEventListener("change", updateBouquetPreview);
     input.addEventListener("input", updateBouquetPreview);
+    
+    // Add validation for flower inputs to enforce 50 limit
+    if (input.name.startsWith('flower_')) {
+      input.addEventListener("input", function() {
+        const value = parseInt(this.value) || 0;
+        if (value > 100) {
+          this.value = 100;
+          // Trigger change event to update summary
+          this.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+      
+      input.addEventListener("blur", function() {
+        const value = parseInt(this.value) || 0;
+        if (value > 100) {
+          this.value = 100;
+          // Trigger change event to update summary
+          this.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+    }
   });
     const colorInputs = document.querySelectorAll("input[name='wrapping_color']");
   colorInputs.forEach(input => {

@@ -20,7 +20,7 @@ from django.urls import path, include
 from django.conf.urls.static import static
 from App.views import home, cart_view, add_to_cart, remove_from_cart, update_cart, cart_count, products_by_category
 from App.views import increment_quantity, decrement_quantity, get_total_price, register_partial, login_partial,register, user_login, user_logout
-from App.views import checkout, product_detail, profile, order_detail, order_history, checkout_step_1, checkout_step_2, checkout_step_3
+from App.views import checkout, product_detail, profile, order_detail, order_history, checkout_step_1, checkout_step_2, checkout_step_3, order_success, update_order_summary
 from App.views import create_custom_bouquet, custom_bouquet_builder, save_custom_bouquet, generate_bouquet_preview
 from App.views import auction_view, auction_price_partial, auction_confirm_popup, auction_confirm, contact_view, contact_success, sales_data_api, admin_dashboard
 from App.views import product_list_api, sales_summary_api
@@ -53,6 +53,8 @@ urlpatterns = [
     path('checkout/step-1/', checkout_step_1, name='checkout_step_1'),
     path('checkout/step-2/', checkout_step_2, name='checkout_step_2'),
     path('checkout/step-3/', checkout_step_3, name='checkout_step_3'),
+    path('order/success/', order_success, name='order_success'),
+    path('checkout/update-summary/', update_order_summary, name='update_order_summary'),
     path('custom-bouquet/', custom_bouquet_builder, name='custom_bouquet_builder'),
     path("custom-bouquet/create/", create_custom_bouquet, name="create_custom_bouquet"),
     path("save_custom_bouquet", save_custom_bouquet, name="save_custom_bouquet"),

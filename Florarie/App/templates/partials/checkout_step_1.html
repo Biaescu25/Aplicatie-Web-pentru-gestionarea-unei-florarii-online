@@ -1,4 +1,9 @@
 <!-- templates/checkout/checkout_step_1.html -->
+{% if error_message %}
+<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+    {{ error_message }}
+</div>
+{% endif %}
 <form hx-post="{% url 'checkout_step_2' %}" hx-target="#checkout-section" hx-swap="innerHTML" class="space-y-4">
     {% csrf_token %}
     <h3 class="text-xl font-semibold">1. Informații personale</h3>
@@ -6,20 +11,151 @@
     <input type="email" name="email" placeholder="Email" class="input input-bordered w-full border border-gray-300 rounded-md h-10" required>
     <input type="text" name="phone_number" placeholder="Număr de telefon" class="input input-bordered w-full border border-gray-300 rounded-md h-10" required>
 
-    <h3 class="text-xl font-semibold mt-6">2. Adresa de livrare</h3>
+    <h3 class="text-xl font-semibold mt-6">2. Opțiuni de livrare</h3>
+    <div class="space-y-4">
+        <!-- Delivery Type Selection -->
+        <div class="flex gap-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="delivery_type" value="delivery" class="radio" checked 
+                       onchange="toggleAddressFields()" 
+                       hx-post="{% url 'update_order_summary' %}" 
+                       hx-target="#order-summary" 
+                       hx-swap="innerHTML"
+                       hx-include="[name='delivery_type']">
+                <span>Livrare la adresă</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="delivery_type" value="pickup" class="radio" 
+                       onchange="toggleAddressFields()" 
+                       hx-post="{% url 'update_order_summary' %}" 
+                       hx-target="#order-summary" 
+                       hx-swap="innerHTML"
+                       hx-include="[name='delivery_type']">
+                <span>Ridicare personală</span>
+            </label>
+        </div>
+
+        <!-- Desired Delivery Date and Time -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2"><strong>Data dorită pentru livrare/ridicare</strong></label>
+                <input type="date" name="desired_delivery_date" class="input input-bordered w-full border border-gray-300 rounded-md h-10" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2"><strong>Interval orar</strong></label>
+                <select name="delivery_time_slot" class="input input-bordered w-full border border-gray-300 rounded-md h-10" required>
+                    <option value="">Selectează intervalul</option>
+                    <option value="09:00-11:00">09:00 - 11:00</option>
+                    <option value="11:00-13:00">11:00 - 13:00</option>
+                    <option value="13:00-15:00">13:00 - 15:00</option>
+                    <option value="15:00-17:00">15:00 - 17:00</option>
+                    <option value="17:00-19:00">17:00 - 19:00</option>
+                    <option value="19:00-21:00">19:00 - 21:00</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Delivery Notes -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2"><strong>Mentiuni speciale (opțional)</strong></label>
+            <textarea name="delivery_notes" placeholder="Instrucțiuni speciale pentru livrare..." class="textarea textarea-bordered w-full border border-gray-300 rounded-md" rows="3"></textarea>
+        </div>
+
+        <!-- Address Fields (initially visible) -->
+        <div id="address-fields">
+            <h4 class="text-lg font-medium text-gray-700 mb-3">Adresa de livrare</h4>
     <input type="text" name="address" placeholder="Adresă" class="input input-bordered w-full border border-gray-300 rounded-md h-10" required>
-    <input type="text" name="city" placeholder="Oraș" class="input input-bordered w-full border border-gray-300 rounded-md h-10" required>
-    <input type="text" name="zip_code" placeholder="Cod poștal" class="input input-bordered w-full border border-gray-300 rounded-md h-10" required>
+            <input type="text" name="city" placeholder="Oraș" class="input input-bordered w-full border border-gray-300 rounded-md h-10 mt-3" required>
+            <input type="text" name="zip_code" placeholder="Cod poștal" class="input input-bordered w-full border border-gray-300 rounded-md h-10 mt-3" required>
+        </div>
+    </div>
 
     <h3 class="text-xl font-semibold mt-6">3. Metodă de plată</h3>
     <div class="flex gap-4">
         <label class="flex items-center gap-2">
-            <input type="radio" name="payment_method" value="card" class="radio" required> Card
+             <input type="radio" name="payment_method" value="card" class="radio" required checked> Card
         </label>
-        <label class="flex items-center gap-2">
+                 <label class="flex items-center gap-2" id="cash-option" style="display: none;">
             <input type="radio" name="payment_method" value="cash" class="radio"> Plata la livrare
         </label>
     </div>
 
-    <button type="submit" class="btn btn-primary w-full mt-4">Continuă la plată</button>
+    <button type="submit" class="btn btn-primary w-full mt-4" onclick="return validateDeliveryDate()">Continuă la plată</button>
 </form>
+
+<script>
+function toggleAddressFields() {
+    const deliveryType = document.querySelector('input[name="delivery_type"]:checked').value;
+    const addressFields = document.getElementById('address-fields');
+    const addressInputs = addressFields.querySelectorAll('input[name="address"], input[name="city"], input[name="zip_code"]');
+    const cashOption = document.getElementById('cash-option');
+    const cardRadio = document.querySelector('input[name="payment_method"][value="card"]');
+    const cashRadio = document.querySelector('input[name="payment_method"][value="cash"]');
+    
+    if (deliveryType === 'pickup') {
+        // Hide address fields for pickup
+        addressFields.style.display = 'none';
+        addressInputs.forEach(input => {
+            input.removeAttribute('required');
+            input.value = '';
+        });
+        
+        // Show cash on delivery option for pickup
+        cashOption.style.display = 'flex';
+        
+        // If cash was selected, keep it; otherwise default to card
+        if (!cardRadio.checked && !cashRadio.checked) {
+            cashRadio.checked = true;
+        }
+    } else {
+        // Show address fields for delivery
+        addressFields.style.display = 'block';
+        addressInputs.forEach(input => {
+            input.setAttribute('required', 'required');
+        });
+        
+        // Hide cash on delivery option for address delivery
+        cashOption.style.display = 'none';
+        
+        // Force card payment for address delivery
+        cardRadio.checked = true;
+        cashRadio.checked = false;
+    }
+}
+
+function validateDeliveryDate() {
+    const dateInput = document.querySelector('input[name="desired_delivery_date"]');
+    if (dateInput && dateInput.value) {
+        const selectedDate = new Date(dateInput.value);
+        const now = new Date();
+        const minDate = new Date(now.getTime() + (48 * 60 * 60 * 1000)); // 48 hours from now
+        
+        if (selectedDate < minDate) {
+            alert('Data de livrare trebuie să fie cel puțin 48 de ore în viitor.');
+            return false;
+        }
+    }
+    return true;
+}
+
+// Set minimum date to 48 hours from now and initialize payment method visibility
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.querySelector('input[name="desired_delivery_date"]');
+    if (dateInput) {
+        const now = new Date();
+        const minDate = new Date(now.getTime() + (48 * 60 * 60 * 1000)); // Add 48 hours
+        const minDateString = minDate.toISOString().split('T')[0];
+        dateInput.min = minDateString;
+        
+        // Also set the value to the minimum date if no value is set
+        if (!dateInput.value) {
+            dateInput.value = minDateString;
+        }
+        
+        console.log('Minimum date set to:', minDateString);
+    }
+    
+    // Initialize payment method visibility based on default delivery type
+    toggleAddressFields();
+});
+</script>

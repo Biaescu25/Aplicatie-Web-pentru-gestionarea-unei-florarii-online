@@ -130,18 +130,38 @@ class Order(models.Model):
     session_id = models.CharField(max_length=255, null=True, blank=True)
     full_name = models.CharField(max_length=255)
     email = models.EmailField()
-    address = models.TextField()
+    address = models.TextField(blank=True, null=True)  # Made optional for pickup
     phone_number = models.CharField(max_length=15)
-    city = models.CharField(max_length=100)
-    zip_code = models.CharField(max_length=10)
+    city = models.CharField(max_length=100, blank=True, null=True)  # Made optional for pickup
+    zip_code = models.CharField(max_length=10, blank=True, null=True)  # Made optional for pickup
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     payment_method = models.CharField(max_length=20, choices=[("card", "Card"), ("cash", "Cash on Delivery")], default="card")
     payment_status = models.BooleanField(default=False)  # False = Not paid, True = Paid
     created_at = models.DateTimeField(auto_now_add=True)
-    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)  # Default delivery fee
+    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=29.00)  # Default delivery fee
+    
+    # New delivery fields
+    delivery_type = models.CharField(max_length=20, choices=[("delivery", "Livrare la adresă"), ("pickup", "Ridicare personală")], default="delivery")
+    desired_delivery_date = models.DateField(null=True, blank=True)
+    delivery_time_slot = models.CharField(max_length=20, choices=[
+        ("09:00-11:00", "09:00 - 11:00"),
+        ("11:00-13:00", "11:00 - 13:00"),
+        ("13:00-15:00", "13:00 - 15:00"),
+        ("15:00-17:00", "15:00 - 17:00"),
+        ("17:00-19:00", "17:00 - 19:00"),
+        ("19:00-21:00", "19:00 - 21:00"),
+    ], null=True, blank=True)
+    delivery_notes = models.TextField(blank=True, null=True)
 
+    def get_delivery_fee(self):
+        """Calculate delivery fee based on delivery type"""
+        from decimal import Decimal
+        if self.delivery_type == "pickup":
+            return Decimal('0.00')
+        return Decimal('29.00')  # Default delivery fee for address delivery
+    
     def final_total(self):
-        return self.total_price + self.delivery_fee  # Calculate final amount
+        return self.total_price + self.get_delivery_fee()  # Calculate final amount
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items',on_delete=models.CASCADE)
