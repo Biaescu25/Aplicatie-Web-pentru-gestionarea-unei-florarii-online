@@ -643,6 +643,72 @@ def checkout_step_3(request):
 
     return JsonResponse({"success": False, "message": "Invalid request"})
 
+def draw_cone_background(draw, center, base_radius, wrapping_color_hex):
+
+    # Position the shape lower on the canvas
+    shape_center_y = center[1] + base_radius // 2
+    
+    # Calculate dimensions
+    triangle_width = base_radius * 2.5 + 2
+    triangle_height = base_radius * 1.5 
+    ellipse_width = triangle_width
+    ellipse_height = base_radius * 0.9  # Make ellipse more oval
+    
+    # Calculate triangle points (upside-down)
+    top_left = (center[0] - triangle_width // 2, shape_center_y - triangle_height // 2)
+    top_right = (center[0] + triangle_width // 2, shape_center_y - triangle_height // 2)
+    bottom_point = (center[0], shape_center_y + triangle_height // 2)
+    
+    # Calculate ellipse position (on top of triangle)
+    ellipse_left = center[0] - ellipse_width // 2
+    ellipse_right = center[0] + ellipse_width // 2
+    ellipse_top = top_left[1] - ellipse_height // 2
+    ellipse_bottom = top_left[1] + ellipse_height // 2
+    
+    # Draw the upside-down triangle
+    triangle_points = [top_left, top_right, bottom_point]
+    draw.polygon(triangle_points, fill=wrapping_color_hex)
+
+    # Draw only the top half of the ellipse
+    # Convert dimensions to integers
+    ellipse_width = int(ellipse_right - ellipse_left)
+    ellipse_height = int(ellipse_bottom - ellipse_top)
+    
+    # Create a mask for the top half
+    mask = Image.new('L', (ellipse_width, ellipse_height), 0)
+    mask_draw = ImageDraw.Draw(mask)
+    
+    # Draw the full ellipse in the mask
+    mask_draw.ellipse([0, 0, ellipse_width, ellipse_height], fill=255)
+    
+    # Create a temporary image for the ellipse
+    temp_image = Image.new('RGBA', (ellipse_width, ellipse_height), (0, 0, 0, 0))
+    temp_draw = ImageDraw.Draw(temp_image)
+    temp_draw.ellipse([0, 0, ellipse_width, ellipse_height], fill=wrapping_color_hex)
+    
+    # Apply mask to show only top half
+    # Crop the bottom half by setting those pixels to transparent
+    temp_data = temp_image.getdata()
+    mask_data = mask.getdata()
+    width, height = temp_image.size
+    
+    new_data = []
+    for i, pixel in enumerate(temp_data):
+        y = i // width
+        if y < height // 2:  # Only keep top half
+            new_data.append(pixel)
+        else:
+            new_data.append((0, 0, 0, 0))  # Transparent for bottom half
+    
+    temp_image.putdata(new_data)
+    
+    # Paste the half ellipse onto the main image
+    image = draw._image
+    paste_x = int(ellipse_left)
+    paste_y = int(ellipse_top)
+    image.paste(temp_image, (paste_x, paste_y), temp_image)
+
+
 def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greenery_data=None, wrapping_color_hex="#FFFFFF"):
     """
     Generate a bouquet image based on the provided parameters.
@@ -667,11 +733,9 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
     image = Image.new("RGBA", canvas_size, (255, 255, 255, 0))
     draw = ImageDraw.Draw(image)
 
-    # Draw wrapping circle
-    draw.ellipse([
-        (center[0] - base_radius, center[1] - base_radius),
-        (center[0] + base_radius, center[1] + base_radius)
-    ], fill=wrapping_color_hex)
+    # Draw wrapping cone background only if wrapping is selected
+    if wrapping_id is not None:
+        draw_cone_background(draw, center, base_radius, wrapping_color_hex)
 
     # Build complete item list (flowers and greenery)
     all_items = []
