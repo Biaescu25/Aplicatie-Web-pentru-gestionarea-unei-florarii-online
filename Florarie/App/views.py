@@ -311,6 +311,7 @@ def merge_carts(sender, request, user, **kwargs):
                 item.session_id = None  # Remove session association
                 item.save()
 
+
 def register(request):
     if request.method == "POST":
         username = request.POST["username"]
@@ -643,72 +644,6 @@ def checkout_step_3(request):
 
     return JsonResponse({"success": False, "message": "Invalid request"})
 
-def draw_cone_background(draw, center, base_radius, wrapping_color_hex):
-
-    # Position the shape lower on the canvas
-    shape_center_y = center[1] + base_radius // 2
-    
-    # Calculate dimensions
-    triangle_width = base_radius * 2.5 + 2
-    triangle_height = base_radius * 1.5 
-    ellipse_width = triangle_width
-    ellipse_height = base_radius * 0.9  # Make ellipse more oval
-    
-    # Calculate triangle points (upside-down)
-    top_left = (center[0] - triangle_width // 2, shape_center_y - triangle_height // 2)
-    top_right = (center[0] + triangle_width // 2, shape_center_y - triangle_height // 2)
-    bottom_point = (center[0], shape_center_y + triangle_height // 2)
-    
-    # Calculate ellipse position (on top of triangle)
-    ellipse_left = center[0] - ellipse_width // 2
-    ellipse_right = center[0] + ellipse_width // 2
-    ellipse_top = top_left[1] - ellipse_height // 2
-    ellipse_bottom = top_left[1] + ellipse_height // 2
-    
-    # Draw the upside-down triangle
-    triangle_points = [top_left, top_right, bottom_point]
-    draw.polygon(triangle_points, fill=wrapping_color_hex)
-
-    # Draw only the top half of the ellipse
-    # Convert dimensions to integers
-    ellipse_width = int(ellipse_right - ellipse_left)
-    ellipse_height = int(ellipse_bottom - ellipse_top)
-    
-    # Create a mask for the top half
-    mask = Image.new('L', (ellipse_width, ellipse_height), 0)
-    mask_draw = ImageDraw.Draw(mask)
-    
-    # Draw the full ellipse in the mask
-    mask_draw.ellipse([0, 0, ellipse_width, ellipse_height], fill=255)
-    
-    # Create a temporary image for the ellipse
-    temp_image = Image.new('RGBA', (ellipse_width, ellipse_height), (0, 0, 0, 0))
-    temp_draw = ImageDraw.Draw(temp_image)
-    temp_draw.ellipse([0, 0, ellipse_width, ellipse_height], fill=wrapping_color_hex)
-    
-    # Apply mask to show only top half
-    # Crop the bottom half by setting those pixels to transparent
-    temp_data = temp_image.getdata()
-    mask_data = mask.getdata()
-    width, height = temp_image.size
-    
-    new_data = []
-    for i, pixel in enumerate(temp_data):
-        y = i // width
-        if y < height // 2:  # Only keep top half
-            new_data.append(pixel)
-        else:
-            new_data.append((0, 0, 0, 0))  # Transparent for bottom half
-    
-    temp_image.putdata(new_data)
-    
-    # Paste the half ellipse onto the main image
-    image = draw._image
-    paste_x = int(ellipse_left)
-    paste_y = int(ellipse_top)
-    image.paste(temp_image, (paste_x, paste_y), temp_image)
-
-
 def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greenery_data=None, wrapping_color_hex="#FFFFFF"):
     """
     Generate a bouquet image based on the provided parameters.
@@ -733,39 +668,52 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
     image = Image.new("RGBA", canvas_size, (255, 255, 255, 0))
     draw = ImageDraw.Draw(image)
 
-    # Draw wrapping cone background only if wrapping is selected
-    if wrapping_id is not None:
-        draw_cone_background(draw, center, base_radius, wrapping_color_hex)
-
     # Build complete item list (flowers and greenery)
     all_items = []
     
-    # Add flowers
+    # Add flowers first
+    total_flowers = 0
     for flower_data in flowers_data:
         try:
             flower = Flower.objects.get(id=flower_data["id"])
             count = int(flower_data["count"])
+            total_flowers += count
             for _ in range(count):
                 all_items.append((flower, "flower"))
         except (Flower.DoesNotExist, KeyError, ValueError):
             continue
 
-    # Add greenery (if provided)
-    if greenery_data:
+    # Calculate greenery quantity: 20% of total flowers, minimum 1 of EACH type if greenery is selected
+    greenery_quantity_per_type = 0
+    if greenery_data and total_flowers > 0:
+        greenery_quantity_per_type = max(1, int(total_flowers * 0.2))  # 20% of flowers, minimum 1
+    
+    # Add greenery (if provided and quantity calculated)
+    if greenery_data and greenery_quantity_per_type > 0:
+        # Get all selected greenery types
+        greenery_types = []
         for green_data in greenery_data:
             try:
                 green = Greenery.objects.get(id=green_data["id"])
-                count = int(green_data.get("count", 1))
-                for _ in range(count):
-                    all_items.append((green, "greenery"))
+                greenery_types.append(green)
             except (Greenery.DoesNotExist, KeyError, ValueError):
                 continue
+        
+        # Add greenery items - ensure at least 1 of each type
+        for green in greenery_types:
+            # Add the calculated quantity for each greenery type
+            for _ in range(greenery_quantity_per_type):
+                all_items.append((green, "greenery"))
 
     num_items = len(all_items)
     print(f"Generated {num_items} items for image")
     if num_items == 0:
         print("No items to generate image")
         return None
+
+    # Draw wrapping cone background only if wrapping is selected
+    # if wrapping_id is not None:
+    #     draw_cone_background(draw, center, base_radius, wrapping_color_hex, num_items)
 
     # Dynamic spiral-based positioning algorithm
     item_positions = []
@@ -783,13 +731,13 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
         spiral_tightness = 1.0
     elif num_items <= 30:
         # Large bouquets: smaller flowers, more spread
-        base_size = 180
-        min_size = 85
+        base_size = 200
+        min_size = 100
         spiral_tightness = 1.0
     else:
         # Very large bouquets: smallest flowers, maximum spread
-        base_size = 160
-        min_size = 80
+        base_size = 180
+        min_size = 90
         spiral_tightness = 1.2
     
     # Calculate adaptive spacing
@@ -839,9 +787,17 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
                 angle_rad = math.atan2(dx, dy)
                 angle_deg = math.degrees(angle_rad)
                 rotated_img = flower_img.rotate(angle_deg, expand=True)
-            else:  # greenery
-                rotated_img = Image.open(obj.image.path).convert("RGBA")
-                rotated_img = rotated_img.resize((size, size), Image.LANCZOS)
+            else:  # greenery - behave exactly like flowers
+                greenery_img = Image.open(obj.image.path).convert("RGBA")
+                greenery_img = greenery_img.resize((size, size), Image.LANCZOS)
+                # Use exact same rotation logic as flowers
+                bottom_center_x = center[0]
+                bottom_center_y = canvas_size[1]
+                dx = bottom_center_x - x
+                dy = bottom_center_y - y
+                angle_rad = math.atan2(dx, dy)
+                angle_deg = math.degrees(angle_rad)
+                rotated_img = greenery_img.rotate(angle_deg, expand=True)
 
             rx, ry = rotated_img.size
             image.paste(rotated_img, (x - rx // 2, y - ry // 2), rotated_img)
@@ -873,7 +829,7 @@ def create_custom_bouquet(request):
         except BouquetShape.DoesNotExist:
             # Render the summary
             return render(request, "custom_bouquet_summary.html", {
-                "error": "Please select the shape ."
+                "error": "Te rugăm să selectezi forma buchetului."
             })
 
         # Wrapping
@@ -907,7 +863,7 @@ def create_custom_bouquet(request):
         if numflowers == 0:
             # Render the summary
             return render(request, "custom_bouquet_summary.html", {
-                "error": "Please select at least one flower."
+                "error": "Te rugăm să selectezi cel puțin o floare."
             })
         
 
