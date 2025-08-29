@@ -320,29 +320,29 @@ def register(request):
         password2 = request.POST["password2"]
 
         # Password restrictions
-        errors = []
+        errors = [] 
         if len(password1) < 8:
-            errors.append("Password must be at least 8 characters long.")
+            errors.append("Parola trebuie să aibă cel puțin 8 caractere.")
         if not any(c.isdigit() for c in password1):
-            errors.append("Password must contain at least one digit.")
+            errors.append("Parola trebuie să conțină cel puțin o cifră.")
         if not any(c.isalpha() for c in password1):
-            errors.append("Password must contain at least one letter.")
+            errors.append("Parola trebuie să conțină cel puțin o literă.")
         if not any(c.isupper() for c in password1):
-            errors.append("Password must contain at least one uppercase letter.")
+            errors.append("Parola trebuie să conțină cel puțin o literă mare.")
         if not any(c.islower() for c in password1):
-            errors.append("Password must contain at least one lowercase letter.")
+            errors.append("Parola trebuie să conțină cel puțin o literă mică.")
 
         # Check if passwords match
         if password1 != password2:
-            errors.append("Passwords do not match.")
+            errors.append("Parolele nu se potrivesc.")
 
         # Check if username already exists
         if User.objects.filter(username=username).exists():
-            errors.append("Username is already taken.")
+            errors.append("Username este deja folosit.")
 
         # Check if email is already used
         if User.objects.filter(email=email).exists():
-            errors.append("Email is already in use.")
+            errors.append("Email este deja folosit.")
 
         if errors:
             for error in errors:
@@ -375,7 +375,7 @@ def user_login(request):
             #messages.success(request, "Login successful!")
             return redirect("home")  # Redirect to homepage
         else:
-            messages.error(request, "Invalid username or password.")
+            messages.error(request, "Credențiale invalide.")
             return redirect("login")
 
     return render(request, "login.html")
@@ -386,7 +386,7 @@ def user_logout(request):
 
 def product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk)
-    related_products = Product.objects.filter(category=product.category).exclude(pk=pk)[:10]
+    related_products = Product.objects.filter(category=product.category).exclude(pk=pk)
     cart_product_ids = get_cart_items(request).values_list('product_id', flat=True)
 
     context = {
@@ -583,7 +583,7 @@ def checkout_step_3(request):
         print("Amount:", amount)  # Debugging
 
         if not token or amount == 0:
-            return JsonResponse({"success": False, "message": "Missing payment token or invalid amount."})
+            return JsonResponse({"success": False, "message": "Plata a eșuat."})
 
         try:
             charge = stripe.Charge.create(
@@ -627,7 +627,7 @@ def checkout_step_3(request):
 
                 cart_items.delete()
             except Order.DoesNotExist:
-                return JsonResponse({"success": False, "message": "No matching order found."})
+                return JsonResponse({"success": False, "message": "Order not found."})
 
             #return JsonResponse({"success": True, "message": "Payment successful!"})
             if request.headers.get("HX-Request"):
@@ -644,16 +644,14 @@ def checkout_step_3(request):
 
     return JsonResponse({"success": False, "message": "Invalid request"})
 
+
+
 def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greenery_data=None, wrapping_color_hex="#FFFFFF"):
-    """
-    Generate a bouquet image based on the provided parameters.
-    Returns the PIL Image object.
-    """
+  
     try:
         shape = BouquetShape.objects.get(id=shape_id)
-        # Make wrapping optional - use default if not provided
         if wrapping_id is None:
-            wrapping = WrappingPaper.objects.first()  # Use first available wrapping
+            wrapping = WrappingPaper.objects.first()  
         else:
             wrapping = WrappingPaper.objects.get(id=wrapping_id)
     except (BouquetShape.DoesNotExist, WrappingPaper.DoesNotExist):
@@ -668,10 +666,8 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
     image = Image.new("RGBA", canvas_size, (255, 255, 255, 0))
     draw = ImageDraw.Draw(image)
 
-    # Build complete item list (flowers and greenery)
     all_items = []
     
-    # Add flowers first
     total_flowers = 0
     for flower_data in flowers_data:
         try:
@@ -690,7 +686,6 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
     
     # Add greenery (if provided and quantity calculated)
     if greenery_data and greenery_quantity_per_type > 0:
-        # Get all selected greenery types
         greenery_types = []
         for green_data in greenery_data:
             try:
@@ -711,61 +706,41 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
         print("No items to generate image")
         return None
 
-    # Draw wrapping cone background only if wrapping is selected
-    # if wrapping_id is not None:
-    #     draw_cone_background(draw, center, base_radius, wrapping_color_hex, num_items)
-
-    # Dynamic spiral-based positioning algorithm
     item_positions = []
     
-    # Adaptive sizing based on flower count
-    if num_items <= 5:
-        # Small bouquets: larger flowers, closer together
+    if num_items <= 5: 
         base_size = 250
         min_size = 120
         spiral_tightness = 0.8
-    elif num_items <= 15:
-        # Medium bouquets: balanced sizing
-        base_size = 200
-        min_size = 100
-        spiral_tightness = 1.0
     elif num_items <= 30:
-        # Large bouquets: smaller flowers, more spread
         base_size = 200
         min_size = 100
         spiral_tightness = 1.0
     else:
-        # Very large bouquets: smallest flowers, maximum spread
         base_size = 180
         min_size = 90
         spiral_tightness = 1.2
     
     # Calculate adaptive spacing
-    spacing_factor = max(0.6, min(1.5, 20 / num_items))  # More flowers = tighter spacing
+    spacing_factor = max(0.6, min(1.5, 20 / num_items)) 
     
     for i, (item, item_type) in enumerate(all_items):
-        # Calculate size based on position (center flowers larger)
         distance_from_center = i / num_items
-        size_factor = 1.0 - (distance_from_center * 0.3)  # Center flowers 30% larger
+        size_factor = 1.2 - (distance_from_center * 0.3)  
         size = max(min_size, int(base_size * size_factor))
         
         # Spiral positioning
         if i == 0:
-            # First flower in center
+            
             x, y = center[0], center[1]
         else:
-            # Spiral outward
-            angle = i * 137.5 * (math.pi / 180) * spiral_tightness  # Golden angle for natural distribution
-            radius = (i ** 0.5) * spacing_factor * 25  # Square root for natural spread
             
-            # Add some natural variation to radius
-            # radius_variation = math.sin(i * 0.7) * 10
-            # radius += radius_variation
+            angle = i * 137.5 * (math.pi / 180) * spiral_tightness  
+            radius = (i ** 0.5) * spacing_factor * 25  
             
             x = int(center[0] + radius * math.cos(angle))
             y = int(center[1] + radius * math.sin(angle))
             
-            # Ensure flowers stay within reasonable bounds
             max_offset = 180
             x = max(center[0] - max_offset, min(center[0] + max_offset, x))
             y = max(center[1] - max_offset, min(center[1] + max_offset, y))
@@ -787,10 +762,9 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
                 angle_rad = math.atan2(dx, dy)
                 angle_deg = math.degrees(angle_rad)
                 rotated_img = flower_img.rotate(angle_deg, expand=True)
-            else:  # greenery - behave exactly like flowers
+            else:  
                 greenery_img = Image.open(obj.image.path).convert("RGBA")
                 greenery_img = greenery_img.resize((size, size), Image.LANCZOS)
-                # Use exact same rotation logic as flowers
                 bottom_center_x = center[0]
                 bottom_center_y = canvas_size[1]
                 dx = bottom_center_x - x
@@ -1166,7 +1140,7 @@ def auction_confirm(request, pk):
 
 
 def send_order_email(order, user):
-    subject = f"Order Confirmation - #{order.id}"
+    subject = f"Confirmare comandă - #{order.id}"
     html_message = render_to_string("emails/order_confirmation_email.html", {"order": order, "user": user})
     from_email = settings.DEFAULT_FROM_EMAIL
     to_email = [user.email]
@@ -1184,7 +1158,7 @@ def send_order_email(order, user):
         to=to_email,
     )
     email.content_subtype = "html"  # Mark content as HTML
-    email.attach(f"invoice_{order.id}.pdf", pdf_file.getvalue(), 'application/pdf')
+    email.attach(f"factura_{order.id}.pdf", pdf_file.getvalue(), 'application/pdf')
     email.send()
 
 
@@ -1199,7 +1173,7 @@ def contact_view(request):
         contact_message.save()
 
         # Email către administrator
-        subject = f"New Contact Message from {contact_message.name}"
+        subject = f"Mesaj de contact de la {contact_message.name}"
         from_email = contact_message.email
         to_email = [settings.DEFAULT_FROM_EMAIL]
 

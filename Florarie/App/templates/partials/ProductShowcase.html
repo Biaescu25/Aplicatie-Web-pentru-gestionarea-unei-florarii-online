@@ -27,7 +27,7 @@
                                 hx-post="{% url 'add_to_cart' product.id %}" 
                                 class="mt-4">
                                 {% csrf_token %}
-                                <button type="submit" class="btn bg-pink-400 text-white text-lg hover:bg-pink-500 transition duration-300 ease-in-out transform hover:scale-105">  {{ product.price }} Lei <img src="/static/cartIcon1.png" class="w-8 h-8"> </button>
+                                <button type="submit" class="btn bg-black text-white text-lg hover:bg-gray-800 transition duration-300 ease-in-out transform hover:scale-105">  {{ product.price }} Lei <img src="/static/cart-icon.png" alt="Cart" class="w-8 h-8 brightness-0 invert"> </button>
                             </form>
                             {% else %}
                             <a href="/cart/" id="cart-btn" class="btn bg-purple-600 text-white mt-2">
@@ -38,8 +38,14 @@
                             {% if product.category not in 'buchete' and product.category not in 'aranjamente' %}
                                 <p class="text-gray-600 mt-2">Stoc epuizat</p>
                             {% else %}
-                                <a href="{% url 'product_detail' pk=product.id %}" id="cart-btn" class="btn bg-purple-600 text-white mt-2">
-                                {{ product.price }} Lei
+                                <form id="add-to-cart-form-{{ product.id }}" 
+                                    hx-post="{% url 'add_to_cart' product.id %}" 
+                                    class="mt-4">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn bg-black text-white text-lg hover:bg-gray-800 transition duration-300 ease-in-out transform hover:scale-105">  {{ product.price }} Lei <img src="/static/cart-icon.png" alt="Cart" class="w-8 h-8 brightness-0 invert"> </button>
+                                </form>
+                                
+                               
                                 </a>
                             {% endif %}
                         {% endif %}
@@ -63,7 +69,7 @@
                 const container = document.getElementById(`add-to-cart-container-${productId}`);
                 
                 // Immediately show "Already Added" div
-                container.innerHTML = `<a href="/cart/" id="cart-btn" class="btn btn-success mt-2">
+                container.innerHTML = `<a href="/cart/" id="cart-btn" class="btn bg-purple-600 text-white mt-2">
                         View in Cart
                     </a>`;
 

@@ -152,21 +152,85 @@ input[type="number"] {
     document.body.addEventListener('htmx:afterSwap', function (evt) {
     const target = evt.detail.target;
 
-    if (target.querySelector('#card-element') && stripe) {
+    if (target.querySelector('#card-number-element') && stripe) {
         if (document.querySelector('#payment-form').dataset.initialized === "true") return;
         document.querySelector('#payment-form').dataset.initialized = "true";
 
         const elements = stripe.elements();
-        card = elements.create("card");
-        card.mount("#card-element");
+        
+        // Custom styling for Stripe Elements
+        const style = {
+            base: {
+                color: '#374151',
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                fontSize: '16px',
+                fontSmoothing: 'antialiased',
+                '::placeholder': {
+                    color: '#9CA3AF',
+                },
+                ':-webkit-autofill': {
+                    color: '#374151',
+                },
+            },
+            invalid: {
+                color: '#EF4444',
+                iconColor: '#EF4444',
+            },
+        };
+        
+        // Create separate elements
+        const cardNumber = elements.create("cardNumber", {style: style});
+        const cardExpiry = elements.create("cardExpiry", {style: style});
+        const cardCvc = elements.create("cardCvc", {style: style});
+        
+        // Mount elements
+        cardNumber.mount("#card-number-element");
+        cardExpiry.mount("#card-expiry-element");
+        cardCvc.mount("#card-cvc-element");
 
         const form = document.querySelector("#payment-form");
+        const cardErrors = document.getElementById("card-errors");
+        const cardErrorsText = document.getElementById("card-errors-text");
+        const submitButton = form.querySelector('button[type="submit"]');
+        
+        // Add error handling for all card elements
+        [cardNumber, cardExpiry, cardCvc].forEach(element => {
+            element.addEventListener('change', function(event) {
+                if (event.error) {
+                    cardErrors.classList.remove('hidden');
+                    cardErrorsText.textContent = event.error.message;
+                } else {
+                    cardErrors.classList.add('hidden');
+                }
+            });
+        });
+
         form.addEventListener("submit", function (e) {
             e.preventDefault();
+            
+            // Show loading state
+            submitButton.disabled = true;
+            submitButton.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                <span>Se procesează...</span>
+            `;
 
-            stripe.createToken(card).then(function (result) {
+            stripe.createToken(cardNumber).then(function (result) {
                 if (result.error) {
-                    document.getElementById("card-errors").textContent = result.error.message;
+                    cardErrors.classList.remove('hidden');
+                    cardErrorsText.textContent = result.error.message;
+                    
+                    // Reset button
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = `
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                        <span>Finalizează plata</span>
+                    `;
                 } else {
                     const hiddenInput = document.createElement("input");
                     hiddenInput.setAttribute("type", "hidden");

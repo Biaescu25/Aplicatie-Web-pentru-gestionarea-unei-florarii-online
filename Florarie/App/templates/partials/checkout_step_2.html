@@ -1,13 +1,68 @@
 <!-- checkout/checkout_step_2.html -->
-<form id="payment-form" method="post" >
-    {% csrf_token %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <!-- Payment Form -->
+        <form id="payment-form" method="post" class="p-6 space-y-6">
+            {% csrf_token %}
 
-    <h2 class="text-xl font-bold mb-4">Pasul 2: Plata</h2>
+            <!-- Card Details -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-semibold text-gray-800 flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                    </svg>
+                    <span>Detalii card</span>
+                </h3>
 
-    <div id="card-element" class="w-full border border-gray-300 rounded-md p-2 h-12"></div>
-    <div id="card-errors" class="text-red-500 text-sm mt-2"></div>
+                <div class="space-y-4">
+                    <!-- Card Number -->
+                    <div class="relative">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Numărul cardului</label>
+                        <div class="relative">
+                            <div id="card-number-element" class="w-full border-2 border-gray-200 rounded-lg p-4 h-14 bg-white focus-within:border-green-500 focus-within:ring-2 focus-within:ring-green-200 transition-all duration-200"></div>
+                            <div class="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                <svg class="w-6 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
 
-    <button type="submit" class="btn btn-primary w-full mt-4">Plătește acum</button>
-</form>
+                    <!-- Expiration Date and CVC -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="relative">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Data expirării</label>
+                            <div id="card-expiry-element" class="w-full border-2 border-gray-200 rounded-lg p-4 h-14 bg-white focus-within:border-green-500 focus-within:ring-2 focus-within:ring-green-200 transition-all duration-200"></div>
+                        </div>
+                        
+                        <div class="relative">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">CVC</label>
+                            <div id="card-cvc-element" class="w-full border-2 border-gray-200 rounded-lg p-4 h-14 bg-white focus-within:border-green-500 focus-within:ring-2 focus-within:ring-green-200 transition-all duration-200"></div>
+                        </div>
+                    </div>
+
+                    <div id="card-errors" class="text-red-500 text-sm bg-red-50 border border-red-200 rounded-lg p-3 hidden">
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span id="card-errors-text"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="pt-4">
+                <button type="submit" class="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                    <span>Finalizează plata</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- hx-post="{% url 'checkout_step_3' %}" hx-target="#checkout-section" hx-swap="innerHTML" -->
