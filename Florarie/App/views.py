@@ -565,12 +565,18 @@ def checkout_step_2(request):
             OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, price=item.product.price)
 
         # Clear the cart
-        cart_items.delete()
+        # cart_items.delete()
 
         # Handle payment method logic
         if payment_method == 'cash':
             # For cash on delivery, go directly to success page
-            return render(request, 'partials/order_success.html')
+            try:
+               finish_order(request, order)
+               print("Cash order finished successfully.")
+               return render(request, 'partials/order_success.html')
+            except Order.DoesNotExist:
+                return JsonResponse({"success": False, "message": "Order not found."})
+            
         else:
             # For card payment, continue to step 2
             request.session["order_id"] = order.id
@@ -582,6 +588,29 @@ def checkout_step_2(request):
 
 
     return redirect('checkout_step_1')
+
+def finish_order(request, order):
+    order.payment_status = True
+    order.save()
+
+    send_order_email(order, request.user)
+
+    # Decrement stock for each product in the order
+    for item in order.items.all():
+        if item.product.stock is not None and item.product.stock > 0:
+            item.product.stock = max(0, item.product.stock - item.quantity)
+            item.product.save()
+
+    # Clear the cart after successful payment
+    user = request.user if request.user.is_authenticated else None
+    session_id = request.session.session_key
+    cart_items = CartItem.objects.filter(user=user) if user else CartItem.objects.filter(session_id=session_id)
+
+    for item in cart_items:
+        item.product.number_of_purcheses += item.quantity
+        item.product.save()
+
+    cart_items.delete()
 
 @csrf_exempt
 def checkout_step_3(request):
@@ -613,29 +642,7 @@ def checkout_step_3(request):
 
             # Update order payment status
             try:
-                order_id = request.session.get("order_id")
-                order = Order.objects.get(id=order_id)
-                order.payment_status = True
-                order.save()
-
-                send_order_email(order, request.user)
-
-                # Decrement stock for each product in the order
-                for item in order.items.all():
-                    if item.product.stock is not None and item.product.stock > 0:
-                        item.product.stock = max(0, item.product.stock - item.quantity)
-                        item.product.save()
-
-                # Clear the cart after successful payment
-                user = request.user if request.user.is_authenticated else None
-                session_id = request.session.session_key
-                cart_items = CartItem.objects.filter(user=user) if user else CartItem.objects.filter(session_id=session_id)
-
-                for item in cart_items:
-                    item.product.number_of_purcheses += item.quantity
-                    item.product.save()
-
-                cart_items.delete()
+               finish_order(request, request.order)
             except Order.DoesNotExist:
                 return JsonResponse({"success": False, "message": "Order not found."})
 
@@ -654,6 +661,31 @@ def checkout_step_3(request):
 
     return JsonResponse({"success": False, "message": "Invalid request"})
 
+def order_success(request):
+    return render(request, 'partials/order_success.html')
+
+def update_order_summary(request):
+    """Update order summary based on delivery type"""
+    if request.method == 'POST':
+        delivery_type = request.POST.get('delivery_type', 'delivery')
+        delivery_fee = 0 if delivery_type == 'pickup' else 29
+        
+        user = request.user if request.user.is_authenticated else None
+        session_id = request.session.session_key or request.session.create()
+        cart_items = CartItem.objects.filter(user=user) if user else CartItem.objects.filter(session_id=session_id)
+        
+        subtotal = sum(item.total_price() for item in cart_items)
+        total_price = subtotal + delivery_fee
+        
+        return render(request, 'partials/order_summary.html', {
+            'cart_items': cart_items,
+            'subtotal': subtotal,
+            'delivery_fee': delivery_fee,
+            'total_price': total_price,
+            'delivery_type': delivery_type
+        })
+    
+    return JsonResponse({'error': 'Invalid request'})
 
 
 def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greenery_data=None, wrapping_color_hex="#FFFFFF"):
@@ -1213,32 +1245,6 @@ def contact_view(request):
 
 def contact_success(request):
     return render(request, 'contact_success.html')
-
-def order_success(request):
-    return render(request, 'partials/order_success.html')
-
-def update_order_summary(request):
-    """Update order summary based on delivery type"""
-    if request.method == 'POST':
-        delivery_type = request.POST.get('delivery_type', 'delivery')
-        delivery_fee = 0 if delivery_type == 'pickup' else 29
-        
-        user = request.user if request.user.is_authenticated else None
-        session_id = request.session.session_key or request.session.create()
-        cart_items = CartItem.objects.filter(user=user) if user else CartItem.objects.filter(session_id=session_id)
-        
-        subtotal = sum(item.total_price() for item in cart_items)
-        total_price = subtotal + delivery_fee
-        
-        return render(request, 'partials/order_summary.html', {
-            'cart_items': cart_items,
-            'subtotal': subtotal,
-            'delivery_fee': delivery_fee,
-            'total_price': total_price,
-            'delivery_type': delivery_type
-        })
-    
-    return JsonResponse({'error': 'Invalid request'})
 
 
 @staff_member_required
