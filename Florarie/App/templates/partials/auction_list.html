@@ -1,31 +1,68 @@
 {% for product in products %}
 {% if not product.bid_submited %}
-<div class="card bg-base-100 shadow-xl relative">
+<div class="card bg-white shadow-xl rounded-xl overflow-hidden relative transition-transform hover:scale-[1.01] hover:shadow-2xl">
     <!-- Percentage reduction badge -->
     {% with auction_data=product.get_auction_price %}
         {% if auction_data.2 > 0 %}
-            <div class="absolute top-2 right-2 bg-red-600 text-white text-lg font-bold px-4 py-2 rounded-lg shadow-lg z-20">
+            <div class="absolute top-4 right-4 bg-red-600 text-white text-xl font-bold px-5 py-2 rounded-lg shadow-lg z-20 transform rotate-3">
                 -{{ auction_data.2|floatformat:0 }}%
             </div>
         {% endif %}
     {% endwith %}
-    <figure>
-        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-48 object-cover">
-    </figure>
-    <div class="card-body">
-        <h2 class="card-title">{{ product.name }}</h2>
-        <!-- <p class="text-gray-600">{{ product.description }}</p> -->
-        <p class="text-sm text-gray-500"><strong>Oferta a inceput la:</strong> {{ product.auction_start_time|date:"d M Y H:i" }}</p>
-        <p class="text-sm text-gray-500"><strong>Pretul original:</strong> {{ product.before_auction_price }} Lei</p>
-        <div
-            hx-get="{% url 'auction_price_partial' product.pk %}"
-            hx-trigger="every 100s"
-            hx-swap="innerHTML"
-            class="price-container mt-2"
-        >
-            {% include "partials/auction_price.html" with product=product %}
+    
+    <div class="flex flex-col md:flex-row">
+        <figure class="md:w-1/3">
+            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-80 md:h-96 object-cover transition-transform hover:scale-105">
+        </figure>
+        
+        <div class="card-body md:w-2/3 p-8">
+            <h2 class="card-title text-3xl font-bold text-gray-800 mb-4">{{ product.name }}</h2>
+            
+            <div class="space-y-4 mb-8">
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p class="text-lg text-gray-600"><span class="font-medium">Oferta a început la:</span> {{ product.auction_start_time|date:"d M Y H:i" }}</p>
+                </div>
+                
+                <!-- Countdown timer -->
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div class="text-lg">
+                        <span class="font-medium">Expiră în: </span>
+                        <span 
+                            class="countdown-timer font-semibold text-red-600" 
+                            data-auction-start="{{ product.auction_start_time|date:'Y-m-d\TH:i:s' }}"
+                        >
+                            Calculare...
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="text-lg text-gray-600"><span class="font-medium">Preț original:</span> <span class="line-through">{{ product.before_auction_price }} Lei</span></p>
+                </div>
+            </div>
+            
+            <div class="mt-auto max-w-md">
+                <p class="text-xl font-semibold text-gray-700 mb-4">Prețul actual:</p>
+                <div
+                    hx-get="{% url 'auction_price_partial' product.pk %}"
+                    class="price-container"
+                >
+                    {% include "partials/auction_price.html" with product=product %}
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
 {% endif %}
 {% endfor %}
+

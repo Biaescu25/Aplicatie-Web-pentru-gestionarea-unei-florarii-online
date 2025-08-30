@@ -1139,12 +1139,16 @@ def auction_view(request):
                 product.bid_submited = False
                 product.save()
 
-    auction_products = [p for p in products if p.is_in_auction()]
+    # Filter for active auction products that haven't expired
+    auction_products = []
+    for p in products:
+        if p.is_in_auction() and not p.is_auction_expired() and not p.bid_submited:
+            auction_products.append(p)
 
     if request.headers.get("HX-Request"):
         return render(request, "partials/auction_list.html", {"products": auction_products})
 
-    return render(request, "auction.html", {"products": auction_products})
+    return render(request, "partials/auction.html", {"products": auction_products})
 
 def auction_price_partial(request, pk):
     product = get_object_or_404(Product, pk=pk)

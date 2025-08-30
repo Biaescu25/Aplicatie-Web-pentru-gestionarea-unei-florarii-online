@@ -89,7 +89,16 @@ class Product(models.Model):
             self.before_auction_price = self.price
         # return self.auction_manual or (self.in_store and self.auction_start_time and self.auction_start_time <= timezone.now()) and self.bid_submited == False
         return self.auction_manual # and self.bid_submited == False
-    
+
+    def is_auction_expired(self):
+        """Check if the auction has expired (more than 24 hours since start)"""
+        if not self.auction_start_time:
+            return False
+        
+        # Calculate if 24 hours have passed since auction start
+        expiry_time = self.auction_start_time + timedelta(hours=24)
+        return timezone.now() > expiry_time
+
     def get_auction_price(self):
         if not self.is_in_auction():
             return self.price, 0, 0  # Return original price, no discount, no percentage reduction
@@ -99,15 +108,15 @@ class Product(models.Model):
         discount = min(self.auction_drop_amount * total_drops, self.price - self.auction_floor_price)  # Ensure price doesn't go below floor price
 
         auction_bid_price = self.price - Decimal(discount)  # Calculate the auction price
-        price_difference = self.price - auction_bid_price  # Calculate the price difference
-
-        # Prevent division by zero
-        if self.price == 0:
+        
+        # Calculate percentage based on before_auction_price for consistency with UI
+        if self.before_auction_price == 0:
             percentage_reduction = Decimal(0)
         else:
-            percentage_reduction = Decimal((price_difference / self.price) * 100)  # Calculate percentage reduction as Decimal
+            # Calculate percentage against original price before auction
+            percentage_reduction = Decimal((self.before_auction_price - auction_bid_price) / self.before_auction_price * 100)
          
-        return auction_bid_price, price_difference, percentage_reduction
+        return auction_bid_price, discount, percentage_reduction
     
     def __str__(self):
         return self.name

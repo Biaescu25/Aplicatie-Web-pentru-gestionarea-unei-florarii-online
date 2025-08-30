@@ -11,15 +11,14 @@
     </div>
 </section>  
 
-<section class="py-8">
-    <div class="container mx-auto px-4">
-        
+<section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-6">
         <div 
             id="product-list"
             hx-get="{% url 'auction' %}"
-            hx-trigger="refreshProductList from:body, every 10s"
+            hx-trigger="refreshProductList from:body"
             hx-swap="innerHTML"
-            class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
+            class="w-full mx-auto grid grid-cols-1 gap-8"
         >
             {% include "partials/auction_list.html" %}
         </div>
@@ -28,4 +27,75 @@
 
 <!-- Modal container -->
 <div id="modal-container"></div>
+
+<!-- Script to handle countdown timers and price updates -->
+<script>
+    // Initialize countdown timers
+    function initializeCountdownTimers() {
+        const countdownTimers = document.querySelectorAll('.countdown-timer');
+        
+        // Function to update all timers
+        function updateTimers() {
+            countdownTimers.forEach(timer => {
+                const auctionStart = new Date(timer.getAttribute('data-auction-start'));
+                const expiryTime = new Date(auctionStart.getTime() + (24 * 60 * 60 * 1000)); // 24 hours after start
+                const now = new Date();
+                const timeRemaining = expiryTime - now;
+                
+                if (timeRemaining <= 0) {
+                    // Time expired
+                    timer.textContent = "Ofertă expirată";
+                    timer.classList.add('text-gray-500');
+                    timer.classList.remove('text-red-600');
+                } else {
+                    // Calculate hours, minutes, seconds
+                    const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+                    const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+                    
+                    // Format the time
+                    timer.textContent = 
+                        (hours < 10 ? '0' + hours : hours) + ':' +
+                        (minutes < 10 ? '0' + minutes : minutes) + ':' +
+                        (seconds < 10 ? '0' + seconds : seconds);
+                    
+                    // Add urgency styling when less than 1 hour remains
+                    if (timeRemaining < 3600000) { // less than 1 hour
+                        timer.classList.add('text-red-600', 'animate-pulse');
+                    }
+                }
+            });
+        }
+        
+        // Update immediately and then every second
+        updateTimers();
+        return setInterval(updateTimers, 1000);
+    }
+    
+    // Initialize timers on page load
+    let timerInterval;
+    document.addEventListener('DOMContentLoaded', function() {
+        timerInterval = initializeCountdownTimers();
+        
+        // Set up automatic price refresh every 10 seconds
+        setInterval(function() {
+            const priceContainers = document.querySelectorAll('.price-container');
+            priceContainers.forEach(container => {
+                const url = container.getAttribute('hx-get');
+                if (url) {
+                    htmx.ajax('GET', url, { target: container, swap: 'innerHTML' });
+                }
+            });
+        }, 10000);
+    });
+    
+    // Re-initialize timers after HTMX content swaps (only when product-list is swapped)
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        if (event.detail.target.id === 'product-list') {
+            // Clear existing interval and start a new one
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = initializeCountdownTimers();
+        }
+    });
+</script>
 {% endblock %}
