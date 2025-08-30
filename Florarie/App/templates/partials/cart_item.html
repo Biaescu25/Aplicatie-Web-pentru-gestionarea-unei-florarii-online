@@ -18,7 +18,11 @@
                 {% if cart_item.product.category not in 'buchete,aranjamente' %}
                     <p class="card-text text-sm text-gray-500" style="margin: 0;">Stoc: {{ cart_item.product.stock }}</p>
                 {% else %}
-                    <p class="card-text text-sm text-gray-500" style="margin: 0;">10 max</p>
+                    {% if not cart_item.product.bid_submited %}
+                        <p class="card-text text-sm text-gray-500" style="margin: 0;">10 max</p>
+                    {% else %}
+                        <p class="card-text text-sm text-gray-500" style="margin: 0;">Buchetul va fi disponibil pana la {{ cart_item.reserved_until }}</p>
+                    {% endif %}
                 {% endif %}
              {% endif %}
         </div>

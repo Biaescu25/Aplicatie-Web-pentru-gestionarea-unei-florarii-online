@@ -2,97 +2,144 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <!-- Example Product Card -->
         {% for product in products %}
-            <!-- {% if not product.is_custom %} -->
-            <!-- {% if not product.in_store%} -->
-            
+            {% if not product.is_in_auction %}
             <div class="bg-white overflow-hidden hover:shadow-lg rounded-lg h-full relative">
-                   {% if product.is_new %}
-                    <div class="absolute top-0 right-0 bg-pink-400 text-white text-sm font-bold px-4 py-2 rounded-br-lg z-10">
-                        NOU
-                    </div>
-                    {% endif %}
-                    <a href="{% url 'product_detail' pk=product.id %}">
-                        <figure class="h-2/3 transform transition duration-300 hover:scale-110 ">
-                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover">
-                        </figure>
-                    </a>
+                {% if product.is_new %}
+                <div class="absolute top-0 right-0 bg-pink-400 text-white text-sm font-bold px-4 py-2 rounded-br-lg z-10">
+                    NOU
+                </div>
+                {% endif %}
+                <a href="{% url 'product_detail' pk=product.id %}">
+                    <figure class="h-2/3 transform transition duration-300 hover:scale-110 ">
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+                    </figure>
+                </a>
                 
                 <div class="p-4 h-1/3 flex flex-col justify-end">
                     <h3 class="text-xl font-bold text-gray-800">{{ product.name }}</h3>
-                    <!-- <p class="text-gray-600 mt-2">{{ product.description }}</p> -->
                     <div id="add-to-cart-container-{{ product.id }}">
-                        {% if product.stock > 0 %}
-                            {% if product.id not in cart_product_ids %}
-                            <form id="add-to-cart-form-{{ product.id }}" 
-                                hx-post="{% url 'add_to_cart' product.id %}" 
-                                class="mt-4">
-                                {% csrf_token %}
-                                <button type="submit" class="btn bg-black text-white text-lg hover:bg-gray-800 transition duration-300 ease-in-out transform hover:scale-105">  {{ product.price }} Lei <img src="/static/cart-icon.png" alt="Cart" class="w-8 h-8 brightness-0 invert"> </button>
-                            </form>
-                            {% else %}
-                            <a href="/cart/" id="cart-btn" class="btn bg-purple-600 text-white mt-2">
+                        {% if product.id in cart_product_ids %}
+                            <a href="/cart/" id="cart-btn-{{ product.id }}" class="btn bg-purple-600 text-white mt-2">
                                 View in Cart
                             </a>
-                            {% endif %}
                         {% else %}
-                            {% if product.category not in 'buchete' and product.category not in 'aranjamente' %}
-                                <p class="text-gray-600 mt-2">Stoc epuizat</p>
-                            {% else %}
+                            {% if product.stock > 0 %}
                                 <form id="add-to-cart-form-{{ product.id }}" 
-                                    hx-post="{% url 'add_to_cart' product.id %}" 
+                                    hx-post="{% url 'add_to_cart' product.id %}"
+                                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' 
                                     class="mt-4">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn bg-black text-white text-lg hover:bg-gray-800 transition duration-300 ease-in-out transform hover:scale-105">  {{ product.price }} Lei <img src="/static/cart-icon.png" alt="Cart" class="w-8 h-8 brightness-0 invert"> </button>
+                                    <button type="submit" class="btn bg-black text-white text-lg hover:bg-gray-800 transition duration-300 ease-in-out transform hover:scale-105">
+                                        {{ product.price }} Lei <img src="/static/cart-icon.png" alt="Cart" class="w-8 h-8 brightness-0 invert">
+                                    </button>
                                 </form>
-                                
-                               
-                                </a>
+                            {% else %}
+                                {% if product.category not in 'buchete' and product.category not in 'aranjamente' %}
+                                    <p class="text-gray-600 mt-2">Stoc epuizat</p>
+                                {% else %}
+                                    <form id="add-to-cart-form-{{ product.id }}" 
+                                        hx-post="{% url 'add_to_cart' product.id %}"
+                                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                        class="mt-4">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn bg-black text-white text-lg hover:bg-gray-800 transition duration-300 ease-in-out transform hover:scale-105">
+                                            {{ product.price }} Lei <img src="/static/cart-icon.png" alt="Cart" class="w-8 h-8 brightness-0 invert">
+                                        </button>
+                                    </form>
+                                {% endif %}
                             {% endif %}
                         {% endif %}
                     </div>
                 </div>
             </div>
-            <!-- {% endif %} -->
-            <!-- {% endif %} -->
+            {% endif %}
         {% endfor %}
-        <!-- Repeat Product Cards as Needed -->
     </div>
 </section>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const forms = document.querySelectorAll('[id^="add-to-cart-form-"]');
-        forms.forEach(form => {
-            form.addEventListener('submit', function (event) {
-                event.preventDefault();
-                const productId = form.id.split('-').pop();
-                const container = document.getElementById(`add-to-cart-container-${productId}`);
-                
-                // Immediately show "Already Added" div
-                container.innerHTML = `<a href="/cart/" id="cart-btn" class="btn bg-purple-600 text-white mt-2">
-                        View in Cart
-                    </a>`;
-
-                const formData = new FormData(form);
-
-                fetch(form.action, {
-                    method: 'POST',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: formData
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        console.error('Failed to add to cart');
-                        // Optionally revert the UI if the request fails
+    // Listen for cart updates from the server
+    document.body.addEventListener('htmx:afterOnLoad', function(event) {
+        if (event.detail.xhr.status === 200) {
+            try {
+                const triggerValue = event.detail.xhr.getResponseHeader('HX-Trigger');
+                if (triggerValue) {
+                    const trigger = JSON.parse(triggerValue);
+                    if (trigger.cartUpdated) {
+                        const productId = trigger.cartUpdated.productId;
+                        const container = document.getElementById(`add-to-cart-container-${productId}`);
+                        if (container) {
+                            container.innerHTML = `
+                                <a href="/cart/" id="cart-btn-${productId}" class="btn bg-purple-600 text-white mt-2">
+                                    View in Cart
+                                </a>`;
+                        }
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    // Optionally revert the UI if an error occurs
-                });
+                }
+            } catch (e) {
+                console.error('Error parsing HX-Trigger:', e);
+            }
+        }
+    });
+
+    // Handle form submissions without HTMX (fallback)
+    document.addEventListener('DOMContentLoaded', function() {
+        setupFormHandlers();
+    });
+    
+    // Re-attach handlers after HTMX content swaps
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        setupFormHandlers();
+    });
+
+    function setupFormHandlers() {
+        document.querySelectorAll('[id^="add-to-cart-form-"]').forEach(form => {
+            form.addEventListener('submit', function(event) {
+                if (!form.getAttribute('hx-post')) {
+                    event.preventDefault();
+                    
+                    const productId = form.id.split('-').pop();
+                    const container = document.getElementById(`add-to-cart-container-${productId}`);
+                    
+                    // Show loading state
+                    const originalContent = container.innerHTML;
+                    container.innerHTML = `<div class="text-center"><span class="loading loading-spinner loading-md"></span></div>`;
+                    
+                    const formData = new FormData(form);
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                    
+                    fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: formData
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            container.innerHTML = `<a href="/cart/" id="cart-btn-${productId}" class="btn bg-purple-600 text-white mt-2">View in Cart</a>`;
+                            
+                            // Update cart count in header
+                            fetch('/cart/count/')
+                                .then(res => res.json())
+                                .then(data => {
+                                    const cartCountElement = document.getElementById('cart-count');
+                                    if (cartCountElement) {
+                                        cartCountElement.textContent = data.count;
+                                    }
+                                });
+                        } else {
+                            container.innerHTML = originalContent;
+                            console.error('Failed to add to cart');
+                        }
+                    })
+                    .catch(error => {
+                        container.innerHTML = originalContent;
+                        console.error('Error:', error);
+                    });
+                }
             });
         });
-    });
+    }
 </script>

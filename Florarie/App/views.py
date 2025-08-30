@@ -116,7 +116,15 @@ def add_to_cart(request, product_id):
     if request.headers.get("HX-Request"):
         cart_count = get_cart_items(request).count()
         html = render_to_string("partials/cart_count.html", {"cart_count": cart_count})
-        return HttpResponse(html)
+        
+        response = HttpResponse(html)
+        
+        # Add a trigger to update the cart button
+        response["HX-Trigger"] = json.dumps({
+            "cartUpdated": {"productId": product_id}
+        })
+        
+        return response
     
     return redirect("cart")
 
@@ -260,13 +268,14 @@ def products_by_category(request: HttpRequest, category):
     # Mark products as new (added in last 48 hours)
     now = timezone.now()
     new_threshold = now - timedelta(hours=48)
-    products = list(products)  # Materialize queryset
-
+    
+    # Get cart product IDs
+    cart_product_ids = list(get_cart_items(request).values_list('product_id', flat=True))
+    
+    # Materialize queryset to add the is_new property
+    products = list(products)  
     for product in products:
         product.is_new = product.created_at >= new_threshold
-
-
-    cart_product_ids = get_cart_items(request).values_list('product_id', flat=True)
 
     context = {
         'products': products,
@@ -331,6 +340,7 @@ def register(request):
             errors.append("Parola trebuie să conțină cel puțin o literă mare.")
         if not any(c.islower() for c in password1):
             errors.append("Parola trebuie să conțină cel puțin o literă mică.")
+
 
         # Check if passwords match
         if password1 != password2:
@@ -1132,7 +1142,7 @@ def auction_confirm(request, pk):
         auction_price, _, _ = product.get_auction_price()
         cart_item.product.price = auction_price
         cart_item.product.bid_submited = True
-        cart_item.reserved_until = timezone.now() + timedelta(minutes=10)  # rezervare 10 min
+        cart_item.reserved_until = timezone.now() + timedelta(minutes=1)  # rezervare 10 min
         cart_item.save()
         cart_item.product.save()
 
