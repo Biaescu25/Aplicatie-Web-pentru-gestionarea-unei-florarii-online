@@ -1,4 +1,19 @@
-<div id="cart-item-{{ cart_item.id }}" class="card-body mb-3 shadow-lg" hx-target="this" hx-swap="innerHTML">
+<div id="cart-item-{{ cart_item.id }}" class="card-body mb-3 shadow-lg">
+    
+    <!-- Hidden div to refresh reservation -->
+    <div hx-get="{% url 'refresh_cart_reservation' %}" 
+         hx-trigger="revealed" 
+         hx-swap="none"
+         class="hidden"></div>
+         
+    <!-- Error message container -->
+    <div id="cart-item-error-{{ cart_item.id }}" class="mt-2 text-sm p-3 rounded-md bg-red-50 text-red-700 border border-red-200 flex items-center gap-2" style="display: none;">
+        <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+        </svg>
+        <span class="error-text"></span>
+    </div>
+         
     <div class="flex justify-between items-center">
         <div class="center">
             {% if not cart_item.product.is_custom %}
@@ -30,11 +45,8 @@
         <div class="flex items-center space-x-2">
 
             {% if not cart_item.product.bid_submited %}
-            <a href="{% url 'decrement_quantity' product_id=cart_item.product.id %}" 
-               class="btn btn-primary btn-sm center bg-green-600 text-white"
-               hx-get="{% url 'decrement_quantity' product_id=cart_item.product.id %}" 
-               hx-target="#cart-item-{{ cart_item.id }}" 
-               hx-swap="outerHTML">-</a>
+            <button onclick="decrementQuantity({{ cart_item.product.id }}, {{ cart_item.id }})" 
+               class="btn btn-primary btn-sm center bg-green-600 text-white">-</button>
             {%endif %}
 
             <div class="center" style="padding: 0 10px; text-align: center;">
@@ -42,27 +54,13 @@
             </div>
 
             {% if not cart_item.product.bid_submited %}
-            <a href="{% url 'increment_quantity' product_id=cart_item.product.id %}" 
+            <button onclick="incrementQuantity({{ cart_item.product.id }}, {{ cart_item.id }})" 
                class="btn btn-primary btn-sm center bg-green-600 text-white 
                {% if cart_item.product.category in 'buchete,aranjamente' %}
                    {% if cart_item.quantity >= 10 %}opacity-50 cursor-not-allowed pointer-events-none{% endif %}
                {% else %}
                    {% if cart_item.quantity >= cart_item.product.stock %}opacity-50 cursor-not-allowed pointer-events-none{% endif %}
-               {% endif %}"
-               {% if cart_item.product.category in 'buchete,aranjamente' %}
-                   {% if cart_item.quantity < 10 %}
-                       hx-get="{% url 'increment_quantity' product_id=cart_item.product.id %}" 
-                       hx-target="#cart-item-{{ cart_item.id }}" 
-                       hx-swap="outerHTML"
-                   {% endif %}
-               {% else %}
-                   {% if cart_item.quantity < cart_item.product.stock %}
-                       hx-get="{% url 'increment_quantity' product_id=cart_item.product.id %}" 
-                       hx-target="#cart-item-{{ cart_item.id }}" 
-                       hx-swap="outerHTML"
-                   {% endif %}
-               {% endif %}
-            >+</a>
+               {% endif %}">+</button>
             {%endif %}
 
              
@@ -80,3 +78,115 @@
         </div>
     </div>
 </div>
+
+<script>
+function incrementQuantity(productId, cartItemId) {
+    const errorContainer = document.getElementById(`cart-item-error-${cartItemId}`);
+    const cartItemElement = document.getElementById(`cart-item-${cartItemId}`);
+    
+    // Clear any existing errors
+    if (errorContainer) {
+        errorContainer.style.display = 'none';
+        errorContainer.innerHTML = '';
+    }
+    
+    fetch(`/cart/increment/${productId}/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'HX-Request': 'true'  // Add HTMX header to get HTMX response
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(errorText => {
+                throw new Error(errorText);
+            });
+        }
+        return response.text();
+    })
+    .then(html => {
+        // Replace just the cart item with the new HTML
+        cartItemElement.outerHTML = html;
+        
+        // Trigger update of the total price
+        document.body.dispatchEvent(new CustomEvent('updateTotalPrice'));
+    })
+    .catch(error => {
+        console.error("Error incrementing quantity:", error.message);
+        // Display error message
+        if (errorContainer) {
+            const errorTextSpan = errorContainer.querySelector('.error-text');
+            if (errorTextSpan) {
+                errorTextSpan.innerHTML = error.message;
+            } else {
+                errorContainer.innerHTML = error.message;
+            }
+            errorContainer.style.display = 'block';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                errorContainer.style.display = 'none';
+            }, 5000);
+        }
+    });
+}
+
+function decrementQuantity(productId, cartItemId) {
+    const errorContainer = document.getElementById(`cart-item-error-${cartItemId}`);
+    const cartItemElement = document.getElementById(`cart-item-${cartItemId}`);
+    
+    // Clear any existing errors
+    if (errorContainer) {
+        errorContainer.style.display = 'none';
+        errorContainer.innerHTML = '';
+    }
+    
+    fetch(`/cart/decrement/${productId}/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'HX-Request': 'true'  // Add HTMX header to get HTMX response
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(errorText => {
+                throw new Error(errorText);
+            });
+        }
+        return response.text();
+    })
+    .then(html => {
+        // Check if HTML is empty (item might have been removed)
+        if (html.trim() === "") {
+            // Item was removed, reload the page to update everything
+            window.location.reload();
+        } else {
+            // Replace just the cart item with the new HTML
+            cartItemElement.outerHTML = html;
+            
+            // Trigger update of the total price
+            document.body.dispatchEvent(new CustomEvent('updateTotalPrice'));
+        }
+    })
+    .catch(error => {
+        console.error("Error decrementing quantity:", error.message);
+        // Display error message
+        if (errorContainer) {
+            const errorTextSpan = errorContainer.querySelector('.error-text');
+            if (errorTextSpan) {
+                errorTextSpan.innerHTML = error.message;
+            } else {
+                errorContainer.innerHTML = error.message;
+            }
+            errorContainer.style.display = 'block';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                errorContainer.style.display = 'none';
+            }, 5000);
+        }
+    });
+}
+</script>

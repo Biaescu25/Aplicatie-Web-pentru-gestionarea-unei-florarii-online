@@ -121,6 +121,23 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+    def get_available_stock(self):
+        """Returns the available stock considering active reservations"""
+        from django.db.models import Sum
+        
+        # Skip calculations for non-inventory managed products
+        if self.category in ['buchete', 'aranjamente', 'CustomBouquet']:
+            return 10  # Always allow up to 10
+        
+        # Calculate reserved quantity in active carts
+        reserved = CartItem.objects.filter(
+            product=self,
+            reserved_until__gt=timezone.now()
+        ).aggregate(total=Sum('quantity'))['total'] or 0
+        
+        # Return available stock
+        return max(0, self.stock - reserved)
+
 class CartItem(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     session_id = models.CharField(max_length=255, null=True, blank=True) # Store session ID for anonymous users
@@ -134,6 +151,11 @@ class CartItem(models.Model):
     def total_price(self):
         return self.product.price * self.quantity
     
+    def refresh_reservation(self):
+        """Refresh the reservation time"""
+        self.reserved_until = timezone.now() + timedelta(minutes=30)
+        self.save()
+
 class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     session_id = models.CharField(max_length=255, null=True, blank=True)

@@ -75,7 +75,7 @@
         <label class="flex items-center gap-2">
              <input type="radio" name="payment_method" value="card" class="radio" required checked> Card
         </label>
-                 <label class="flex items-center gap-2" id="cash-option" style="display: none;">
+        <label class="flex items-center gap-2" id="cash-option">
             <input type="radio" name="payment_method" value="cash" class="radio"> Plata la livrare
         </label>
     </div>
@@ -88,10 +88,8 @@ function toggleAddressFields() {
     const deliveryType = document.querySelector('input[name="delivery_type"]:checked').value;
     const addressFields = document.getElementById('address-fields');
     const addressInputs = addressFields.querySelectorAll('input[name="address"], input[name="city"], input[name="zip_code"]');
-    const cashOption = document.getElementById('cash-option');
-    const cardRadio = document.querySelector('input[name="payment_method"][value="card"]');
-    const cashRadio = document.querySelector('input[name="payment_method"][value="cash"]');
-    
+    // Cash option remains visible for both delivery types
+
     if (deliveryType === 'pickup') {
         // Hide address fields for pickup
         addressFields.style.display = 'none';
@@ -99,27 +97,12 @@ function toggleAddressFields() {
             input.removeAttribute('required');
             input.value = '';
         });
-        
-        // Show cash on delivery option for pickup
-        cashOption.style.display = 'flex';
-        
-        // If cash was selected, keep it; otherwise default to card
-        if (!cardRadio.checked && !cashRadio.checked) {
-            cashRadio.checked = true;
-        }
     } else {
         // Show address fields for delivery
         addressFields.style.display = 'block';
         addressInputs.forEach(input => {
             input.setAttribute('required', 'required');
         });
-        
-        // Hide cash on delivery option for address delivery
-        cashOption.style.display = 'none';
-        
-        // Force card payment for address delivery
-        cardRadio.checked = true;
-        cashRadio.checked = false;
     }
 }
 
@@ -138,7 +121,7 @@ function validateDeliveryDate() {
     return true;
 }
 
-// Set minimum date to 48 hours from now and initialize payment method visibility
+// Set minimum date and initialize sections
 document.addEventListener('DOMContentLoaded', function() {
     const dateInput = document.querySelector('input[name="desired_delivery_date"]');
     if (dateInput) {

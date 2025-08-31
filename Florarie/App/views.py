@@ -20,7 +20,8 @@ from io import BytesIO
 from django.utils.timezone import timedelta
 from django.utils.html import format_html
 from django.db.models.functions import TruncDate
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, F
+from django.db import transaction
 from datetime import datetime
 
 from .models import (
@@ -93,24 +94,70 @@ def get_or_create_session_id(request):
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id)
 
+    # Skip stock checks for these categories
+    stock_managed_product = product.category not in ['buchete', 'aranjamente', 'CustomBouquet']
+    
+    # For stock-managed products, use transaction to prevent race conditions
+    if stock_managed_product:
+        with transaction.atomic():
+            # Select product again for update - locks the row
+            product = Product.objects.select_for_update().get(id=product_id)
+            
+            # Calculate total reserved quantity (including current user's cart)
+            total_reserved_quantity = CartItem.objects.filter(
+                product=product, 
+                reserved_until__gt=timezone.now()
+            ).aggregate(
+                total=Sum('quantity') 
+            )['total'] or 0
+            
+            # Check if adding one more would exceed stock
+            if total_reserved_quantity >= product.stock:
+                error_message = f"Ne pare rău, produsul '{product.name}' nu mai este disponibil. Toate unitățile sunt momentan rezervate în coșuri."
+                
+                # Return a simple error message without HTML formatting for easier processing
+                return HttpResponse(error_message, status=400)
+
+    # Continue with existing cart logic
     if request.user.is_authenticated:
         cart_item, created = CartItem.objects.get_or_create(user=request.user, product=product)
     else:
         session_id = get_or_create_session_id(request)
         cart_item, created = CartItem.objects.get_or_create(session_id=session_id, product=product)
 
-    # Limit quantity to stock (except for buchete, aranjamente, and custom bouquets)
-    current_quantity = cart_item.quantity if not created else 0
-    if product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
-        # For these categories, allow up to 10 without stock check
-        if current_quantity < 10:
-            cart_item.quantity = current_quantity + 1
-            cart_item.save()
+    # If item was just created, set initial quantity to 1
+    if created:
+        cart_item.quantity = 1
+        cart_item.reserved_until = timezone.now() + timedelta(minutes=30)
+        cart_item.save()
     else:
-        # For other products, check against stock
-        if current_quantity < product.stock:
-            cart_item.quantity = current_quantity + 1
-            cart_item.save()
+        # Item already exists, increment quantity if possible
+        if product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
+            # For these categories, allow up to 10 without stock check
+                if cart_item.quantity < 10:
+                    cart_item.quantity += 1
+                    # Refresh reservation time
+                cart_item.reserved_until = timezone.now() + timedelta(minutes=30)
+                cart_item.save()
+        else:
+                # For other products, check against total reserved quantity
+                # Calculate total reserved quantity again to ensure accuracy
+                total_reserved = CartItem.objects.filter(
+                    product=product, 
+                    reserved_until__gt=timezone.now()
+                ).aggregate(
+                    total=Sum('quantity') 
+                )['total'] or 0
+                
+                # Check if incrementing would exceed stock
+                if total_reserved < product.stock:
+                    cart_item.quantity += 1
+                    # Refresh reservation time
+                    cart_item.reserved_until = timezone.now() + timedelta(minutes=30)
+                    cart_item.save()
+                else:
+                    error_message = f"Ne pare rău, nu se poate adăuga mai mult din produsul '{product.name}'. Toate unitățile sunt momentan rezervate."
+                    return HttpResponse(error_message, status=400)
 
     # Check if the request is from HTMX
     if request.headers.get("HX-Request"):
@@ -189,14 +236,42 @@ def update_cart(request, product_id, quantity):
         # For buchete, aranjamente, and custom bouquets, allow up to 10
         if cart_item.product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
             cart_item.quantity = min(quantity, 10)
+            cart_item.save()
         else:
-            # For other products, check against stock
-            cart_item.quantity = min(quantity, cart_item.product.stock)
+            # For other products, check against total reserved quantity
+            # Calculate current total reserved quantity
+            total_reserved = CartItem.objects.filter(
+                product=cart_item.product, 
+                reserved_until__gt=timezone.now()
+            ).aggregate(
+                total=Sum('quantity') 
+            )['total'] or 0
+            
+            # Calculate how much this specific cart item currently contributes
+            current_contribution = cart_item.quantity
+            
+            # Calculate available quantity (total reserved minus current contribution)
+            available_quantity = cart_item.product.stock - (total_reserved - current_contribution)
+            
+            # Set quantity to minimum of requested quantity and available quantity
+            new_quantity = min(quantity, available_quantity)
+            
+            if new_quantity < quantity:
+                # Return error if requested quantity exceeds available
+                error_message = f"Nu se poate seta cantitatea la {quantity} pentru '{cart_item.product.name}'. Cantitatea maximă disponibilă este {new_quantity}."
+                return JsonResponse({"success": False, "error": error_message}, status=400)
+            
+            cart_item.quantity = new_quantity
             cart_item.save()
     return JsonResponse({"success": True, "total_price": cart_item.total_price()})
 
 def increment_quantity(request, product_id):
-    cart_item = CartItem.objects.filter(product_id=product_id, user=request.user).first()
+    if request.user.is_authenticated:
+        cart_item = CartItem.objects.filter(product_id=product_id, user=request.user).first()
+    else:
+        session_id = request.session.session_key
+        cart_item = CartItem.objects.filter(product_id=product_id, session_id=session_id).first()
+    
     if cart_item:
         # For buchete, aranjamente, and custom bouquets, allow up to 10 without stock check
         if cart_item.product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
@@ -204,12 +279,25 @@ def increment_quantity(request, product_id):
                 cart_item.quantity += 1
                 cart_item.save()
         else:
-            # For other products, check against stock
-            if cart_item.quantity < cart_item.product.stock:
+            # For other products, check against total reserved quantity
+            total_reserved = CartItem.objects.filter(
+                product=cart_item.product, 
+                reserved_until__gt=timezone.now()
+            ).aggregate(
+                total=Sum('quantity') 
+            )['total'] or 0
+            
+            # Check if incrementing would exceed stock
+            if total_reserved < cart_item.product.stock:
                 cart_item.quantity += 1
                 cart_item.save()
+            else:
+                # Return simple error message for all requests
+                error_message = f"Nu se poate adăuga mai mult din '{cart_item.product.name}'. Toate unitățile sunt rezervate."
+                return HttpResponse(error_message, status=400)
 
-    total_price = sum(item.total_price() for item in CartItem.objects.filter(user=request.user))
+    cart_items = get_cart_items(request)
+    total_price = sum(item.total_price() for item in cart_items)
 
     if request.headers.get('HX-Request'):
         item_html = render_to_string("partials/cart_item.html", {"cart_item": cart_item}, request=request)
@@ -222,7 +310,12 @@ def increment_quantity(request, product_id):
     return redirect("cart")
 
 def decrement_quantity(request, product_id):
-    cart_item = CartItem.objects.filter(product_id=product_id, user=request.user).first()
+    if request.user.is_authenticated:
+        cart_item = CartItem.objects.filter(product_id=product_id, user=request.user).first()
+    else:
+        session_id = request.session.session_key
+        cart_item = CartItem.objects.filter(product_id=product_id, session_id=session_id).first()
+    
     if cart_item and cart_item.quantity > 1:
         cart_item.quantity -= 1
         cart_item.save()
@@ -232,7 +325,8 @@ def decrement_quantity(request, product_id):
         return remove_from_cart(request, product_id)
 
 
-    total_price = sum(item.total_price() for item in CartItem.objects.filter(user=request.user))
+    cart_items = get_cart_items(request)
+    total_price = sum(item.total_price() for item in cart_items)
 
     if request.headers.get('HX-Request'):
         item_html = render_to_string("partials/cart_item.html", {"cart_item": cart_item}, request=request) if cart_item else ""
@@ -593,7 +687,7 @@ def finish_order(request, order):
     order.payment_status = True
     order.save()
 
-    send_order_email(order, request.user)
+    send_order_email(order, request.user, email_destination=order.email)
 
     # Decrement stock for each product in the order
     for item in order.items.all():
@@ -640,9 +734,14 @@ def checkout_step_3(request):
                 status="Completed"
             )
 
-            # Update order payment status
+            # Get order ID from session and retrieve the order
+            order_id = request.session.get("order_id")
+            if not order_id:
+                return JsonResponse({"success": False, "message": "Order ID not found in session."})
+                
             try:
-               finish_order(request, request.order)
+                order = Order.objects.get(id=order_id)
+                finish_order(request, order)
             except Order.DoesNotExist:
                 return JsonResponse({"success": False, "message": "Order not found."})
 
@@ -1152,6 +1251,24 @@ def auction_view(request):
 
 def auction_price_partial(request, pk):
     product = get_object_or_404(Product, pk=pk)
+    # NEW: allow fetching only the discount badge
+    part = request.GET.get("part")
+    if part == "discount":
+        try:
+            _, _, discount_percent = product.get_auction_price()
+        except Exception:
+            discount_percent = 0
+
+        if discount_percent and discount_percent > 0:
+            badge_html = (
+                '<div class="price-container absolute top-4 right-4 bg-red-600 text-white text-xl font-bold px-5 py-2 rounded-lg shadow-lg z-20 transform rotate-3">'
+                f'-{int(round(discount_percent))}%'
+                "</div>"
+            )
+            return HttpResponse(badge_html)
+        # No discount – return empty so the placeholder stays for future refreshes
+        return HttpResponse("")
+
     return render(request, "partials/auction_price.html", {"product": product})
 
 def  auction_confirm_popup(request, pk):
@@ -1185,14 +1302,14 @@ def auction_confirm(request, pk):
     return redirect("auction")
 
 
-def send_order_email(order, user):
+def send_order_email(order, user, email_destination):
     subject = f"Confirmare comandă - #{order.id}"
-    html_message = render_to_string("emails/order_confirmation_email.html", {"order": order, "user": user})
+    html_message = render_to_string("emails/order_confirmation_email.html", {"order": order, "user": user, "email_destination": email_destination})
     from_email = settings.DEFAULT_FROM_EMAIL
-    to_email = [user.email]
+    to_email = [email_destination]
 
     # Generate PDF invoice
-    invoice_html = render_to_string('emails/invoice.html', {'order': order, 'user': user})
+    invoice_html = render_to_string('emails/invoice.html', {'order': order, 'user': user, 'email_destination': email_destination})
     pdf_file = BytesIO()
     HTML(string=invoice_html).write_pdf(pdf_file)
 
@@ -1434,4 +1551,20 @@ def sales_summary_api(request):
         "total_revenue": total_revenue,
         "revenue_growth": revenue_growth,
     })
+
+# Add a function to refresh cart item reservations
+def refresh_cart_reservation(request):
+    """Extend reservation time for items in cart"""
+    cart_items = get_cart_items(request)
+    
+    for item in cart_items:
+        item.reserved_until = timezone.now() + timedelta(minutes=30)
+        item.save()
+    
+    return JsonResponse({"success": True})
+    for item in cart_items:
+        item.reserved_until = timezone.now() + timedelta(minutes=30)
+        item.save()
+    
+    return JsonResponse({"success": True})
 

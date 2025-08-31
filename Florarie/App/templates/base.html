@@ -328,92 +328,103 @@ input[type="number"] {
 <script>
 let salesChart, productsChart, visitorsChart, conversionChart;
 let autoRefreshIntervalId = null;
-let chartTypeOverrides = {};
 
-function renderAllCharts(data, chartTypeOverrides = {}) {
+function renderAllCharts(data) {
   // Destroy previous charts if they exist
-  if (salesChart) salesChart.destroy();
-  if (productsChart) productsChart.destroy();
-  if (visitorsChart) visitorsChart.destroy();
-  if (conversionChart) conversionChart.destroy();
+  if (salesChart) { salesChart.destroy(); salesChart = null; }
+  if (productsChart) { productsChart.destroy(); productsChart = null; }
+  if (visitorsChart) { visitorsChart.destroy(); visitorsChart = null; }
+  if (conversionChart) { conversionChart.destroy(); conversionChart = null; }
 
-  // Use chartTypeOverrides to set type for each chart
-  salesChart = new Chart(document.getElementById("salesChart"), {
-    type: chartTypeOverrides.sales || "line",
-    data: {
-      labels: data.sales.labels,
-      datasets: [
-        {
-          label: "Vânzări (Lei)",
-          data: data.sales.totals,
-          borderColor: "rgb(59, 130, 246)",
-          backgroundColor: "rgba(59, 130, 246, 0.1)",
+  const salesEl = document.getElementById("salesChart");
+  const productsEl = document.getElementById("productsChart");
+  const visitorsEl = document.getElementById("visitorsChart");
+  const conversionEl = document.getElementById("conversionChart");
+
+  if (salesEl) {
+    salesChart = new Chart(salesEl, {
+      type: "line",
+      data: {
+        labels: data.sales.labels,
+        datasets: [
+          {
+            label: "Vânzări (Lei)",
+            data: data.sales.totals,
+            borderColor: "rgb(59, 130, 246)",
+            backgroundColor: "rgba(59, 130, 246, 0.1)",
+            fill: true,
+            tension: 0.4,
+          }
+        ]
+      },
+      options: { responsive: true }
+    });
+  }
+
+  if (productsEl) {
+    productsChart = new Chart(productsEl, {
+      type: "bar",
+      data: {
+        labels: data.top_products.labels,
+        datasets: [{
+          label: "Unități vândute",
+          data: data.top_products.data,
+          backgroundColor: "rgba(34, 197, 94, 0.5)",
+          borderColor: "rgba(34, 197, 94, 1)",
+          borderWidth: 1
+        }]
+      },
+      options: { responsive: true }
+    });
+  }
+
+  if (visitorsEl) {
+    visitorsChart = new Chart(visitorsEl, {
+      type: "bar",
+      data: {
+        labels: data.visits.labels,
+        datasets: [{
+          label: 'Vizite',
+          data: data.visits.counts,
+          backgroundColor: 'rgba(16, 185, 129, 0.5)',
+          borderColor: 'rgb(5, 150, 105)',
+          borderWidth: 1
+        }]
+      },
+      options: { responsive: true }
+    });
+  }
+
+  if (conversionEl) {
+    conversionChart = new Chart(conversionEl, {
+      type: "line",
+      data: {
+        labels: data.conversion.labels,
+        datasets: [{
+          label: 'Rata de conversie (%)',
+          data: data.conversion.rates,
+          borderColor: 'rgb(234, 88, 12)',
+          backgroundColor: 'rgba(251, 191, 36, 0.2)',
           fill: true,
           tension: 0.4,
-        }
-      ]
-    },
-    options: { responsive: true }
-  });
-
-  productsChart = new Chart(document.getElementById("productsChart"), {
-    type: chartTypeOverrides.products || "bar",
-    data: {
-      labels: data.top_products.labels,
-      datasets: [{
-        label: "Units Sold",
-        data: data.top_products.data,
-        backgroundColor: "rgba(34, 197, 94, 0.5)",
-        borderColor: "rgba(34, 197, 94, 1)",
-        borderWidth: 1
-      }]
-    },
-    options: { responsive: true }
-  });
-
-  visitorsChart = new Chart(document.getElementById("visitorsChart"), {
-    type: chartTypeOverrides.visitors || "bar",
-    data: {
-      labels: data.visits.labels,
-      datasets: [{
-        label: 'Visitors',
-        data: data.visits.counts,
-        backgroundColor: 'rgba(16, 185, 129, 0.5)',
-        borderColor: 'rgb(5, 150, 105)',
-        borderWidth: 1
-      }]
-    },
-    options: { responsive: true }
-  });
-
-  conversionChart = new Chart(document.getElementById("conversionChart"), {
-    type: chartTypeOverrides.conversion || "line",
-    data: {
-      labels: data.conversion.labels,
-      datasets: [{
-        label: 'Rata de conversie (%)',
-        data: data.conversion.rates,
-        borderColor: 'rgb(234, 88, 12)',
-        backgroundColor: 'rgba(251, 191, 36, 0.2)',
-        fill: true,
-        tension: 0.4,
-        yAxisID: 'y',
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 100,
-          title: { display: true, text: 'Rata de conversie (%)' }
+          yAxisID: 'y',
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            title: { display: true, text: 'Rata de conversie (%)' }
+          }
         }
       }
-    }
-  });
+    });
+  }
 
-  // Add compare period to sales chart if present
-  if (data.compare && data.compare.labels && data.compare.totals) {
+  // Compare period overlay remains unchanged
+  if (salesEl && data.compare && data.compare.labels && data.compare.totals) {
     salesChart.data.datasets.push({
       label: "Compare Period",
       data: data.compare.totals,
@@ -429,7 +440,7 @@ function renderAllCharts(data, chartTypeOverrides = {}) {
 }
 
 function fetchAndRenderCharts(
-   startDate, endDate, category, product, compare, chartTypes
+   startDate, endDate, category, product, compare
 ) {
   let url = "{% url 'analytics_data' %}";
   const params = [];
@@ -444,14 +455,15 @@ function fetchAndRenderCharts(
   if (params.length) url += "?" + params.join("&");
   fetch(url)
     .then(res => res.json())
-    .then(data => renderAllCharts(data, chartTypes));
+    .then(data => renderAllCharts(data));
 }
-
 
 document.addEventListener("DOMContentLoaded", function () {
   // Set default date range (last 30 days)
   const endInput = document.getElementById('chart-date-end');
   const startInput = document.getElementById('chart-date-start');
+  if (!endInput || !startInput) return; // Guard: run analytics only on pages that have controls
+
   const today = new Date();
   const prior = new Date();
   prior.setDate(today.getDate() - 30);
@@ -462,63 +474,34 @@ document.addEventListener("DOMContentLoaded", function () {
   fetchAndRenderCharts(startInput.value, endInput.value);
 
   // Date filter button
-    document.getElementById('chart-date-filter-btn').addEventListener('click', function() {
-        const start = document.getElementById('chart-date-start').value;
-        const end   = document.getElementById('chart-date-end').value;
-        const category = document.getElementById('category-filter').value;
-        const product  = document.getElementById('product-filter').value;
-        // if you still have the compare inputs visible, grab those too:
-        const compareStart = document.getElementById('compare-date-start').value;
-        const compareEnd   = document.getElementById('compare-date-end').value;
-        const compare = (compareStart && compareEnd)
-            ? { start: compareStart, end: compareEnd }
-            : null;
+  document.getElementById('chart-date-filter-btn').addEventListener('click', function() {
+    const start = document.getElementById('chart-date-start').value;
+    const end   = document.getElementById('chart-date-end').value;
+    const category = document.getElementById('category-filter').value;
+    const product  = document.getElementById('product-filter').value;
+    // if you still have the compare inputs visible, grab those too:
+    const compareStart = document.getElementById('compare-date-start').value;
+    const compareEnd   = document.getElementById('compare-date-end').value;
+    const compare = (compareStart && compareEnd)
+        ? { start: compareStart, end: compareEnd }
+        : null;
 
-        fetchAndRenderCharts(
-            start,
-            end,
-            category,
-            product,
-            null,
-            chartTypeOverrides
-        );
-    });
+    fetchAndRenderCharts(
+      start,
+      end,
+      category,
+      product,
+      null
+    );
+  });
 
-    const allowedChartTypes = {
-        sales: ['default', 'bar', 'line'],
-        products: ['default', 'bar', 'line', 'pie'],
-        visitors: ['default', 'line'],
-        conversion: ['default', 'line'],
-    };
-
-    function updateChartTypeOptions(chartKey) {
-        const group = document.querySelector('[data-group="chart-type"]');
-        const select = document.getElementById('chart-type-select');
-        const allowed = allowedChartTypes[chartKey];
-
-        if (!allowed || allowed.length === 0) {
-            group.style.display = 'none';
-            return;
-        }
-
-        group.style.display = 'flex'; // or 'block' depending on layout
-        select.innerHTML = '';
-
-        allowed.forEach(type => {
-            const option = document.createElement('option');
-            option.value = type;
-            option.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-            select.appendChild(option);
-        });
-    }
-
-    // Chart subject filter logic
-    const chartMap = {
-        sales: "chart-sales",
-        products: "chart-products",
-        visitors: "chart-visitors",
-        conversion: "chart-conversion"
-    };
+  // Chart subject filter logic
+  const chartMap = {
+    sales: "chart-sales",
+    products: "chart-products",
+    visitors: "chart-visitors",
+    conversion: "chart-conversion"
+  };
 
   document.querySelectorAll('.chart-filter-btn').forEach(btn => {
     btn.addEventListener('click', function () {
@@ -529,7 +512,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const summary = document.getElementById('sales-summary-cards');
       if (summary) summary.style.display = (selected === "sales") ? "flex" : "none";
       // Update chart type options for the selected chart
-      updateChartTypeOptions(selected);
+      //updateChartTypeOptions(selected);
 
       // Reset category and product filters when leaving "products" chart
       if (selected !== "products") {
@@ -558,7 +541,7 @@ document.addEventListener("DOMContentLoaded", function () {
       .then(res => res.json())
       .then(data => {
         const prodSel = document.getElementById('product-filter');
-        prodSel.innerHTML = '<option value="">All</option>';
+        prodSel.innerHTML = '<option value="">Toate</option>';
         data.products.forEach(p => {
           prodSel.innerHTML += `<option value="${p.id}">${p.name}</option>`;
         });
@@ -568,9 +551,7 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById('chart-date-end').value,
       cat,
       "",
-   
-      null,
-      chartTypeOverrides
+      null
     );
   });
   document.getElementById('product-filter').addEventListener('change', function() {
@@ -579,32 +560,7 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById('chart-date-end').value,
       document.getElementById('category-filter').value,
       this.value,
-
-      null,
-      chartTypeOverrides
-    );
-  });
-
-  // Chart type selector
-  document.getElementById('chart-type-select').addEventListener('change', function() {
-    const val = this.value;
-    chartTypeOverrides = {};
-
-    if (val !== "default") {
-      chartTypeOverrides = {
-        sales: val,
-        products: val,
-        visitors: val,
-        conversion: val
-      };
-    }
-    fetchAndRenderCharts(
-      document.getElementById('chart-date-start').value,
-      document.getElementById('chart-date-end').value,
-      document.getElementById('category-filter').value,
-      document.getElementById('product-filter').value,
-      null,
-      chartTypeOverrides
+      null
     );
   });
 
@@ -618,8 +574,7 @@ document.addEventListener("DOMContentLoaded", function () {
       {
         start: document.getElementById('compare-date-start').value,
         end: document.getElementById('compare-date-end').value
-      },
-      chartTypeOverrides
+      }
     );
   });
 
@@ -639,9 +594,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('chart-date-end').value,
     document.getElementById('category-filter').value,
     document.getElementById('product-filter').value,
-    //document.getElementById('user-segment-filter').value,
-    null,
-    chartTypeOverrides
+    null
   );
 
   // Wire up chart‐filter buttons
@@ -729,8 +682,11 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // Update summary cards when date filter or compare is used
-  document.getElementById('chart-date-filter-btn').addEventListener('click', refreshSalesSummaryIfVisible);
-  document.getElementById('compare-btn').addEventListener('click', refreshSalesSummaryIfVisible);
+  const filterBtn = document.getElementById('chart-date-filter-btn');
+  if (filterBtn) filterBtn.addEventListener('click', refreshSalesSummaryIfVisible);
+
+  const compareBtn = document.getElementById('compare-btn');
+  if (compareBtn) compareBtn.addEventListener('click', refreshSalesSummaryIfVisible);
 
   // Also update when switching to sales chart
   document.querySelectorAll('.chart-filter-btn').forEach(btn => {
@@ -741,7 +697,5 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   });
-
-
 });
 </script>

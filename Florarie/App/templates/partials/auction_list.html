@@ -2,13 +2,18 @@
 {% if not product.bid_submited %}
 <div class="card bg-white shadow-xl rounded-xl overflow-hidden relative transition-transform hover:scale-[1.01] hover:shadow-2xl">
     <!-- Percentage reduction badge -->
-    {% with auction_data=product.get_auction_price %}
-        {% if auction_data.2 > 0 %}
-            <div class="absolute top-4 right-4 bg-red-600 text-white text-xl font-bold px-5 py-2 rounded-lg shadow-lg z-20 transform rotate-3">
-                -{{ auction_data.2|floatformat:0 }}%
-            </div>
-        {% endif %}
-    {% endwith %}
+    <div id="discount-badge-{{ product.id }}"
+         hx-get="{% url 'auction_price_partial' product.pk %}?part=discount"
+         hx-trigger="load, every 10s"
+         hx-swap="innerHTML">
+        {% with auction_data=product.get_auction_price %}
+            {% if auction_data.2 > 0 %}
+                <div class="price-container absolute top-4 right-4 bg-red-600 text-white text-xl font-bold px-5 py-2 rounded-lg shadow-lg z-20 transform rotate-3">
+                    -{{ auction_data.2|floatformat:0 }}%
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
     
     <div class="flex flex-col md:flex-row">
         <figure class="md:w-1/3">

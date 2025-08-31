@@ -17,17 +17,19 @@
                 <!-- Stock info -->
                 {% if product.stock > 0 %}
                     <p class="text-green-600 font-semibold">În stoc: {{ product.stock }} buc.</p>
-                    <div id="add-to-cart-container-{{ product.id }}" class="flex justify-center">
+                    <div id="add-to-cart-container-{{ product.id }}" class="flex flex-col justify-center">
                         {% if product.id not in cart_product_ids %}
                         <form id="add-to-cart-form-{{ product.id }}" 
-                            hx-post="{% url 'add_to_cart' product.id %}" 
+                            data-product-url="{% url 'add_to_cart' product.id %}" 
                             class="mt-4">
                             {% csrf_token %}
-                                                         <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg font-semibold w-44 hover:bg-gray-800 transition duration-300 ease-in-out transform hover:scale-105 text-center whitespace-nowrap flex items-center justify-center gap-3">
-                                 Adaugă în coș
-                                 <img src="/static/cart-icon.png" alt="Cart" class="w-7 h-7 brightness-0 invert">
-                             </button>
+                            <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg font-semibold w-44 hover:bg-gray-800 transition duration-300 ease-in-out transform hover:scale-105 text-center whitespace-nowrap flex items-center justify-center gap-3">
+                                Adaugă în coș
+                                <img src="{% static 'cart-icon.png' %}" alt="Cart" class="w-7 h-7 brightness-0 invert">
+                            </button>
                         </form>
+                        <!-- Dedicated error message container -->
+                        <div id="cart-error-message-{{ product.id }}" class="mt-3 p-3 rounded text-red-700 bg-red-100 border border-red-300" style="display: none;"></div>
                         {% else %}
                         <a href="/cart/" id="cart-btn" class="btn btn-success mt-2">
                             Vezi în coș
@@ -39,17 +41,24 @@
                     <p class="text-red-600 font-semibold">Momentan indisponibil. Revino în curând!</p>
                 {% endif %}
             {% else %}
-                <div id="add-to-cart-container-{{ product.id }}" class="flex justify-center">
+                <div id="add-to-cart-container-{{ product.id }}" class="flex flex-col justify-center">
                     {% if product.id not in cart_product_ids %}
                     <form id="add-to-cart-form-{{ product.id }}" 
-                        hx-post="{% url 'add_to_cart' product.id %}" 
+                        data-product-url="{% url 'add_to_cart' product.id %}" 
                         class="mt-4">
                         {% csrf_token %}
-                                                 <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg font-semibold w-44 hover:bg-gray-800 transition duration-300 ease-in-out transform hover:scale-105 text-center whitespace-nowrap flex items-center justify-center gap-3">
-                             Adaugă în coș
-                             <img src="{% static 'cart-icon.png' %}" alt="Cart" class="w-7 h-7 brightness-0 invert">
-                         </button>
+                        <button type="submit" class="bg-black text-white px-6 py-3 rounded-lg font-semibold w-44 hover:bg-gray-800 transition duration-300 ease-in-out transform hover:scale-105 text-center whitespace-nowrap flex items-center justify-center gap-3">
+                            Adaugă în coș
+                            <img src="{% static 'cart-icon.png' %}" alt="Cart" class="w-7 h-7 brightness-0 invert">
+                        </button>
                     </form>
+                    <!-- Dedicated error message container -->
+                    <div id="cart-error-message-{{ product.id }}" class="mt-3 p-3 rounded text-red-700 bg-red-100 border border-red-300 flex items-center gap-2" style="display: none;">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="error-text"></span>
+                    </div>
                     {% else %}
                     <a href="/cart/" id="cart-btn" class="btn btn-success mt-2">
                         Vezi în coș
@@ -78,34 +87,75 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('add-to-cart-form-{{ product.id }}');
+        const errorContainer = document.getElementById('cart-error-message-{{ product.id }}');
+        
         if (form) {
-            form.addEventListener('submit', function (event) {
+            form.addEventListener('submit', function(event) {
+                // Prevent default form submission
                 event.preventDefault();
-                const container = document.getElementById(`add-to-cart-container-{{ product.id }}`);
                 
-                // Immediately show "Already Added" div
-                container.innerHTML = `<a href="/cart/" id="cart-btn" class="btn btn-success mt-2">
-                        Vezi în coș
-                    </a>`;
-
-                const formData = new FormData(form);
-
-                fetch(form.action, {
+                // Clear any existing errors
+                if (errorContainer) {
+                    errorContainer.style.display = 'none';
+                    errorContainer.innerHTML = '';
+                }
+                
+                // Submit form with fetch API
+                fetch(form.getAttribute('data-product-url'), {
                     method: 'POST',
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': form.querySelector('input[name="csrfmiddlewaretoken"]').value,
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
-                    body: formData
+                    body: new FormData(form)
                 })
                 .then(response => {
                     if (!response.ok) {
-                        console.error('Failed to add to cart');
-                        // Optionally revert the UI if the request fails
+                        // Handle error response
+                        return response.text().then(errorHtml => {
+                            throw new Error(errorHtml);
+                        });
                     }
+                    // Handle successful response
+                    const container = document.getElementById('add-to-cart-container-{{ product.id }}');
+                    container.innerHTML = `<a href="/cart/" id="cart-btn" class="btn btn-success mt-2">Vezi în coș</a>`;
+                    
+                    // Update cart count
+                    fetch('/cart/count/')
+                        .then(res => res.json())
+                        .then(data => {
+                            const cartCountElement = document.getElementById('cart-count');
+                            if (cartCountElement) {
+                                cartCountElement.textContent = data.count;
+                            }
+                        });
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    // Optionally revert the UI if an error occurs
+                    console.error("Error adding to cart:", error.message);
+                    // Display error message
+                    if (errorContainer) {
+                        // Clean up the error message for better display
+                        let errorText = error.message;
+                        // Remove any HTML tags if present
+                        errorText = errorText.replace(/<[^>]*>/g, '');
+                        // Decode HTML entities
+                        const textarea = document.createElement('textarea');
+                        textarea.innerHTML = errorText;
+                        errorText = textarea.value;
+                        
+                        const errorTextSpan = errorContainer.querySelector('.error-text');
+                        if (errorTextSpan) {
+                            errorTextSpan.innerHTML = errorText;
+                        } else {
+                            errorContainer.innerHTML = errorText;
+                        }
+                        errorContainer.style.display = 'block';
+                        
+                        // Auto-hide after 8 seconds (longer for reservation messages)
+                        setTimeout(() => {
+                            errorContainer.style.display = 'none';
+                        }, 8000);
+                    }
                 });
             });
         }
