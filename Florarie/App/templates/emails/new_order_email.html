@@ -1,0 +1,33 @@
+<div style="font-family:Arial,sans-serif;">
+    <h2 style="margin:0 0 10px;">Noua Comanda plasata</h2>
+    <p><b>ID Comandă:</b> #{{ order.id }}</p>
+    <p><b>Data:</b> {{ order.created_at }}</p>
+    <hr style="border:none;border-top:1px solid #eee;margin:16px 0;" />
+    <h3 style="margin:0 0 8px;">Client</h3>
+    <p><b>Nume:</b> {{ order.full_name }}</p>
+    <p><b>Email:</b> {{ order.email }}</p>
+    <p><b>Telefon:</b> {{ order.phone_number }}</p>
+    {{ delivery_info|safe }}
+    <h3 style="margin:16px 0 8px;">Produse</h3>
+    <table style="width:100%;border-collapse:collapse;">
+        <thead>
+            <tr style="background:#f7f7f7;">
+                <th style="text-align:left;padding:8px;border:1px solid #ddd;">Produs</th>
+                <th style="text-align:center;padding:8px;border:1px solid #ddd;">Cantitate</th>
+                <th style="text-align:right;padding:8px;border:1px solid #ddd;">Preț</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in order.items.all %}
+            <tr style="border-bottom:1px solid #ddd;">
+                <td style="padding:8px;border:1px solid #ddd;">{{ item.product.name }}</td>
+                <td style="text-align:center;padding:8px;border:1px solid #ddd;">{{ item.quantity }}</td>
+                <td style="text-align:right;padding:8px;border:1px solid #ddd;">{{ item.price }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p style="margin-top:12px;"><b>Subtotal:</b> {{ order.total_price }}</p>
+    <p><b>Taxă livrare:</b> {{ order.delivery_fee }}</p>
+    <p><b>Total final:</b> {{ order.final_total }}</p>
+</div>

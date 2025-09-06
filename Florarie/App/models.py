@@ -1,28 +1,10 @@
-from django.contrib.auth.models import AbstractUser, Group, Permission, User
+from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 from ckeditor.fields import RichTextField
-
-# Create your models here.
-
-# class User(AbstractUser):
-#     groups = models.ManyToManyField(
-#         Group,
-#         related_name='custom_user_set',  # Add related_name to avoid conflict
-#         blank=True,
-#         help_text='The groups this user belongs to.',
-#         verbose_name='groups',
-#     )
-#     user_permissions = models.ManyToManyField(
-#         Permission,
-#         related_name='custom_user_permissions_set',  # Add related_name to avoid conflict
-#         blank=True,
-#         help_text='Specific permissions for this user.',
-#         verbose_name='user permissions',
-#     )
 
 
 class Product(models.Model):
@@ -55,65 +37,49 @@ class Product(models.Model):
     auction_interval_minutes = models.PositiveIntegerField(default=60)
     auction_drop_amount = models.DecimalField(max_digits=6, decimal_places=2, default=5)
 
-    before_auction_price = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False, default=0.00)  # Store the price before auction
-    bid_submited = models.BooleanField(default=False)  # Track if a bid has been submitted
-
-    number_of_purcheses = models.PositiveIntegerField(default=0)  # Track the number of purchases
+    before_auction_price = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False, default=0.00) 
+    bid_submited = models.BooleanField(default=False)  
+    number_of_purcheses = models.PositiveIntegerField(default=0)  
 
     def clean(self):
-        # Set in_store if stock > 0 and category is buchete or aranjamente
-        # if self.stock > 0 and (self.category == "buchete" or self.category == "aranjamente"):
-        #     self.in_store = True
-        # else:
-        #     self.in_store = False
-
-        # if self.in_store:
+     
             if self.auction_manual:
                 if not self.auction_start_time:
-                    raise ValidationError("Auction start time is required when the product is in store.")
+                    raise ValidationError("Timpul de început al licitației este necesar atunci când produsul este în magazin.")
                 if not self.auction_floor_price:
-                    raise ValidationError("Auction floor price is required when the product is in store.")
+                    raise ValidationError("Prețul minim al licitației este necesar atunci când produsul este în magazin.")
                 if not self.auction_interval_minutes:
-                    raise ValidationError("Auction interval minutes are required when the product is in store.")
+                    raise ValidationError("Intervalul de licitație în minute este necesar atunci când produsul este în magazin.")
                 if not self.auction_drop_amount:
-                    raise ValidationError("Auction drop amount is required when the product is in store.")
-            # elif not self.auction_manual:
-            #     if not self.pk or not Product.objects.filter(pk=self.pk, in_store=True).exists():
-            #         # Only set these values if in_store has just now changed to true So that now means the moment they were added to the stock.
-            #         self.auction_start_time = timezone.now() + timedelta(hours=36) #use now as reference point so that if the products exist for a long time, they will not enter in auction imediately
-            #         self.auction_floor_price = self.price * Decimal(0.4)
-            #         self.auction_drop_amount = self.price * Decimal(0.05)
+                    raise ValidationError("Suma de scădere a licitației este necesară atunci când produsul este în magazin.")
 
     def is_in_auction(self):
         if not self.before_auction_price or self.before_auction_price == 0:
             self.before_auction_price = self.price
-        # return self.auction_manual or (self.in_store and self.auction_start_time and self.auction_start_time <= timezone.now()) and self.bid_submited == False
-        return self.auction_manual # and self.bid_submited == False
+        return self.auction_manual 
 
     def is_auction_expired(self):
-        """Check if the auction has expired (more than 24 hours since start)"""
         if not self.auction_start_time:
             return False
         
-        # Calculate if 24 hours have passed since auction start
         expiry_time = self.auction_start_time + timedelta(hours=24)
         return timezone.now() > expiry_time
 
     def get_auction_price(self):
         if not self.is_in_auction():
-            return self.price, 0, 0  # Return original price, no discount, no percentage reduction
+            return self.price, 0, 0 
  
         minutes_passed = (timezone.now() - self.auction_start_time).total_seconds() / 60
-        total_drops = max(1, int(minutes_passed / self.auction_interval_minutes))
-        discount = min(self.auction_drop_amount * total_drops, self.price - self.auction_floor_price)  # Ensure price doesn't go below floor price
+        total_drops = max(1, int(minutes_passed / self.auction_interval_minutes))  # numărul minim de scăderi este 1
+        discount = min(self.auction_drop_amount * total_drops, self.price - self.auction_floor_price)
 
-        auction_bid_price = self.price - Decimal(discount)  # Calculate the auction price
-        
-        # Calculate percentage based on before_auction_price for consistency with UI
+        auction_bid_price = self.price - Decimal(discount)  # Calculează prețul licitației
+
+        # Calculează procentajul pe baza before_auction_price pentru consistență cu UI
         if self.before_auction_price == 0:
             percentage_reduction = Decimal(0)
         else:
-            # Calculate percentage against original price before auction
+            # Calculează procentajul față de prețul original înainte de licitație
             percentage_reduction = Decimal((self.before_auction_price - auction_bid_price) / self.before_auction_price * 100)
          
         return auction_bid_price, discount, percentage_reduction
@@ -122,25 +88,23 @@ class Product(models.Model):
         return self.name
 
     def get_available_stock(self):
-        """Returns the available stock considering active reservations"""
         from django.db.models import Sum
         
-        # Skip calculations for non-inventory managed products
+        # Skip calcule pentru produse care nu sunt gestionate prin inventar
         if self.category in ['buchete', 'aranjamente', 'CustomBouquet']:
-            return 10  # Always allow up to 10
-        
-        # Calculate reserved quantity in active carts
+            return 10  
+        # Calculam stocul disponibil pentru produse gestionate prin inventar
         reserved = CartItem.objects.filter(
             product=self,
             reserved_until__gt=timezone.now()
         ).aggregate(total=Sum('quantity'))['total'] or 0
         
-        # Return available stock
+        # returneaza stocul disponibil
         return max(0, self.stock - reserved)
 
 class CartItem(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-    session_id = models.CharField(max_length=255, null=True, blank=True) # Store session ID for anonymous users
+    session_id = models.CharField(max_length=255, null=True, blank=True) #pentru guests
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
     reserved_until = models.DateTimeField(null=True, blank=True)
@@ -152,7 +116,6 @@ class CartItem(models.Model):
         return self.product.price * self.quantity
     
     def refresh_reservation(self):
-        """Refresh the reservation time"""
         self.reserved_until = timezone.now() + timedelta(minutes=30)
         self.save()
 
@@ -161,17 +124,15 @@ class Order(models.Model):
     session_id = models.CharField(max_length=255, null=True, blank=True)
     full_name = models.CharField(max_length=255)
     email = models.EmailField()
-    address = models.TextField(blank=True, null=True)  # Made optional for pickup
+    address = models.TextField(blank=True, null=True)  
     phone_number = models.CharField(max_length=15)
-    city = models.CharField(max_length=100, blank=True, null=True)  # Made optional for pickup
-    zip_code = models.CharField(max_length=10, blank=True, null=True)  # Made optional for pickup
+    city = models.CharField(max_length=100, blank=True, null=True)  
+    zip_code = models.CharField(max_length=10, blank=True, null=True)  
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     payment_method = models.CharField(max_length=20, choices=[("card", "Card"), ("cash", "Cash on Delivery")], default="card")
-    payment_status = models.BooleanField(default=False)  # False = Not paid, True = Paid
+    payment_status = models.BooleanField(default=False)  
     created_at = models.DateTimeField(auto_now_add=True)
-    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=29.00)  # Default delivery fee
-    
-    # New delivery fields
+    delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=29.00) 
     delivery_type = models.CharField(max_length=20, choices=[("delivery", "Livrare la adresă"), ("pickup", "Ridicare personală")], default="delivery")
     desired_delivery_date = models.DateField(null=True, blank=True)
     delivery_time_slot = models.CharField(max_length=20, choices=[
@@ -185,14 +146,13 @@ class Order(models.Model):
     delivery_notes = models.TextField(blank=True, null=True)
 
     def get_delivery_fee(self):
-        """Calculate delivery fee based on delivery type"""
         from decimal import Decimal
         if self.delivery_type == "pickup":
             return Decimal('0.00')
-        return Decimal('29.00')  # Default delivery fee for address delivery
+        return Decimal('29.00')  
     
     def final_total(self):
-        return self.total_price + self.get_delivery_fee()  # Calculate final amount
+        return self.total_price + self.get_delivery_fee() 
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items',on_delete=models.CASCADE)
@@ -212,14 +172,13 @@ class Payment(models.Model):
     payment_method = models.CharField(
         max_length=20,
         choices=[("card", "Card"), ("cash", "Cash on Delivery")],
-        default="card"  # Provide a default value
+        default="card"  
     )
 
     def __str__(self):
         return f"Payment {self.transaction_id or 'Cash'} - {self.status}"
     
     
-#Custom bouquet models
 class BouquetShape(models.Model):
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='bouquet_shapes/')
@@ -279,7 +238,7 @@ class CustomBouquet(models.Model):
     confirmed = models.BooleanField(default=False)
     product = models.OneToOneField(
         Product, on_delete=models.CASCADE, null=True, blank=True, related_name="linked_custom_bouquet"
-    )  # Add related_name to avoid conflict
+    )  
 
     def related_flowers(self):
         return ", ".join([f"{bf.quantity} x {bf.flower.name}" for bf in self.bouquetflower_set.all()])

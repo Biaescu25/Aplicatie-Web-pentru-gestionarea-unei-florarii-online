@@ -4,7 +4,7 @@
 {% block content %}
 
 <div class="container mx-auto px-6 py-12 mt-32 flex gap-10 " style=" font-family: 'Poppins', Arial, Helvetica, sans-serif !important; ">
-    <!-- Sidebar -->
+    <!-- Meiniu -->
     <aside class="w-64">
         <nav class="bg-white dark:bg-base-200 border border-gray-200 dark:border-base-300 rounded-lg p-5 sticky top-24">
             <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Meniu Analiză</h2>
@@ -28,16 +28,16 @@
         </nav>
     </aside>
 
-    <!-- Main Content -->
+    <!-- Continut Principal -->
     <div class="flex-1">
         <div class="flex items-center justify-between mb-10">
             <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Analiza Afacerii</h1>
             <a href="/admin/" class="text-blue-600 hover:underline text-sm font-medium">Mergi la Django Admin </a>
         </div>
 
-        <!-- Filters and Controls -->
+        <!-- Filtre -->
         <div class="bg-white dark:bg-base-200 border border-gray-200 dark:border-base-300 rounded-lg p-6 mb-10 flex flex-wrap items-center gap-6">
-            <!-- Date Range Filter -->
+            <!-- Filtru Data -->
             <div class="filter-group flex items-center gap-2" data-group="date-range">
                 <label class="font-medium text-gray-700 dark:text-gray-200">De la</label>
                 <input type="date" id="chart-date-start" class="input input-bordered input-sm w-32">
@@ -45,15 +45,15 @@
                 <input type="date" id="chart-date-end" class="input input-bordered input-sm w-32">
                 <button id="chart-date-filter-btn" class="btn btn-sm bg-blue-600 text-white border-none hover:bg-blue-700">Filtrează</button>
             </div>
-            <!-- Compare Periods -->
-            <div class="filter-group flex items-center gap-2" data-group="compare">
+            <!-- Comparare Perioade -->
+            <div class="filter-group flex items-center gap-2" data-group="compare" style="display: none;">
                 <label class="font-medium text-gray-700 dark:text-gray-200">Compară</label>
                 <input type="date" id="compare-date-start" class="input input-bordered input-sm w-32">
                 <input type="date" id="compare-date-end" class="input input-bordered input-sm w-32">
                 <button id="compare-btn" class="btn btn-sm bg-gray-200 dark:bg-base-300 text-gray-700 dark:text-gray-200 border-none hover:bg-gray-300 dark:hover:bg-base-400">Compară</button>
             </div>
-            <!-- Category/Product Filter -->
-            <div class="filter-group flex items-center gap-2" data-group="category">
+            <!-- Filtru Categorie/Produs -->
+            <div class="filter-group flex items-center gap-2" data-group="category" style="display: none;">
                 <label class="font-medium text-gray-700 dark:text-gray-200">Categorie</label>
                 <select id="category-filter" class="select select-bordered select-sm w-32">
                     <option value="">Toate</option>
@@ -66,21 +66,9 @@
                     <option value="">Toate</option>
                 </select>
             </div>
-
-            <!-- Chart Type -->
-            <!-- <div class="filter-group flex items-center gap-2" data-group="chart-type">
-                <label class="font-medium text-gray-700 dark:text-gray-200">Tip Grafic</label>
-                <select id="chart-type-select" class="select select-bordered select-sm w-28">
-                    <option value="default">Implicit</option>
-                    <option value="bar">Bară</option>
-                    <option value="line">Linie</option>
-                    <option value="pie">Plăcintă</option>
-                </select>
-            </div> -->
-
         </div>
 
-        <!-- Summary Cards: only visible for Sales chart -->
+        <!-- Rezumat Vânzări -->
         <div id="sales-summary-cards" class="flex gap-6 mb-10" style="display:none;">
             <!-- Orders Card -->
             <div class="bg-white dark:bg-base-200 border border-gray-200 dark:border-base-300 rounded-xl px-8 py-6 flex flex-col justify-between min-w-[220px] shadow-sm">

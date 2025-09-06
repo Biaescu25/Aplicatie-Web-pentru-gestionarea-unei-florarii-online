@@ -67,15 +67,16 @@
     const rangeTrack = document.getElementById("rangeTrack");
     const minGap = 10;
 
-    // Get smallest and largest prices dynamically from the HTML attributes
+    // Ia pretul minim si maxim
     const smallestPrice = parseInt(minRange.min);
     const largestPrice = parseInt(maxRange.max);
 
     function updateRange(event) {
+        // Preluam valorile curente ale sliderelor
         let min = parseInt(minRange.value);
         let max = parseInt(maxRange.value);
 
-        // Enforce gap
+        // Verifica daca intervalul este prea mic
         if (max - min < minGap) {
             if (event.target === minRange) {
                 min = max - minGap;
@@ -86,12 +87,12 @@
             }
         }
 
-        // Update the displayed values
+        // Actualizeaza valorile afisate
         minValueElement.innerText = min;
         maxValueElement.innerText = max;
 
-        // Update the range track position and width
-        const rangeWidth = largestPrice - smallestPrice; // Dynamic range width
+        // Actualizeaza pozitia si latimea intervalului
+        const rangeWidth = largestPrice - smallestPrice; // Latimea intervalului
         const minPercent = ((min - smallestPrice) / rangeWidth) * 100;
         const maxPercent = ((max - smallestPrice) / rangeWidth) * 100;
 
@@ -103,15 +104,15 @@
         const form = document.querySelector("form");
         htmx.trigger(form, "submit");
     }
-    // Attach event listeners for input changes
+    // Atașează ascultători de evenimente pentru schimbările de input
     minRange.addEventListener("input", updateRange);
     maxRange.addEventListener("input", updateRange);
 
-    // Submit the form only when the user releases the slider
+    // Trimite formularul doar când utilizatorul eliberează sliderul
     minRange.addEventListener("change", submitFormWithHTMX);
     maxRange.addEventListener("change", submitFormWithHTMX);
 
-    // Initialize the UI on load
+    // Initializeaza UI-ul la incarcare
     updateRange({ target: minRange });
 </script>
 {% endblock %}

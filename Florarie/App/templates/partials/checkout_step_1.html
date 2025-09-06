@@ -13,7 +13,7 @@
 
     <h3 class="text-xl font-semibold mt-6">2. Opțiuni de livrare</h3>
     <div class="space-y-4">
-        <!-- Delivery Type Selection -->
+        <!-- Tipul de livrare -->
         <div class="flex gap-4">
             <label class="flex items-center gap-2 cursor-pointer">
                 <input type="radio" name="delivery_type" value="delivery" class="radio" checked 
@@ -35,7 +35,7 @@
             </label>
         </div>
 
-        <!-- Desired Delivery Date and Time -->
+        <!-- Data dorită pentru livrare/ridicare -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2"><strong>Data dorită pentru livrare/ridicare (minim 48 de ore de la plasarea comenzii)</strong></label>
@@ -55,13 +55,13 @@
             </div>
         </div>
 
-        <!-- Delivery Notes -->
+        <!-- Mentiuni speciale -->
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-2"><strong>Mentiuni speciale (opțional)</strong></label>
             <textarea name="delivery_notes" placeholder="Instrucțiuni speciale pentru livrare..." class="textarea textarea-bordered w-full border border-gray-300 rounded-md" rows="3"></textarea>
         </div>
 
-        <!-- Address Fields (initially visible) -->
+        <!-- Câmpurile de adresă -->
         <div id="address-fields">
             <h4 class="text-lg font-medium text-gray-700 mb-3">Adresa de livrare</h4>
     <input type="text" name="address" placeholder="Adresă" class="input input-bordered w-full border border-gray-300 rounded-md h-10" required>
@@ -87,18 +87,17 @@
 function toggleAddressFields() {
     const deliveryType = document.querySelector('input[name="delivery_type"]:checked').value;
     const addressFields = document.getElementById('address-fields');
-    const addressInputs = addressFields.querySelectorAll('input[name="address"], input[name="city"], input[name="zip_code"]');
-    // Cash option remains visible for both delivery types
+    const addressInputs = addressFields.querySelectorAll('input[name="address"], input[name="city"], input[name="zip_code"]'); //returnam lista
 
     if (deliveryType === 'pickup') {
-        // Hide address fields for pickup
+        // Ascunde câmpurile de adresă
         addressFields.style.display = 'none';
         addressInputs.forEach(input => {
             input.removeAttribute('required');
             input.value = '';
         });
     } else {
-        // Show address fields for delivery
+        // Afișează câmpurile de adresă pentru livrare
         addressFields.style.display = 'block';
         addressInputs.forEach(input => {
             input.setAttribute('required', 'required');
@@ -111,8 +110,7 @@ function validateDeliveryDate() {
     if (dateInput && dateInput.value) {
         const selectedDate = new Date(dateInput.value);
         const now = new Date();
-        const minDate = new Date(now.getTime() + (48 * 60 * 60 * 1000)); // 48 hours from now
-        
+        const minDate = new Date(now.getTime() + (48 * 60 * 60 * 1000)); // 48 hrs
         if (selectedDate < minDate) {
             alert('Data de livrare trebuie să fie cel puțin 48 de ore în viitor.');
             return false;
@@ -121,24 +119,22 @@ function validateDeliveryDate() {
     return true;
 }
 
-// Set minimum date and initialize sections
+// Setam o data minima 
 document.addEventListener('DOMContentLoaded', function() {
     const dateInput = document.querySelector('input[name="desired_delivery_date"]');
     if (dateInput) {
         const now = new Date();
-        const minDate = new Date(now.getTime() + (48 * 60 * 60 * 1000)); // Add 48 hours
-        const minDateString = minDate.toISOString().split('T')[0];
-        dateInput.min = minDateString;
-        
-        // Also set the value to the minimum date if no value is set
+        const minDate = new Date(now.getTime() + (48 * 60 * 60 * 1000)); // 48 hrs
+        const minDateString = minDate.toISOString().split('T')[0]; // transformam data permisa in format YYYY-MM-DD
+        dateInput.min = minDateString; // nu accept date mai mici decat data permisa
+
+        // Seteaza valoarea la data minima daca nu este setata
         if (!dateInput.value) {
             dateInput.value = minDateString;
         }
-        
-        console.log('Minimum date set to:', minDateString);
     }
-    
-    // Initialize payment method visibility based on default delivery type
-    toggleAddressFields();
+
+    // Initializeaza vizibilitatea metodei de plata in functie de tipul de livrare
+    togglePaymentMethodVisibility();
 });
 </script>

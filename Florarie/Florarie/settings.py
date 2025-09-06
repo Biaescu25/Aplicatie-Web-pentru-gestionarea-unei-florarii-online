@@ -118,7 +118,7 @@ CSRF_COOKIE_HTTPONLY=False
 LANGUAGE_CODE = 'en-us'
 
 # Set your desired timezone
-TIME_ZONE = 'Europe/Bucharest'  # Example: Bucharest timezone
+TIME_ZONE = 'Europe/Bucharest'
 
 USE_I18N = True
 

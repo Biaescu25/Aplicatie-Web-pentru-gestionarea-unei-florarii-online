@@ -23,7 +23,7 @@ from App.views import increment_quantity, decrement_quantity, get_total_price, r
 from App.views import checkout, product_detail, profile, order_detail, order_history, checkout_step_1, checkout_step_2, checkout_step_3, order_success, update_order_summary
 from App.views import create_custom_bouquet, custom_bouquet_builder, save_custom_bouquet, generate_bouquet_preview
 from App.views import auction_view, auction_price_partial, auction_confirm_popup, auction_confirm, contact_view, contact_success, sales_data_api, admin_dashboard
-from App.views import product_list_api, sales_summary_api, refresh_cart_reservation
+from App.views import product_list_api, sales_summary_api
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -70,7 +70,7 @@ urlpatterns = [
     path("api/products/", product_list_api, name="product_list_api"),
     path("api/sales-summary/", sales_summary_api, name="sales_summary_api"),
     path("generate-bouquet-preview/", generate_bouquet_preview, name="generate_bouquet_preview"),
-    path('cart/refresh-reservation/', refresh_cart_reservation, name='refresh_cart_reservation'),
+    # path('cart/refresh-reservation/', refresh_cart_reservation, name='refresh_cart_reservation'),
 ]
 
 

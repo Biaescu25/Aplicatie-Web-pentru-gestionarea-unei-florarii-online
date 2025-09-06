@@ -28,56 +28,56 @@
 <!-- Modal container -->
 <div id="modal-container"></div>
 
-<!-- Script to handle countdown timers and price updates -->
+<!-- Scriptul pentru gestionarea timerelor de numărătoare inversă și actualizările de prețuri -->
 <script>
-    // Initialize countdown timers
+    // Initializam timerii de numărătoare inversă
     function initializeCountdownTimers() {
         const countdownTimers = document.querySelectorAll('.countdown-timer');
-        
-        // Function to update all timers
+
+        // Functia pentru actualizarea tuturor timerelor
         function updateTimers() {
             countdownTimers.forEach(timer => {
                 const auctionStart = new Date(timer.getAttribute('data-auction-start'));
-                const expiryTime = new Date(auctionStart.getTime() + (24 * 60 * 60 * 1000)); // 24 hours after start
+                const expiryTime = new Date(auctionStart.getTime() + (24 * 60 * 60 * 1000)); // 24 ore
                 const now = new Date();
                 const timeRemaining = expiryTime - now;
                 
                 if (timeRemaining <= 0) {
-                    // Time expired
+                    // Ofertă expirată
                     timer.textContent = "Ofertă expirată";
                     timer.classList.add('text-gray-500');
                     timer.classList.remove('text-red-600');
                 } else {
-                    // Calculate hours, minutes, seconds
+                    // Calculeaza orele, minutele, secundele ramase
                     const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
                     const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
                     const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
                     
-                    // Format the time
+                    // Formateaza timpul
                     timer.textContent = 
                         (hours < 10 ? '0' + hours : hours) + ':' +
                         (minutes < 10 ? '0' + minutes : minutes) + ':' +
                         (seconds < 10 ? '0' + seconds : seconds);
                     
-                    // Add urgency styling when less than 1 hour remains
+                    // Adauga stiluri de urgenta cand ramane mai putin de 1 ora
                     if (timeRemaining < 3600000) { // less than 1 hour
                         timer.classList.add('text-red-600', 'animate-pulse');
                     }
                 }
             });
         }
-        
-        // Update immediately and then every second
+
+        // Actualizeaza timerii
         updateTimers();
         return setInterval(updateTimers, 1000);
     }
-    
-    // Initialize timers on page load
+
+    // Initializam intervalul pentru actualizarea timerelor
     let timerInterval;
     document.addEventListener('DOMContentLoaded', function() {
         timerInterval = initializeCountdownTimers();
-        
-        // Set up automatic price refresh every 10 seconds
+
+        // Setam un interval pentru actualizarea preturilor
         setInterval(function() {
             const priceContainers = document.querySelectorAll('.price-container');
             priceContainers.forEach(container => {
@@ -88,11 +88,11 @@
             });
         }, 10000);
     });
-    
-    // Re-initialize timers after HTMX content swaps (only when product-list is swapped)
+
+    // reinitializam timerii dupa schimbarea continutului HTMX
     document.body.addEventListener('htmx:afterSwap', function(event) {
         if (event.detail.target.id === 'product-list') {
-            // Clear existing interval and start a new one
+            // Reinitializam timerii
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = initializeCountdownTimers();
         }

@@ -155,14 +155,7 @@
                     <!-- Culorile vor fi injectate aici -->
                     </div>
                 </div>
-                </div>
-
-                <!-- Hidden inputs for shape, wrapping, greens -->
-                <!-- <input type="hidden" name="shape" value="">
-                <input type="hidden" name="wrapping" value="">
-                <input type="hidden" name="greens" value="">     -->
-            </form>
-
+              </div>
         </div>
 
         <!-- SUMMARY -->
@@ -189,6 +182,7 @@
                           <span class="text-lg">PREVIZUALIZAREA BUCHETULUI</span>
                       </div>
                   </div>
+
                   <script>
                   const previewImg = document.getElementById("bouquet-preview");
                   const placeholder = document.getElementById("bouquet-preview-placeholder");
@@ -216,8 +210,6 @@
 <script>
    
 function updateBouquetPreview() {
-    console.log("triggered"); // DEBUG
-    
   const flowerInputs = document.querySelectorAll("input[name^='flower_']");
   const wrappingColor = document.querySelector('input[name="wrapping_color"]:checked')?.value||null;
   const flowers = Array.from(flowerInputs).map(input => ({
@@ -254,7 +246,7 @@ function updateBouquetPreview() {
   });
 }
 
-// ✅ atașează manual pe toate inputurile relevante
+//  atașează manual pe toate inputurile relevante
 function attachPreviewListeners() {
   const inputs = document.querySelectorAll(
     "input[name^='flower_'], input[name='shape'], input[name='wrapping'], input[name='greens']"
@@ -263,13 +255,13 @@ function attachPreviewListeners() {
     input.addEventListener("change", updateBouquetPreview);
     input.addEventListener("input", updateBouquetPreview);
     
-    // Add validation for flower inputs to enforce 50 limit
+    // limitează la 100 florile
     if (input.name.startsWith('flower_')) {
       input.addEventListener("input", function() {
         const value = parseInt(this.value) || 0;
         if (value > 100) {
           this.value = 100;
-          // Trigger change event to update summary
+          // triggeruieste eventul de change pentru a actualiza sumarul
           this.dispatchEvent(new Event('change', { bubbles: true }));
         }
       });
@@ -278,7 +270,7 @@ function attachPreviewListeners() {
         const value = parseInt(this.value) || 0;
         if (value > 100) {
           this.value = 100;
-          // Trigger change event to update summary
+          // Triggeruieste eventul de change pentru a actualiza sumarul
           this.dispatchEvent(new Event('change', { bubbles: true }));
         }
       });
@@ -290,7 +282,7 @@ function attachPreviewListeners() {
   });
 }
 
-// ✅ rulează după ce HTMX reîncarcă părți de pagină
+// rulează după ce HTMX reîncarcă părți de pagină
 document.addEventListener("DOMContentLoaded", attachPreviewListeners);
 document.addEventListener("htmx:afterSwap", attachPreviewListeners);
 
@@ -304,7 +296,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const targetContainer = document.getElementById("wrapping-colors");
       const wrapperBox = document.getElementById("wrapping-colors-container");
 
-      // Clear color selection when no wrapping is selected or when switching
+      // Resetează selecția culorii
       setColorName("", null);
 
       if (sourceColors && targetContainer) {
@@ -331,7 +323,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setColorName(colorName, variantId);
         }
       } else {
-        // Hide color container when no wrapping is selected
+        // Dacă nu există culori, ascunde containerul și golește conținutul
         if (wrapperBox) {
           wrapperBox.classList.add("hidden");
         }

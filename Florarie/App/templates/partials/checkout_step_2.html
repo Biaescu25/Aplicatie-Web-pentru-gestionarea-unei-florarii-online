@@ -1,11 +1,11 @@
 <!-- checkout/checkout_step_2.html -->
 <div class="max-w-2xl mx-auto">
     <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-        <!-- Payment Form -->
+        <!-- Formular de plată -->
         <form id="payment-form" method="post" class="p-6 space-y-6">
             {% csrf_token %}
 
-            <!-- Card Details -->
+            <!-- Detalii card -->
             <div class="space-y-4">
                 <h3 class="text-lg font-semibold text-gray-800 flex items-center space-x-2">
                     <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,7 +15,7 @@
                 </h3>
 
                 <div class="space-y-4">
-                    <!-- Card Number -->
+                    <!-- Numărul cardului -->
                     <div class="relative">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Numărul cardului</label>
                         <div class="relative">
@@ -28,7 +28,7 @@
                         </div>
                     </div>
 
-                    <!-- Expiration Date and CVC -->
+                    <!-- Data expirării -->
                     <div class="grid grid-cols-2 gap-4">
                         <div class="relative">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Data expirării</label>
@@ -52,7 +52,7 @@
                 </div>
             </div>
 
-            <!-- Submit Button -->
+            <!-- Buton de trimitere -->
             <div class="pt-4">
                 <button type="submit" class="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center space-x-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

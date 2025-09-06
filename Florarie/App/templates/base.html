@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet"> <!-- Indie Flower font -->
+    <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
 
     <link href="{% static 'output.css' %}" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -49,7 +49,6 @@
     left: 10%;
 }
 
-/* Remove number input arrows */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
@@ -58,6 +57,7 @@ input[type="number"]::-webkit-outer-spin-button {
 
 input[type="number"] {
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 
@@ -157,8 +157,8 @@ input[type="number"] {
         document.querySelector('#payment-form').dataset.initialized = "true";
 
         const elements = stripe.elements();
-        
-        // Custom styling for Stripe Elements
+
+        // Customizare Elemente Stripe
         const style = {
             base: {
                 color: '#374151',
@@ -177,13 +177,13 @@ input[type="number"] {
                 iconColor: '#EF4444',
             },
         };
-        
-        // Create separate elements
+
+        // Cream elementele separate
         const cardNumber = elements.create("cardNumber", {style: style});
         const cardExpiry = elements.create("cardExpiry", {style: style});
         const cardCvc = elements.create("cardCvc", {style: style});
-        
-        // Mount elements
+
+        // Mount elementele, atasare in DOM 
         cardNumber.mount("#card-number-element");
         cardExpiry.mount("#card-expiry-element");
         cardCvc.mount("#card-cvc-element");
@@ -192,8 +192,8 @@ input[type="number"] {
         const cardErrors = document.getElementById("card-errors");
         const cardErrorsText = document.getElementById("card-errors-text");
         const submitButton = form.querySelector('button[type="submit"]');
-        
-        // Add error handling for all card elements
+
+        // Adaugam gestionarea erorilor pentru toate elementele cardului
         [cardNumber, cardExpiry, cardCvc].forEach(element => {
             element.addEventListener('change', function(event) {
                 if (event.error) {
@@ -204,11 +204,11 @@ input[type="number"] {
                 }
             });
         });
-
+        //previne submitul clasic
         form.addEventListener("submit", function (e) {
             e.preventDefault();
-            
-            // Show loading state
+
+            //Dezactivam butonul de submit
             submitButton.disabled = true;
             submitButton.innerHTML = `
                 <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -218,12 +218,13 @@ input[type="number"] {
                 <span>Se procesează...</span>
             `;
 
+            // Creaza un token Stripe
             stripe.createToken(cardNumber).then(function (result) {
                 if (result.error) {
                     cardErrors.classList.remove('hidden');
                     cardErrorsText.textContent = result.error.message;
-                    
-                    // Reset button
+
+                    // Resetam butonul
                     submitButton.disabled = false;
                     submitButton.innerHTML = `
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,12 +233,14 @@ input[type="number"] {
                         <span>Finalizează plata</span>
                     `;
                 } else {
+                    // Adaugam tokenul Stripe ca input ascuns
                     const hiddenInput = document.createElement("input");
                     hiddenInput.setAttribute("type", "hidden");
                     hiddenInput.setAttribute("name", "stripeToken");
                     hiddenInput.setAttribute("value", result.token.id);
                     form.appendChild(hiddenInput);
 
+                    //trimitem formularul catre server
                     htmx.ajax('POST', '/checkout/step-3/', {
                         target: '#checkout-section',
                         swap: 'outerHTML',
@@ -257,23 +260,24 @@ input[type="number"] {
 
 <script>
 
-    //script for make your own page
+    //script pentru make ur own page
     document.addEventListener("DOMContentLoaded", () => showStep("step-shape"));
 
     function showStep(stepId) {
-        // Hide all steps
+        // Ascundem toate etapele
         document.querySelectorAll('.step').forEach(step => {
             step.classList.add('hidden');
         });
 
-        // Show selected step
+        // Aratam etapa selectata
         document.getElementById(stepId).classList.remove('hidden');
 
-        // Update button highlighting
+        // Actualizam butoanele
         document.querySelectorAll('.step-button').forEach(btn => {
             btn.classList.remove('bg-primary/10', 'ring-2', 'ring-primary', 'font-semibold');
         });
 
+        //adauga stil pentru butonul activ
         const activeBtn = document.querySelector(`[data-step-button="${stepId}"]`);
         if (activeBtn) {
             activeBtn.classList.add('bg-primary/10', 'ring-2', 'ring-primary', 'font-semibold');
@@ -329,13 +333,15 @@ input[type="number"] {
 let salesChart, productsChart, visitorsChart, conversionChart;
 let autoRefreshIntervalId = null;
 
+//functia pentru generarea graficelor
 function renderAllCharts(data) {
-  // Destroy previous charts if they exist
+  // Distrugem graficele anterioare daca exista 
   if (salesChart) { salesChart.destroy(); salesChart = null; }
   if (productsChart) { productsChart.destroy(); productsChart = null; }
   if (visitorsChart) { visitorsChart.destroy(); visitorsChart = null; }
   if (conversionChart) { conversionChart.destroy(); conversionChart = null; }
 
+  // luam elementele DOM pentru grafice din html canvas
   const salesEl = document.getElementById("salesChart");
   const productsEl = document.getElementById("productsChart");
   const visitorsEl = document.getElementById("visitorsChart");
@@ -423,7 +429,7 @@ function renderAllCharts(data) {
     });
   }
 
-  // Compare period overlay remains unchanged
+  // Adaugam datele pentru perioada de comparatie
   if (salesEl && data.compare && data.compare.labels && data.compare.totals) {
     salesChart.data.datasets.push({
       label: "Compare Period",
@@ -439,6 +445,7 @@ function renderAllCharts(data) {
   }
 }
 
+// Functia pentru construirea URL-ului si fetch-ul datelor
 function fetchAndRenderCharts(
    startDate, endDate, category, product, compare
 ) {
@@ -459,10 +466,10 @@ function fetchAndRenderCharts(
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  // Set default date range (last 30 days)
+  // Initializam controalele de data
   const endInput = document.getElementById('chart-date-end');
   const startInput = document.getElementById('chart-date-start');
-  if (!endInput || !startInput) return; // Guard: run analytics only on pages that have controls
+  if (!endInput || !startInput) return; // 
 
   const today = new Date();
   const prior = new Date();
@@ -470,16 +477,16 @@ document.addEventListener("DOMContentLoaded", function () {
   endInput.value = today.toISOString().slice(0,10);
   startInput.value = prior.toISOString().slice(0,10);
 
-  // Initial fetch
+  // Afisarea initiala a graficelor
   fetchAndRenderCharts(startInput.value, endInput.value);
 
-  // Date filter button
+  // butonul de filtrare a datelor
   document.getElementById('chart-date-filter-btn').addEventListener('click', function() {
     const start = document.getElementById('chart-date-start').value;
     const end   = document.getElementById('chart-date-end').value;
     const category = document.getElementById('category-filter').value;
     const product  = document.getElementById('product-filter').value;
-    // if you still have the compare inputs visible, grab those too:
+    // perioada de comparatie
     const compareStart = document.getElementById('compare-date-start').value;
     const compareEnd   = document.getElementById('compare-date-end').value;
     const compare = (compareStart && compareEnd)
@@ -494,8 +501,9 @@ document.addEventListener("DOMContentLoaded", function () {
       null
     );
   });
+  
 
-  // Chart subject filter logic
+  // Harta pentru id-urile elementelor grafice
   const chartMap = {
     sales: "chart-sales",
     products: "chart-products",
@@ -508,18 +516,17 @@ document.addEventListener("DOMContentLoaded", function () {
       document.querySelectorAll('.chart-filter-btn').forEach(b => b.classList.remove('bg-blue-200', 'font-bold'));
       this.classList.add('bg-blue-200', 'font-bold');
       const selected = this.dataset.chart;
-      // Show summary cards only for sales chart
+      // afiseaza sumarul pentru graficul selectat
       const summary = document.getElementById('sales-summary-cards');
       if (summary) summary.style.display = (selected === "sales") ? "flex" : "none";
-      // Update chart type options for the selected chart
-      //updateChartTypeOptions(selected);
 
-      // Reset category and product filters when leaving "products" chart
+      // reseteaza filtrele daca nu e selectat graficul de produse
       if (selected !== "products") {
         document.getElementById('category-filter').selectedIndex = 0;
         document.getElementById('product-filter').innerHTML = '<option value="">All</option>';
       }
-
+      
+      //afiseaza toate graficele sau graficul selectate
       if (selected === "all") {
         Object.values(chartMap).forEach(id => {
           const el = document.getElementById(id);
@@ -534,7 +541,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // Category/Product filter logic
+  // Filtre pentru categorii si produse
   document.getElementById('category-filter').addEventListener('change', function() {
     const cat = this.value;
     fetch("{% url 'product_list_api' %}?category=" + encodeURIComponent(cat))
@@ -564,7 +571,7 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   });
 
-  // Compare periods
+  // Butonul pentru compararea perioadelor
   document.getElementById('compare-btn').addEventListener('click', function() {
     fetchAndRenderCharts(
       document.getElementById('chart-date-start').value,
@@ -578,17 +585,7 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   });
 
-  // Drilldown (example for salesChart)
-  document.getElementById('salesChart').onclick = function(evt) {
-    const points = salesChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
-    if (points.length) {
-      const label = salesChart.data.labels[points[0].index];
-      alert("Drilldown for: " + label);
-      // Optionally, fetch and display more detailed data in a modal
-    }
-  };
-
-  // Initial fetch with all filters
+  // Fetch initial pentru toate graficele
   fetchAndRenderCharts(
     document.getElementById('chart-date-start').value,
     document.getElementById('chart-date-end').value,
@@ -597,10 +594,10 @@ document.addEventListener("DOMContentLoaded", function () {
     null
   );
 
-  // Wire up chart‐filter buttons
+  // Butonul pentru auto-refresh
   document.querySelectorAll('.chart-filter-btn').forEach(btn=>{
     btn.addEventListener('click', function(){
-      // highlight
+      // hilight ptr buton
       document.querySelectorAll('.chart-filter-btn').forEach(b=>b.classList.remove('bg-blue-200','font-bold'));
       this.classList.add('bg-blue-200','font-bold');
       // show/hide charts
@@ -616,7 +613,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // Initialize on “All”
+  // Initializam cu "toate graficele"
   document.querySelector('[data-chart="all"]').click();
 });
 
@@ -625,7 +622,7 @@ function updateSalesSummary(start, end) {
   fetch(`/api/sales-summary/?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
     .then(res => res.json())
     .then(data => {
-      // Orders
+      // comenzi
       document.querySelector('#sales-summary-cards .orders-value').textContent = data.total_orders ?? "0";
       let og = document.querySelector('#sales-summary-cards .orders-growth');
       if (og) {
@@ -646,7 +643,7 @@ function updateSalesSummary(start, end) {
                 </span>`);
         }
       }
-      // Revenue
+      // venituri
       document.querySelector('#sales-summary-cards .revenue-value').textContent = data.total_revenue ?? "0";
       let rg = document.querySelector('#sales-summary-cards .revenue-growth');
       if (rg) {
@@ -681,14 +678,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // Update summary cards when date filter or compare is used
+  //actualizam sumarul la incarcarea paginii
   const filterBtn = document.getElementById('chart-date-filter-btn');
   if (filterBtn) filterBtn.addEventListener('click', refreshSalesSummaryIfVisible);
 
+  // si la apasarea butonului de comparatie
   const compareBtn = document.getElementById('compare-btn');
   if (compareBtn) compareBtn.addEventListener('click', refreshSalesSummaryIfVisible);
 
-  // Also update when switching to sales chart
+  // si la apasarea butoanelor de filtrare
   document.querySelectorAll('.chart-filter-btn').forEach(btn => {
     btn.addEventListener('click', function () {
 

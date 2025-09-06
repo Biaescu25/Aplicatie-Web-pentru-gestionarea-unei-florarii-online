@@ -2,9 +2,9 @@
 
 {% block content %}
 
-<!-- Hero Section (Fixed and Full-Width) -->
+<!-- Carousel Section -->
 <section class="relative bg-cover bg-center w-full h-screen z-10">
-    <!-- Carousel Container -->
+    <!-- Carousel -->
     <div class="carousel w-full h-full">
         <!-- Glass Rectangle -->
         <div id="glass-rectangle" class="glass">
@@ -110,74 +110,74 @@
 
 
 <script> 
-    // Manual Carousel Logic
+    
     const slides = document.querySelectorAll('.carousel-item');
     const prevBtns = document.querySelectorAll('.btn-circle');
     const glassRectangle = document.getElementById('glass-rectangle');
-    let currentIndex = 0; // current slide
-    let autoSlideInterval; 
+    let currentIndex = 0; // slide-ul curent
+    let autoSlideInterval; // retine timer-ul pentru slide-uri automate
 
-    // Function to show only the active slide
+   //Afiseaza doar slide-ul activ
     function updateCarousel(index) {
         slides.forEach((slide, i) => {
-            slide.classList.add('hidden'); // Hide all slides
-            if (i === index) slide.classList.remove('hidden'); // Show the current slide
+            slide.classList.add('hidden'); // ascunde toate slide-urile
+            if (i === index) slide.classList.remove('hidden'); // Afiseaza slide-ul curent
         });
         glassRectangle.classList.add('active');
     }
 
-    // Initial carousel setup
+    // Initializează carousel-ul
     updateCarousel(currentIndex);
 
-    // Function to automatically change slides every 5 seconds
+    // Funcția pentru a schimba slide-urile automat la fiecare 5 secunde
     function startAutoSlide() {
         autoSlideInterval = setInterval(() => {
             glassRectangle.classList.remove('active');
             setTimeout(() => {
-                currentIndex = (currentIndex + 1) % slides.length; // Go to the next slide
+                currentIndex = (currentIndex + 1) % slides.length; // Mergi la următorul slide
                 updateCarousel(currentIndex);
             }, 500);
-        }, 5000); // 5 seconds interval
+        }, 5000); // 5 sec interval
     }
 
-    // Function to reset the auto-slide timer
+    // Resetează timer-ul când utilizatorul folosește butoanele manual
     function resetAutoSlide() {
-        clearInterval(autoSlideInterval); // Clear the existing interval
-        startAutoSlide(); // Restart the auto-slide
+        clearInterval(autoSlideInterval); // Oprește slide-urile automate
+        startAutoSlide(); // Reporneste slide-urile automate
     }
 
-    // Start the automatic slide change
+    // Pornește slide-urile automate la încărcarea paginii
     startAutoSlide();
 
-    // Event listeners for the navigation buttons
+    // Evenimente pentru butoanele de navigare
     prevBtns.forEach((btn) => {
         btn.addEventListener('click', (e) => {
             glassRectangle.classList.remove('active');
             setTimeout(() => {
                 if (e.target.textContent === "❮") {
-                    currentIndex = (currentIndex - 1 + slides.length) % slides.length; // Go to previous slide
+                    currentIndex = (currentIndex - 1 + slides.length) % slides.length; //Mergi la slide-ul anterior
                 } else {
-                    currentIndex = (currentIndex + 1) % slides.length; // Go to next slide
+                    currentIndex = (currentIndex + 1) % slides.length; // Mergi la următorul slide
                 }
                 updateCarousel(currentIndex);
-                resetAutoSlide(); // Reset the timer after manual use
+                resetAutoSlide(); // Resetează timer-ul după utilizarea manuală
             }, 500);
         });
     });
 
-    // Scroll animation for the welcome section
+    // Animatie la scroll pentru secțiunea de bun venit
     const welcomeSection = document.getElementById('welcome-section');
     window.addEventListener('scroll', () => {
         const sectionTop = welcomeSection.getBoundingClientRect().top;
         const windowHeight = window.innerHeight;
 
-        if (sectionTop < windowHeight - 100) { // Trigger animation when section is in view
+        if (sectionTop < windowHeight - 100) { // Afișează animația când secțiunea este vizibilă
             welcomeSection.classList.remove('opacity-0', 'translate-y-10');
             welcomeSection.classList.add('opacity-100', 'translate-y-0');
         }
     });
 
-    // Scroll animation for the right column sections
+    // Animatie la scroll pentru coloanele din dreapta
     const aranjamenteSection = document.getElementById('aranjamente-section');
     const bucheteSection = document.getElementById('buchete-section');
 
@@ -187,7 +187,7 @@
         [aranjamenteSection, bucheteSection].forEach((section) => {
             const sectionTop = section.getBoundingClientRect().top;
 
-            if (sectionTop < windowHeight - 100) { // Trigger animation when section is in view
+            if (sectionTop < windowHeight - 100) { // Afișează animația când secțiunea este vizibilă
                 section.classList.remove('opacity-0', 'translate-y-10');
                 section.classList.add('opacity-100', 'translate-y-0');
             }

@@ -31,21 +31,20 @@ from .models import (
 from .forms import ContactForm, UserForm
 
 import matplotlib
-matplotlib.use('Agg')  # Use non-GUI backend
-
+matplotlib.use('Agg')  
 import stripe
-stripe.api_key = settings.STRIPE_SECRET_KEY  # Set Stripe API key
+stripe.api_key = settings.STRIPE_SECRET_KEY  # Stripe API key
 
 import json
 from PIL import Image, ImageDraw
 from django.conf import settings
 import math
-import random
+
+import os
+
 
 def home(request):
     all_products = Product.objects.all().order_by('-number_of_purcheses', '-created_at')
-
-    # Filter manually using a loop
     top_products = []
     for product in all_products:
         if not product.is_custom and not product.in_store:
@@ -59,14 +58,22 @@ def home(request):
 
 def cart_view(request):
     if request.user.is_authenticated:
-        cart_items = CartItem.objects.filter(user=request.user)
+        base_qs = CartItem.objects.filter(user=request.user)
     else:
         session_id = request.session.session_key
         if not session_id:
             request.session.create()
             session_id = request.session.session_key
-        cart_items = CartItem.objects.filter(session_id=session_id)
+        base_qs = CartItem.objects.filter(session_id=session_id)
 
+    # Remove expired reservations before showing cart
+    expired = base_qs.filter(reserved_until__isnull=False, reserved_until__lte=timezone.now())
+    if expired.exists():
+        for item in expired:
+            remove_from_cart(request, item.product_id)
+        expired.delete()
+
+    cart_items = base_qs  # remaining (valid) items
     total_price = sum(item.total_price() for item in cart_items)
 
     context = {
@@ -94,79 +101,78 @@ def get_or_create_session_id(request):
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id)
 
-    # Skip stock checks for these categories
+    # Ignora stock check pentru aceste categorii
     stock_managed_product = product.category not in ['buchete', 'aranjamente', 'CustomBouquet']
-    
-    # For stock-managed products, use transaction to prevent race conditions
+
+    # Pentru produsele gestionate de stoc
     if stock_managed_product:
         with transaction.atomic():
-            # Select product again for update - locks the row
+            # Selecteaza produsul din baza de date si blocheaza randul
             product = Product.objects.select_for_update().get(id=product_id)
             
-            # Calculate total reserved quantity (including current user's cart)
+            # Calculeaza cantitatea totala rezervata (inclusiv in cosul utilizatorului curent)
             total_reserved_quantity = CartItem.objects.filter(
                 product=product, 
                 reserved_until__gt=timezone.now()
             ).aggregate(
-                total=Sum('quantity') 
+                total=Sum('quantity') #Calculeaza suma cosurilor active
             )['total'] or 0
             
-            # Check if adding one more would exceed stock
+            # Verifica daca adaugarea unuia in plus ar depasi stocul
             if total_reserved_quantity >= product.stock:
                 error_message = f"Ne pare rău, produsul '{product.name}' nu mai este disponibil. Toate unitățile sunt momentan rezervate în coșuri."
                 
-                # Return a simple error message without HTML formatting for easier processing
+                # Returneaza mesaj de eroare pentru toate tipurile de cereri
                 return HttpResponse(error_message, status=400)
 
-    # Continue with existing cart logic
+   #Adauga sau actualizeaza elementul in cos
     if request.user.is_authenticated:
         cart_item, created = CartItem.objects.get_or_create(user=request.user, product=product)
     else:
         session_id = get_or_create_session_id(request)
         cart_item, created = CartItem.objects.get_or_create(session_id=session_id, product=product)
 
-    # If item was just created, set initial quantity to 1
+    # Daca elementul este nou, seteaza cantitatea la 1 si timpul de rezervare
     if created:
         cart_item.quantity = 1
-        cart_item.reserved_until = timezone.now() + timedelta(minutes=30)
+        cart_item.reserved_until = timezone.now() + timedelta(minutes=1)
         cart_item.save()
     else:
-        # Item already exists, increment quantity if possible
+        # Daca elementul exista deja,  incrementezi cantitatea
         if product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
-            # For these categories, allow up to 10 without stock check
+            # Permite doar 10
                 if cart_item.quantity < 10:
                     cart_item.quantity += 1
-                    # Refresh reservation time
-                cart_item.reserved_until = timezone.now() + timedelta(minutes=30)
                 cart_item.save()
         else:
-                # For other products, check against total reserved quantity
-                # Calculate total reserved quantity again to ensure accuracy
+                # Pentru produsele gestionate de stoc
+                # Calculeaza cantitatea totala rezervata din cos
                 total_reserved = CartItem.objects.filter(
                     product=product, 
                     reserved_until__gt=timezone.now()
                 ).aggregate(
                     total=Sum('quantity') 
                 )['total'] or 0
-                
-                # Check if incrementing would exceed stock
+
+                # Verific stocul
                 if total_reserved < product.stock:
                     cart_item.quantity += 1
-                    # Refresh reservation time
-                    cart_item.reserved_until = timezone.now() + timedelta(minutes=30)
+                    # Recalculeaza rezervarea
+                    cart_item.reserved_until = timezone.now() + timedelta(minutes=1)
                     cart_item.save()
                 else:
                     error_message = f"Ne pare rău, nu se poate adăuga mai mult din produsul '{product.name}'. Toate unitățile sunt momentan rezervate."
                     return HttpResponse(error_message, status=400)
 
-    # Check if the request is from HTMX
+    # Daca requestul e htmx
     if request.headers.get("HX-Request"):
         cart_count = get_cart_items(request).count()
+        # Randeaza partialul pentru numarul de produse din cos
         html = render_to_string("partials/cart_count.html", {"cart_count": cart_count})
         
         response = HttpResponse(html)
-        
-        # Add a trigger to update the cart button
+
+        # Adauga un trigger pentru a actualiza dinamic
         response["HX-Trigger"] = json.dumps({
             "cartUpdated": {"productId": product_id}
         })
@@ -178,24 +184,24 @@ def add_to_cart(request, product_id):
 def remove_from_cart(request, product_id):
     cart_item = CartItem.objects.filter(product_id=product_id).first()
     if cart_item:
-        # Check if this is a custom bouquet product
+        # Daca e un buchet personalizat
         if cart_item.product.is_custom and cart_item.product.category == 'CustomBouquet':
-            # Delete the custom bouquet and its associated product
+            # Sterge buchetul personalizat si produsul asociat
             try:
                 custom_bouquet = CustomBouquet.objects.get(product=cart_item.product)
-                # Delete the product first (which will cascade to cart items)
+                # Sterge mai intai produsul 
                 cart_item.product.delete()
-                # Delete the custom bouquet
+                # Sterge buchetul personalizat
                 custom_bouquet.delete()
             except CustomBouquet.DoesNotExist:
-                # If no custom bouquet found, just delete the product
+                # Daca nu exista un buchet personalizat, sterge doar produsul din cos
                 cart_item.product.delete()
         else:
-            # For regular products, handle auction logic
+            # Pentru produsele obisnuite, gestioneaza logica 
             if cart_item.product.bid_submited:
-                # If the product is in auction, set bid_submited to False
+                # Daca produsul este la licitatie, seteaza bid_submited la False
                 cart_item.product.bid_submited = False
-                cart_item.product.price = cart_item.product.before_auction_price  # Reset to original price
+                cart_item.product.price = cart_item.product.before_auction_price  # Reseteaza la pretul original
                 cart_item.product.save() 
             cart_item.delete()
 
@@ -207,57 +213,56 @@ def remove_from_cart(request, product_id):
 
     total_price = sum(item.total_price() for item in cart_items)
 
-    if request.headers.get("HX-Request"):  # Check if it's an HTMX request
-        if not cart_items:  # If cart is empty, refresh the whole page
+    if request.headers.get("HX-Request"):  # Daca e un request HTMX
+        if not cart_items:  # Daca cosul e gol, refresh-uieste intreaga pagina
             response = HttpResponse("")
-            response["HX-Redirect"] = "/cart/"  # Redirects to the cart page
+            response["HX-Redirect"] = "/cart/"  # Redirectioneaza catre pagina cosului
             return response
 
-        # If cart is not empty, update both cart items and total price
+        # Daca cosul nu e gol, actualizeaza atat produsele din cos cat si pretul total
         total_price_html = render_to_string("partials/total_price.html", {"total_price": total_price}, request=request)
     
         cart_count = get_cart_items(request).count()
         cart_html = render_to_string("partials/cart_count.html", {"cart_count": cart_count}, request=request)
-
-        # Return a response that updates the cart count (via hx-swap-oob)
+ 
         response = HttpResponse(cart_html)
 
         #response = HttpResponse("")
-        response["HX-Trigger"] = "updateTotalPrice"  # Trigger the total price update
+        response["HX-Trigger"] = "updateTotalPrice"  # Trigger la total price script
         return response
 
 
-    # If it's a normal request, redirect to the cart page
+    # Pentru requesturile normale, redirectioneaza catre pagina cosului
     return redirect("cart")
 
 def update_cart(request, product_id, quantity):
     cart_item = CartItem.objects.filter(product_id=product_id).first()
     if cart_item:
-        # For buchete, aranjamente, and custom bouquets, allow up to 10
+        # Pentru buchete, aranjamente, si custom bouquets pana la 10
         if cart_item.product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
             cart_item.quantity = min(quantity, 10)
             cart_item.save()
         else:
-            # For other products, check against total reserved quantity
-            # Calculate current total reserved quantity
+            # Pentru celelalte produse, verifica impotriva cantitatii totale rezervate
+            # Calculeaza current total reserved quantity
             total_reserved = CartItem.objects.filter(
                 product=cart_item.product, 
                 reserved_until__gt=timezone.now()
             ).aggregate(
                 total=Sum('quantity') 
             )['total'] or 0
-            
-            # Calculate how much this specific cart item currently contributes
+
+            # Calculeaza cat de mult contribuie acest cart item in prezent
             current_contribution = cart_item.quantity
-            
-            # Calculate available quantity (total reserved minus current contribution)
+
+            # Calculeaza cantitatea disponibila (total rezervat minus contributia curenta)
             available_quantity = cart_item.product.stock - (total_reserved - current_contribution)
-            
-            # Set quantity to minimum of requested quantity and available quantity
+
+            # Cantitatea rezervata in cos este min dintre cantitatea ceruta si cantitatea disponibila
             new_quantity = min(quantity, available_quantity)
             
             if new_quantity < quantity:
-                # Return error if requested quantity exceeds available
+                # Returneaza mesaj de eroare pentru toate tipurile de cereri
                 error_message = f"Nu se poate seta cantitatea la {quantity} pentru '{cart_item.product.name}'. Cantitatea maximă disponibilă este {new_quantity}."
                 return JsonResponse({"success": False, "error": error_message}, status=400)
             
@@ -273,13 +278,13 @@ def increment_quantity(request, product_id):
         cart_item = CartItem.objects.filter(product_id=product_id, session_id=session_id).first()
     
     if cart_item:
-        # For buchete, aranjamente, and custom bouquets, allow up to 10 without stock check
+        # Pentru buchete, aranjamente, si custom bouquets
         if cart_item.product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
             if cart_item.quantity < 10:
                 cart_item.quantity += 1
                 cart_item.save()
         else:
-            # For other products, check against total reserved quantity
+            # Pentru celelalte produse, verifica impotriva cantitatii totale rezervate
             total_reserved = CartItem.objects.filter(
                 product=cart_item.product, 
                 reserved_until__gt=timezone.now()
@@ -287,12 +292,12 @@ def increment_quantity(request, product_id):
                 total=Sum('quantity') 
             )['total'] or 0
             
-            # Check if incrementing would exceed stock
+            # Verifica stocul
             if total_reserved < cart_item.product.stock:
                 cart_item.quantity += 1
                 cart_item.save()
             else:
-                # Return simple error message for all requests
+                # Returneaza mesaj de eroare pentru toate tipurile de cereri
                 error_message = f"Nu se poate adăuga mai mult din '{cart_item.product.name}'. Toate unitățile sunt rezervate."
                 return HttpResponse(error_message, status=400)
 
@@ -304,7 +309,7 @@ def increment_quantity(request, product_id):
         total_price_html = render_to_string("partials/total_price.html", {"total_price": total_price}, request=request)
         
         response = HttpResponse(item_html)
-        response["HX-Trigger"] = "updateTotalPrice"  # Trigger total price update
+        response["HX-Trigger"] = "updateTotalPrice"  # Trigger total pentru actualizarea pretului
         return response
 
     return redirect("cart")
@@ -321,20 +326,19 @@ def decrement_quantity(request, product_id):
         cart_item.save()
 
     elif cart_item and cart_item.quantity == 1:
-        #cart_item.delete()
         return remove_from_cart(request, product_id)
-
 
     cart_items = get_cart_items(request)
     total_price = sum(item.total_price() for item in cart_items)
 
     if request.headers.get('HX-Request'):
-        item_html = render_to_string("partials/cart_item.html", {"cart_item": cart_item}, request=request) if cart_item else ""
-        total_price_html = render_to_string("partials/total_price.html", {"total_price": total_price}, request=request)
+        item_html = render_to_string("partials/cart_item.html", {"cart_item": cart_item}, request=request) if cart_item else "" # generare html pentru item cos
+        total_price_html = render_to_string("partials/total_price.html", {"total_price": total_price}, request=request)  #generare html pentru totalul cosului
         
         response = HttpResponse(item_html)
-        response["HX-Trigger"] = "updateTotalPrice"  # Trigger total price update
+        response["HX-Trigger"] = "updateTotalPrice"  # Trigger total pentru actualizarea pretului
         return response
+
 
     return redirect("cart")
 
@@ -342,32 +346,32 @@ def decrement_quantity(request, product_id):
 def products_by_category(request: HttpRequest, category):
     products = Product.objects.filter(category=category)
 
-    # Determine smallest and largest prices
+    # Determina pretul minim si maxim
     smallest_price = products.order_by('price').first().price if products.exists() else 0
     largest_price = products.order_by('-price').first().price if products.exists() else 0
 
-    # Apply price range filter
+    # Filtrare dupa intervalul de pret
     min_price = request.GET.get('min_price')
     max_price = request.GET.get('max_price')
     if min_price and max_price:
         products = products.filter(price__gte=min_price, price__lte=max_price)
 
-    # Apply sorting
+    # Aplicare sortare
     sort_order = request.GET.get('sort', 'asc')
     if sort_order == 'asc':
         products = products.order_by('price')
     elif sort_order == 'desc':
         products = products.order_by('-price')
 
-    # Mark products as new (added in last 48 hours)
+    # Determina daca produsul este nou
     now = timezone.now()
     new_threshold = now - timedelta(hours=48)
     
-    # Get cart product IDs
+    # Ia id-ul produselor din cosul utilizatorului
     cart_product_ids = list(get_cart_items(request).values_list('product_id', flat=True))
-    
-    # Materialize queryset to add the is_new property
-    products = list(products)  
+
+    # Adauga proprietatea is_new pentru produse
+    products = list(products)
     for product in products:
         product.is_new = product.created_at >= new_threshold
 
@@ -411,7 +415,7 @@ def merge_carts(sender, request, user, **kwargs):
                 item.delete()
             else:
                 item.user = user
-                item.session_id = None  # Remove session association
+                item.session_id = None  # Sterge asocierea cu sesiunea
                 item.save()
 
 
@@ -422,7 +426,7 @@ def register(request):
         password1 = request.POST["password1"]
         password2 = request.POST["password2"]
 
-        # Password restrictions
+        #RESTRICITILE DE PAROLA
         errors = [] 
         if len(password1) < 8:
             errors.append("Parola trebuie să aibă cel puțin 8 caractere.")
@@ -436,15 +440,15 @@ def register(request):
             errors.append("Parola trebuie să conțină cel puțin o literă mică.")
 
 
-        # Check if passwords match
+        # Verifica daca parolele se potrivesc
         if password1 != password2:
             errors.append("Parolele nu se potrivesc.")
 
-        # Check if username already exists
+        # Verifica daca username-ul exista deja
         if User.objects.filter(username=username).exists():
             errors.append("Username este deja folosit.")
 
-        # Check if email is already used
+        # Verifica daca email-ul este deja folosit
         if User.objects.filter(email=email).exists():
             errors.append("Email este deja folosit.")
 
@@ -453,17 +457,16 @@ def register(request):
                 messages.error(request, error)
             return redirect("register")
 
-        # Create user
+        # Creaza utilizatorul
         user = User.objects.create_user(username=username, email=email, password=password1)
         user.save()
 
-        # Log the user in automatically after registration
+        # Logheaza utilizatorul automat dupa inregistrare
         from django.contrib.auth import authenticate
         user = authenticate(request, username=username, password=password1)
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
 
-        #messages.success(request, "Registration successful! You are now logged in.")
-        return redirect("home")  # Redirect to homepage
+        return redirect("home")
 
     return render(request, "register.html")
 
@@ -476,8 +479,7 @@ def user_login(request):
 
         if user is not None:
             login(request, user)
-            #messages.success(request, "Login successful!")
-            return redirect("home")  # Redirect to homepage
+            return redirect("home") 
         else:
             messages.error(request, "Credențiale invalide.")
             return redirect("login")
@@ -486,7 +488,7 @@ def user_login(request):
 
 def user_logout(request):
     logout(request)
-    return redirect("home")  # Redirect to homepage after logout
+    return redirect("home") 
 
 def product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk)
@@ -538,23 +540,23 @@ def order_detail(request, order_id):
     })
 
 
-stripe.api_key = settings.STRIPE_SECRET_KEY  # Set Stripe API key
+stripe.api_key = settings.STRIPE_SECRET_KEY  #Stripe API key
 
 @login_required
 def checkout(request):
-    """ Handles checkout process and creates order in DB. """
+   # Preia elementele din cos
     user = request.user if request.user.is_authenticated else None
     session_id = request.session.session_key or request.session.create()
     cart_items = CartItem.objects.filter(user=user) if user else CartItem.objects.filter(session_id=session_id)
-
+   #
     subtotal = sum(item.total_price() for item in cart_items)
-    delivery_fee = 29  # Default delivery fee for address delivery
+    delivery_fee = 29  # lei default
     total_price = subtotal + delivery_fee
 
     if request.method == "POST":
         payment_method = request.POST["payment_method"]
 
-        # Create the order
+        # Creeaza comanda
         order = Order.objects.create(
             user=user,
             session_id=session_id if not user else None,
@@ -570,20 +572,20 @@ def checkout(request):
             payment_status=False if payment_method == "card" else True
         )
 
-        # Save cart items to OrderItem
+        # Salveaza elementele din cos ca elemente de comanda
         for item in cart_items:
-            price = item.product.price if item.product.price is not None else 0  # Ensure price is not None
+            price = item.product.price if item.product.price is not None else 0  
             OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, price=price)
 
-        # Clear the cart after saving order
+        # Goleste cosul
         cart_items.delete()
 
         if payment_method == "card":
-            request.session["order_id"] = order.id  # Store order ID for payment processing
-            return redirect("process_payment")  # Redirect to Stripe payment
+            request.session["order_id"] = order.id  
+            return redirect("process_payment")  
 
-        return redirect("order_success")  # Redirect to success page for cash on delivery
-
+        return redirect("order_success")  
+    
     return render(request, "checkout.html", {
         'stripe_public_key': settings.STRIPE_PUBLIC_KEY,
         "cart_items": cart_items,
@@ -602,12 +604,12 @@ def get_cart_items(request):
 
 def checkout_step_2(request):
     if request.method == 'POST':
-        # Get form data
+       # Preia datele din formular
         delivery_type = request.POST.get('delivery_type', 'delivery')
         payment_method = request.POST.get('payment_method')
         desired_delivery_date = request.POST.get("desired_delivery_date")
-        
-        # Validate delivery date (must be at least 48 hours from now)
+
+        # Valideaza data de livrare
         if desired_delivery_date:
             from datetime import datetime, timedelta
             try:
@@ -615,7 +617,6 @@ def checkout_step_2(request):
                 min_date = (datetime.now() + timedelta(hours=48)).date()
                 
                 if delivery_date < min_date:
-                    # Return error message
                     return render(request, 'partials/checkout_step_1.html', {
                         'error_message': f'Data de livrare trebuie să fie cel puțin 48 de ore în viitor. Data minimă permisă: {min_date.strftime("%d/%m/%Y")}'
                     })
@@ -623,18 +624,18 @@ def checkout_step_2(request):
                 return render(request, 'partials/checkout_step_1.html', {
                     'error_message': 'Data de livrare nu este validă.'
                 })
-        
-        # Calculate delivery fee based on delivery type
+
+        # Calculeaza taxa de livrare in functie de tipul de livrare
         delivery_fee = 0 if delivery_type == 'pickup' else 29
-        
-        # Calculate total
+
+        # Calculeaza totalul
         user = request.user if request.user.is_authenticated else None
         session_id = request.session.session_key or request.session.create()
         cart_items = get_cart_items(request)
         subtotal = sum(item.total_price() for item in cart_items)
         total_price = subtotal + delivery_fee
 
-        # Create the Order with new fields
+        # Creaza comanda
         order = Order.objects.create(
             user=user,
             session_id=None if user else session_id,
@@ -647,32 +648,28 @@ def checkout_step_2(request):
             total_price=subtotal,
             delivery_fee=delivery_fee,
             payment_method=payment_method,
-            payment_status=False if payment_method == 'cash' else False,  # Cash on delivery is not paid yet, card payments will be updated after successful payment
+            payment_status=False if payment_method == 'cash' else False, 
             delivery_type=delivery_type,
             desired_delivery_date=request.POST.get("desired_delivery_date"),
             delivery_time_slot=request.POST.get("delivery_time_slot"),
             delivery_notes=request.POST.get("delivery_notes", "")
         )
 
-        # Save CartItems to OrderItems
+        # Salveaza CartItems ca OrderItems
         for item in cart_items:
             OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, price=item.product.price)
 
-        # Clear the cart
-        # cart_items.delete()
-
-        # Handle payment method logic
+        # Finalizeaza comanda
         if payment_method == 'cash':
-            # For cash on delivery, go directly to success page
             try:
                finish_order(request, order)
-               print("Cash order finished successfully.")
                return render(request, 'partials/order_success.html')
             except Order.DoesNotExist:
-                return JsonResponse({"success": False, "message": "Order not found."})
-            
+                return JsonResponse({"success": False, "message": "Comanda nu a fost găsită."})
+
         else:
-            # For card payment, continue to step 2
+            # Pentru plata cu cardul, continua la pasul 2
+            # salvez order_id si total_price in sesiune
             request.session["order_id"] = order.id
             request.session["total_price"] = float(total_price)
 
@@ -689,17 +686,18 @@ def finish_order(request, order):
 
     send_order_email(order, request.user, email_destination=order.email)
 
-    # Decrement stock for each product in the order
+    # Actualizeaza stocul produselor
     for item in order.items.all():
         if item.product.stock is not None and item.product.stock > 0:
             item.product.stock = max(0, item.product.stock - item.quantity)
             item.product.save()
 
-    # Clear the cart after successful payment
+    # Sterge articolele din cos
     user = request.user if request.user.is_authenticated else None
     session_id = request.session.session_key
     cart_items = CartItem.objects.filter(user=user) if user else CartItem.objects.filter(session_id=session_id)
 
+    # Actualizeaza numarul de vanzari pentru fiecare produs
     for item in cart_items:
         item.product.number_of_purcheses += item.quantity
         item.product.save()
@@ -707,26 +705,24 @@ def finish_order(request, order):
     cart_items.delete()
 
 @csrf_exempt
-def checkout_step_3(request):
+def checkout_step_3(request): #finalizam plata cu cardul folosind stripe
     if request.method == 'POST':
-        token = request.POST.get('stripeToken')
+        token = request.POST.get('stripeToken') #tokenul de card trimis de stripe
         amount = float(request.session.get("total_price", 0))
-
-        print("Received token:", token)  # Debugging
-        print("Amount:", amount)  # Debugging
 
         if not token or amount == 0:
             return JsonResponse({"success": False, "message": "Plata a eșuat."})
 
         try:
+            #creeaza tranzactia Stripe
             charge = stripe.Charge.create(
-                amount=int(amount * 100),  # Convert to cents
+                amount=int(amount * 100),  #convertim in cents
                 currency="ron",
                 description="Order Payment",
                 source=token,
             )
 
-            # Save Payment Info
+            # Salvez plata in DB
             Payment.objects.create(
                 user=request.user if request.user.is_authenticated else None,
                 amount=amount,
@@ -734,7 +730,7 @@ def checkout_step_3(request):
                 status="Completed"
             )
 
-            # Get order ID from session and retrieve the order
+            # Finalizeaza comanda
             order_id = request.session.get("order_id")
             if not order_id:
                 return JsonResponse({"success": False, "message": "Order ID not found in session."})
@@ -745,26 +741,25 @@ def checkout_step_3(request):
             except Order.DoesNotExist:
                 return JsonResponse({"success": False, "message": "Order not found."})
 
-            #return JsonResponse({"success": True, "message": "Payment successful!"})
             if request.headers.get("HX-Request"):
                 return render(request, 'checkout_step_3.html')
             else:
-                return redirect("order_success")  # fallback if not HTMX
+                return redirect("order_success")  # fallback daca nu e HTMX
         
         except stripe.error.CardError as e:
-            return JsonResponse({"success": False, "message": f"Card error: {str(e)}"})
+            return JsonResponse({"success": False, "message": f"Eroare card: {str(e)}"})
         except stripe.error.StripeError as e:
-            return JsonResponse({"success": False, "message": f"Stripe error: {str(e)}"})
+            return JsonResponse({"success": False, "message": f"Eroare Stripe: {str(e)}"})
         except Exception as e:
-            return JsonResponse({"success": False, "message": f"Unexpected error: {str(e)}"})
+            return JsonResponse({"success": False, "message": f"Eroare neașteptată: {str(e)}"})
 
-    return JsonResponse({"success": False, "message": "Invalid request"})
+    return JsonResponse({"success": False, "message": "Cerere invalidă."})
 
 def order_success(request):
     return render(request, 'partials/order_success.html')
 
 def update_order_summary(request):
-    """Update order summary based on delivery type"""
+    # Actualizeaza sumarul comenzii
     if request.method == 'POST':
         delivery_type = request.POST.get('delivery_type', 'delivery')
         delivery_fee = 0 if delivery_type == 'pickup' else 29
@@ -788,7 +783,7 @@ def update_order_summary(request):
 
 
 def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greenery_data=None, wrapping_color_hex="#FFFFFF"):
-  
+    # Preia forma buchetului si hartia de ambalaj
     try:
         shape = BouquetShape.objects.get(id=shape_id)
         if wrapping_id is None:
@@ -798,17 +793,16 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
     except (BouquetShape.DoesNotExist, WrappingPaper.DoesNotExist):
         return None
 
+    # Configuram canvasul 
     canvas_size = (500, 500)
     center = (canvas_size[0] // 2, canvas_size[1] // 2)
-    base_radius = 120  # inner circle radius
-    radius_step = 50   # distance between circles
-
+    
     # Create canvas
     image = Image.new("RGBA", canvas_size, (255, 255, 255, 0))
-    draw = ImageDraw.Draw(image)
-
-    all_items = []
     
+    all_items = []
+
+    # Calculam numarul total de flori
     total_flowers = 0
     for flower_data in flowers_data:
         try:
@@ -820,12 +814,12 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
         except (Flower.DoesNotExist, KeyError, ValueError):
             continue
 
-    # Calculate greenery quantity: 20% of total flowers, minimum 1 of EACH type if greenery is selected
+    # Calculam cantitatea de verdeata ca 20% din numarul total de flori, dar sa fie minim 1
     greenery_quantity_per_type = 0
     if greenery_data and total_flowers > 0:
-        greenery_quantity_per_type = max(1, int(total_flowers * 0.2))  # 20% of flowers, minimum 1
-    
-    # Add greenery (if provided and quantity calculated)
+        greenery_quantity_per_type = max(1, int(total_flowers * 0.2))  # 20% din flori
+
+    # Adaugam verdeata (daca este furnizata si cantitatea este calculata)
     if greenery_data and greenery_quantity_per_type > 0:
         greenery_types = []
         for green_data in greenery_data:
@@ -835,24 +829,22 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
             except (Greenery.DoesNotExist, KeyError, ValueError):
                 continue
         
-        # Add greenery items - ensure at least 1 of each type
+        # Adaugam verdeata - asiguram cel putin 1 din fiecare tip
         for green in greenery_types:
-            # Add the calculated quantity for each greenery type
+            # Adaugam cantitatea calculata pentru fiecare tip de verdeata
             for _ in range(greenery_quantity_per_type):
                 all_items.append((green, "greenery"))
 
     num_items = len(all_items)
-    print(f"Generated {num_items} items for image")
     if num_items == 0:
-        print("No items to generate image")
         return None
 
     item_positions = []
-    
+    # cu cat sunt mai multe flori, scadem dimensiunea lor
     if num_items <= 5: 
-        base_size = 250
-        min_size = 120
-        spiral_tightness = 0.8
+        base_size = 250 #marimea de baza a unei flori/greenery
+        min_size = 120 #marimea minima a unei flori/greenery
+        spiral_tightness = 0.8 
     elif num_items <= 30:
         base_size = 200
         min_size = 100
@@ -862,60 +854,63 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
         min_size = 90
         spiral_tightness = 1.2
     
-    # Calculate adaptive spacing
+    # Cu cat sunt mai multe flori, le distantam mai mult
     spacing_factor = max(0.6, min(1.5, 20 / num_items)) 
     
     for i, (item, item_type) in enumerate(all_items):
-        distance_from_center = i / num_items
-        size_factor = 1.2 - (distance_from_center * 0.3)  
-        size = max(min_size, int(base_size * size_factor))
-        
-        # Spiral positioning
+        distance_from_center = i / num_items #florile din centru sunt mai mari, iar cele exterioare mai mici 
+        size_factor = 1.2 - (distance_from_center * 0.3)  #dim element scade odata cu distanta de centru
+        size = max(min_size, int(base_size * size_factor)) #dim finala element
+
+        # Calculam pozitia folosind un model spiralat
         if i == 0:
             
-            x, y = center[0], center[1]
+            x, y = center[0], center[1] #prima floare in centru
         else:
             
-            angle = i * 137.5 * (math.pi / 180) * spiral_tightness  
-            radius = (i ** 0.5) * spacing_factor * 25  
+            angle = i * 137.5 * (math.pi / 180) * spiral_tightness #det unghi in spirala floare curenta, 137.5 = golden angle
+            radius = (i ** 0.5) * spacing_factor * 25  #det distanta fata de centru
             
-            x = int(center[0] + radius * math.cos(angle))
+            #transforma coordonate polare in coordonate carteziene
+            x = int(center[0] + radius * math.cos(angle)) 
             y = int(center[1] + radius * math.sin(angle))
             
-            max_offset = 180
+            max_offset = 180 #limiteaza elementele sa nu iasa din canvas
+            #aplica limitarea 
             x = max(center[0] - max_offset, min(center[0] + max_offset, x))
             y = max(center[1] - max_offset, min(center[1] + max_offset, y))
         
+        #salvam pozitia si dim elementului
         item_positions.append((y, x, item, size, item_type))
 
-    # Sort positions and draw items
+    # Sortam pozitia
     item_positions.sort(key=lambda tup: (tup[0], tup[1]))
 
     for y, x, obj, size, obj_type in item_positions:
         try:
             if obj_type == "flower":
                 flower_img = Image.open(obj.image.path).convert("RGBA")
-                flower_img = flower_img.resize((size, size), Image.LANCZOS)
-                bottom_center_x = center[0]
-                bottom_center_y = canvas_size[1]
-                dx = bottom_center_x - x
-                dy = bottom_center_y - y
+                flower_img = flower_img.resize((size, size), Image.LANCZOS) #redim imaginea la dim calculata
+                bottom_center_x = center[0] #retine coordonata X a bazei buchetului
+                bottom_center_y = canvas_size[1] #retine coordonata Y a bazei buchetului
+                dx = bottom_center_x - x #dif pe axa x intre floare si baza buchetului
+                dy = bottom_center_y - y #dif pe axa y intre floare si baza buchetului
                 angle_rad = math.atan2(dx, dy)
-                angle_deg = math.degrees(angle_rad)
-                rotated_img = flower_img.rotate(angle_deg, expand=True)
+                angle_deg = math.degrees(angle_rad) #transforma unghiul in grade, necesar PIL
+                rotated_img = flower_img.rotate(angle_deg, expand=True) #roteste imaginea
             else:  
                 greenery_img = Image.open(obj.image.path).convert("RGBA")
-                greenery_img = greenery_img.resize((size, size), Image.LANCZOS)
-                bottom_center_x = center[0]
-                bottom_center_y = canvas_size[1]
+                greenery_img = greenery_img.resize((size, size), Image.LANCZOS) #redim imaginea la dim calculata
+                bottom_center_x = center[0] #retine coordonata X a bazei buchetului
+                bottom_center_y = canvas_size[1] #retine coordonata Y a bazei buchetului
                 dx = bottom_center_x - x
                 dy = bottom_center_y - y
                 angle_rad = math.atan2(dx, dy)
                 angle_deg = math.degrees(angle_rad)
                 rotated_img = greenery_img.rotate(angle_deg, expand=True)
 
-            rx, ry = rotated_img.size
-            image.paste(rotated_img, (x - rx // 2, y - ry // 2), rotated_img)
+            rx, ry = rotated_img.size #dim imagine rotita
+            image.paste(rotated_img, (x - rx // 2, y - ry // 2), rotated_img) #lipim imaginea pe canvas la pozitia calculata
         except Exception as e:
             print(f"Error processing flower/greenery: {e}")
             continue
@@ -942,7 +937,7 @@ def create_custom_bouquet(request):
         try:
             shape = BouquetShape.objects.get(id=data.get("shape"))
         except BouquetShape.DoesNotExist:
-            # Render the summary
+            # Afiseaza un mesaj de eroare
             return render(request, "custom_bouquet_summary.html", {
                 "error": "Te rugăm să selectezi forma buchetului."
             })
@@ -976,18 +971,18 @@ def create_custom_bouquet(request):
                 numflowers += 1
 
         if numflowers == 0:
-            # Render the summary
+            # Afiseaza un mesaj de eroare
             return render(request, "custom_bouquet_summary.html", {
                 "error": "Te rugăm să selectezi cel puțin o floare."
             })
         
 
-        # Calculate total price
+        # Calculeaza pretul total
         total_price = wrapping_price + greenery_price + total_flower_price
 
         color_name = data.get("wrapping_color_name", "")
 
-        # Render the summary
+        # Randeaza rezumatul buchetului
         return render(request, "custom_bouquet_summary.html", {
             "shape": shape,
             "wrapping": wrapping_list,
@@ -1002,17 +997,14 @@ def create_custom_bouquet(request):
 def save_custom_bouquet(request):
     if request.method == "POST":
         data = request.POST
-        
-        # Debug logging
-        print(f"Save custom bouquet request data: {dict(data)}")
 
         try:
             shape = BouquetShape.objects.get(id=data.get("shape"))
         except BouquetShape.DoesNotExist:
-            print(f"Invalid shape ID: {data.get('shape')}")
-            return JsonResponse({"error": "Invalid shape selected."}, status=400)
+            print(f"Forma buchet Invalida: {data.get('shape')}")
+            return JsonResponse({"error": "Forma buchetului selectată nu este validă."}, status=400)
 
-        # Get wrapping paper (not variant)
+        # Wrapping
         wrapping_id = data.get("wrapping")
         wrapping = None
         if wrapping_id:
@@ -1021,62 +1013,49 @@ def save_custom_bouquet(request):
             except WrappingPaper.DoesNotExist:
                 return JsonResponse({"error": "Hârtia selectată nu este validă."}, status=400)
         else:
-            # Use first available wrapping if none selected
+            # Folosește prima hârtie disponibilă dacă nu este selectată
             wrapping = WrappingPaper.objects.first()
             if not wrapping:
                 return JsonResponse({"error": "Nu există hârtie de ambalaj disponibilă."}, status=400)
 
-        # Greenery
+        # Preluam lista de verdeata
         greenery_ids = data.getlist("greens")
         greenery_list = Greenery.objects.filter(id__in=greenery_ids)
 
-        # Flowers
+        # Preluam florile si cantitatile lor
         flower_quantities = {}
         for flower in Flower.objects.all():
             qty = int(data.get(f"flower_{flower.id}", 0))
             if qty > 0:
                 flower_quantities[flower.id] = qty
-        
-        print(f"Flower quantities: {flower_quantities}")
-        print(f"Greenery list: {list(greenery_list.values_list('id', flat=True))}")
 
-        # Calculate total price
+        # Calculam pretul total 
         total_price = float(data.get("total_price", 0))
 
-        # Generate the bouquet preview image
-        import os
-        from django.conf import settings
-        
-        # Get wrapping color
+        # Preluam wrapping colorul
         wrapping_color_name = data.get("wrapping_color_name", "")
         color_hex = "#FFFFFF"  # Default white
         
-        # Try to get the color from WrappingColor if name is provided
+        # Cautam culoarea in DB
         if wrapping_color_name:
             try:
                 wrapping_color = WrappingColor.objects.get(name=wrapping_color_name)
                 color_hex = wrapping_color.hex
             except WrappingColor.DoesNotExist:
-                pass  # Use default white
+                pass  
 
-        # Convert flower quantities to flowers_data format
+        # Convertim cantitatile florilor intr-o lista de dictionare
         flowers_data = []
         for flower_id, quantity in flower_quantities.items():
             flowers_data.append({"id": flower_id, "count": quantity})
 
-        # Convert greenery to greenery_data format (same as preview)
+        # Convertim verdeata intr-o lista de dictionare
         greenery_data = []
         for green in greenery_list:
-            greenery_data.append({"id": green.id, "count": 1})  # Use same format as preview
+            greenery_data.append({"id": green.id, "count": 1})  
 
-        print(f"Calling generate_bouquet_image with:")
-        print(f"  shape_id: {shape.id}")
-        print(f"  wrapping_id: {wrapping.id}")
-        print(f"  flowers_data: {flowers_data}")
-        print(f"  greenery_data: {greenery_data}")
-        print(f"  color_hex: {color_hex}")
 
-        # Generate the image using the reusable function
+        # Generam imaginea
         image = generate_bouquet_image(
             shape_id=shape.id,
             wrapping_id=wrapping.id,
@@ -1088,7 +1067,7 @@ def save_custom_bouquet(request):
         if image is None:
             return JsonResponse({"error": "Nu ai selectat flori."}, status=400)
 
-        # Save the generated image
+        # Salvam imaginea generata
         media_root = settings.MEDIA_ROOT
         custom_images_dir = os.path.join(media_root, 'custom_bouquets')
         os.makedirs(custom_images_dir, exist_ok=True)
@@ -1096,11 +1075,11 @@ def save_custom_bouquet(request):
         image_filename = f"custom_bouquet_{int(timezone.now().timestamp())}.png"
         image_path = os.path.join(custom_images_dir, image_filename)
         image.save(image_path, "PNG")
-        
-        # Relative path for database
+
+        # Path-ul pe care va fi salvata imaginea in DB
         relative_image_path = f"custom_bouquets/{image_filename}"
 
-        # Create the bouquet
+        # Cream buchetul personalizat
         custom_bouquet = CustomBouquet.objects.create(
             user=request.user if request.user.is_authenticated else None,
             shape=shape,
@@ -1108,7 +1087,7 @@ def save_custom_bouquet(request):
         )
         custom_bouquet.greenery.set(greenery_list)
 
-        # Add flowers
+        # Adaugam florile
         for flower_id, quantity in flower_quantities.items():
             BouquetFlower.objects.create(
                 bouquet=custom_bouquet,
@@ -1116,21 +1095,21 @@ def save_custom_bouquet(request):
                 quantity=quantity
             )
 
-        # Create the product with generated image
+        # Cream produsul asociat buchetului personalizat
         custom_product = Product.objects.create(
             name=f"Buchet personalizat #{custom_bouquet.id}",
             price=total_price,
             is_custom=True,
             image=relative_image_path,
             category='CustomBouquet',
-            stock=0  # Like buchete/aranjamente, no stock limit
+            stock=0  # Like buchete/aranjamente
         )
 
-        # Associate product with bouquet
+        # Asociem produsul cu buchetul
         custom_bouquet.product = custom_product
         custom_bouquet.save()
 
-        # Add to cart
+        # Adaugam produsul in cos
         if request.user.is_authenticated:
             cart_item, _ = CartItem.objects.get_or_create(user=request.user, product=custom_product)
         else:
@@ -1154,31 +1133,27 @@ def generate_bouquet_preview(request):
     if request.method != "POST":
         return HttpResponse(status=405)
 
-    data = json.loads(request.body)
-    
+    data = json.loads(request.body) # Deserializam datele JSON, le convertim in dictionar
+
     shape_id = data.get("shape")
     wrapping_id = data.get("wrapping")
 
-    # More lenient validation - allow preview even without shape/wrapping
+    # Validam forma buchetului
     if not shape_id:
         return JsonResponse({"error": "Forma buchetului este invalidă."}, status=400)
 
     flowers_data = data.get("flowers", [])
-    greens = data.get("greens", [])  # Frontend sends 'greens' not 'greenery'
+    greens = data.get("greens", [])  # Frontendul trimite 'greens' nu 'greenery'
     wrapping_color_hex = data.get("wrapping_color", "#FFFFFF")
 
-    # Debug logging
-    print(f"Preview request - shape_id: {shape_id}, wrapping_id: {wrapping_id}")
-    print(f"Flowers: {flowers_data}, Greens: {greens}")
-
-    # Convert greens array to greenery_data format
+    # Convertim arrayul de 'greens' in formatul 'greenery_data'
     greenery_data = []
     for green_id in greens:
         greenery_data.append({"id": int(green_id), "count": 1})
 
-    # Check if we have any items to generate
+    # Verificam daca avem elemente de generat
     if not flowers_data and not greens:
-        # Return a simple placeholder image with just the wrapping
+        # Returnam o imagine placeholder simpla cu doar ambalajul
         try:
             shape = BouquetShape.objects.get(id=shape_id)
             # Use first available wrapping if none selected
@@ -1193,15 +1168,15 @@ def generate_bouquet_preview(request):
         center = (canvas_size[0] // 2, canvas_size[1] // 2)
         base_radius = 120
 
-        # Create canvas with just wrapping
+        # cream imaginea de baza
         image = Image.new("RGBA", canvas_size, (255, 255, 255, 0))
         draw = ImageDraw.Draw(image)
 
-        # Draw wrapping circle
-        draw.ellipse([
-            (center[0] - base_radius, center[1] - base_radius),
-            (center[0] + base_radius, center[1] + base_radius)
-        ], fill=wrapping_color_hex)
+        # desenam elipsa ptr ambalaj
+        # draw.ellipse([
+        #     (center[0] - base_radius, center[1] - base_radius),
+        #     (center[0] + base_radius, center[1] + base_radius)
+        # ], fill=wrapping_color_hex)
 
         # Return the placeholder image
         response = HttpResponse(content_type="image/png")
@@ -1229,7 +1204,7 @@ def generate_bouquet_preview(request):
 def auction_view(request):
     products = Product.objects.all()
 
-    # Check for expired reservations
+    # Stergem elementele din cos care au expirat si resetam bid_submited
     for product in products.filter(bid_submited=True):
         cart_items = CartItem.objects.filter(product=product)
         for cart_item in cart_items:
@@ -1238,7 +1213,7 @@ def auction_view(request):
                 product.bid_submited = False
                 product.save()
 
-    # Filter for active auction products that haven't expired
+    # Filtram produsele active la licitatie care nu au expirat
     auction_products = []
     for p in products:
         if p.is_in_auction() and not p.is_auction_expired() and not p.bid_submited:
@@ -1251,7 +1226,6 @@ def auction_view(request):
 
 def auction_price_partial(request, pk):
     product = get_object_or_404(Product, pk=pk)
-    # NEW: allow fetching only the discount badge
     part = request.GET.get("part")
     if part == "discount":
         try:
@@ -1266,7 +1240,6 @@ def auction_price_partial(request, pk):
                 "</div>"
             )
             return HttpResponse(badge_html)
-        # No discount – return empty so the placeholder stays for future refreshes
         return HttpResponse("")
 
     return render(request, "partials/auction_price.html", {"product": product})
@@ -1274,10 +1247,7 @@ def auction_price_partial(request, pk):
 def  auction_confirm_popup(request, pk):
     if not request.headers.get("HX-Request"):
         return HttpResponseBadRequest("Invalid request")
-    
-    print("auction_confirm_popup called")
     product = get_object_or_404(Product, pk=pk)
-     # GET request: show confirmation popup
     return render(request, "partials/auction_confirm_popup.html", {"product": product})                      
 
 @require_POST
@@ -1295,7 +1265,7 @@ def auction_confirm(request, pk):
         auction_price, _, _ = product.get_auction_price()
         cart_item.product.price = auction_price
         cart_item.product.bid_submited = True
-        cart_item.reserved_until = timezone.now() + timedelta(minutes=1)  # rezervare 10 min
+        cart_item.reserved_until = timezone.now() + timedelta(minutes=1)  # rezervare 1 min
         cart_item.save()
         cart_item.product.save()
 
@@ -1308,24 +1278,57 @@ def send_order_email(order, user, email_destination):
     from_email = settings.DEFAULT_FROM_EMAIL
     to_email = [email_destination]
 
-    # Generate PDF invoice
+    # Generam factura PDF
     invoice_html = render_to_string('emails/invoice.html', {'order': order, 'user': user, 'email_destination': email_destination})
     pdf_file = BytesIO()
     HTML(string=invoice_html).write_pdf(pdf_file)
 
-    # Create the email with HTML content and PDF attachment
+    # Email client
     email = EmailMessage(
         subject=subject,
-        body=html_message,  # Use full HTML content here
+        body=html_message,
         from_email=from_email,
         to=to_email,
     )
-    email.content_subtype = "html"  # Mark content as HTML
+    email.content_subtype = "html"
     email.attach(f"factura_{order.id}.pdf", pdf_file.getvalue(), 'application/pdf')
     email.send()
 
+    # Email admin 
+    admin_recipients = [e for _, e in getattr(settings, "ADMINS", [])] or [settings.DEFAULT_FROM_EMAIL]
+    if admin_recipients:
+        # Construim delivery_info (HTML fragment)
+        delivery_info = ""
+        if order.delivery_type == "delivery":
+            delivery_info += f"<p><b>Adresa:</b> {order.address or '-'}, {order.city or ''} {order.zip_code or ''}</p>"
+        delivery_info += f"<p><b>Tip livrare:</b> {order.get_delivery_type_display()}</p>"
+        if order.desired_delivery_date:
+            delivery_info += f"<p><b>Data livrare:</b> {order.desired_delivery_date}</p>"
+        if order.delivery_time_slot:
+            delivery_info += f"<p><b>Interval livrare:</b> {order.delivery_time_slot}</p>"
+        if order.delivery_notes:
+            delivery_info += f"<p><b>Note:</b> {order.delivery_notes}</p>"
 
-from django.utils import timezone
+        admin_html_message = render_to_string(
+            'emails/new_order_email.html',
+            {
+                'order': order,
+                'delivery_info': delivery_info,  # will be marked safe in template
+            }
+        )
+
+        admin_subject = f"Noua Comanda plasata - #{order.id}"
+        admin_email = EmailMessage(
+            subject=admin_subject,
+            body=admin_html_message,
+            from_email=from_email,
+            to=admin_recipients,
+            reply_to=[email_destination] if email_destination else None,
+        )
+        admin_email.content_subtype = "html"
+        admin_email.attach(f"factura_{order.id}.pdf", pdf_file.getvalue(), 'application/pdf')
+        admin_email.send()
+
 
 def contact_view(request):
     form = ContactForm(request.POST or None)
@@ -1372,7 +1375,7 @@ def contact_success(request):
 def admin_dashboard(request):
     categories = Product.objects.values_list('category', flat=True).distinct()
 
-    # Orders and revenue for this period (last 30 days)
+    # Statistici comenzi si venituri ultimele 30 zile vs 30 zile precedente
     today = datetime.today().date()
     start_date = today - timedelta(days=30)
     prev_start = start_date - timedelta(days=30)
@@ -1405,14 +1408,15 @@ def product_list_api(request):
     products = list(qs.values("id", "name"))
     return JsonResponse({"products": products})
 
+#statistici vanzari si vizite
 def sales_data_api(request):
     start = request.GET.get("start")
     end = request.GET.get("end")
     category = request.GET.get("category")
     product = request.GET.get("product")
-    user_segment = request.GET.get("user_segment")
     compare_start = request.GET.get("compare_start")
     compare_end = request.GET.get("compare_end")
+  
 
     today = datetime.today().date()
     start_date = datetime.strptime(start, "%Y-%m-%d").date() if start else today - timedelta(days=30)
@@ -1420,24 +1424,13 @@ def sales_data_api(request):
 
     orders = Order.objects.filter(created_at__date__range=(start_date, end_date))
 
-    # User segmentation
-    if user_segment == "new":
-        orders = orders.filter(user__date_joined__gte=start_date)
-    elif user_segment == "returning":
-        orders = orders.filter(user__date_joined__lt=start_date)
-    elif user_segment == "region":
-        # Example: filter by city (region)
-        region = request.GET.get("region")
-        if region:
-            orders = orders.filter(city=region)
-
-    # Category/Product filter
+    # Filtru categorie/produs
     if category:
         orders = orders.filter(items__product__category=category)
     if product:
         orders = orders.filter(items__product__id=product)
 
-    # Sales over time
+    # Vanzari in timp
     daily_sales = (
         orders.annotate(day=TruncDate("created_at"))
         .values("day")
@@ -1448,7 +1441,7 @@ def sales_data_api(request):
     totals = [float(d["total"]) for d in daily_sales]
     counts = [d["count"] for d in daily_sales]
 
-    # Top products
+    # Top produse
     product_qs = Product.objects.filter(orderitem__order__in=orders)
     if category:
         product_qs = product_qs.filter(category=category)
@@ -1460,7 +1453,7 @@ def sales_data_api(request):
     top_product_names = [p.name for p in top_products]
     top_product_sold = [p.sold or 0 for p in top_products]
 
-    # Visits
+    # Vizite
     visits = (
         VisitorLog.objects
         .filter(timestamp__date__range=(start_date, end_date))
@@ -1472,7 +1465,7 @@ def sales_data_api(request):
     visits_data = {v['date'].strftime("%Y-%m-%d"): v['count'] for v in visits}
     visit_counts = [visits_data.get(label, 0) for label in labels]
 
-    # Conversion rate per day (as percentage)
+    # Rata conversiei
     conversion_rates = []
     for sales_count, visit_count in zip(counts, visit_counts):
         if visit_count > 0:
@@ -1480,7 +1473,7 @@ def sales_data_api(request):
         else:
             conversion_rates.append(0)
 
-    # Compare periods
+    # Comparare perioade
     compare = None
     if compare_start and compare_end:
         cs = datetime.strptime(compare_start, "%Y-%m-%d").date()
@@ -1522,27 +1515,32 @@ def sales_data_api(request):
 
 @require_GET
 def sales_summary_api(request):
+    # extragem din url datele 
     start = request.GET.get("start")
     end = request.GET.get("end")
     today = datetime.today().date()
     start_date = datetime.strptime(start, "%Y-%m-%d").date() if start else today - timedelta(days=30)
     end_date = datetime.strptime(end, "%Y-%m-%d").date() if end else today
 
+    #calcul perioada anterioara
     prev_start = start_date - (end_date - start_date)
     prev_end = start_date
-
+    
+    #comenzile din perioada curenta si anterioara
     orders_qs = Order.objects.filter(created_at__date__range=(start_date, end_date))
     prev_orders_qs = Order.objects.filter(created_at__date__range=(prev_start, prev_end))
 
+    #nr total de comenzi acum si precedent + cresterea in procente
     total_orders = orders_qs.count()
     prev_orders = prev_orders_qs.count()
     orders_growth = ((total_orders - prev_orders) / prev_orders * 100) if prev_orders else None
 
+    # Calculam venitul total + cresterea in procente
     total_revenue = orders_qs.aggregate(total=Sum('total_price'))['total'] or 0
     prev_revenue = prev_orders_qs.aggregate(total=Sum('total_price'))['total'] or 0
     revenue_growth = ((total_revenue - prev_revenue) / prev_revenue * 100) if prev_revenue else None
 
-    # Format total_revenue to 2 decimal places
+    # Formatam total_revenue la 2 zecimale
     total_revenue = round(float(total_revenue), 2)
 
     return JsonResponse({
@@ -1552,19 +1550,14 @@ def sales_summary_api(request):
         "revenue_growth": revenue_growth,
     })
 
-# Add a function to refresh cart item reservations
-def refresh_cart_reservation(request):
-    """Extend reservation time for items in cart"""
-    cart_items = get_cart_items(request)
+# functie refresh rezervare cos
+# def refresh_cart_reservation(request):
+#     cart_items = get_cart_items(request)
     
-    for item in cart_items:
-        item.reserved_until = timezone.now() + timedelta(minutes=30)
-        item.save()
+#     for item in cart_items:
+#         item.reserved_until = timezone.now() + timedelta(minutes=30)
+#         item.save()
     
-    return JsonResponse({"success": True})
-    for item in cart_items:
-        item.reserved_until = timezone.now() + timedelta(minutes=30)
-        item.save()
-    
-    return JsonResponse({"success": True})
+#     return JsonResponse({"success": True})
+
 
