@@ -1,0 +1,24 @@
+<div class="fixed inset-0 z-[200] flex items-center justify-center" id="logout-modal" hx-on="htmx:afterSwap: this.querySelector('button[data-close]')?.focus()">
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-close></div>
+  <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-8 animate-fadeIn">
+    <h2 class="text-2xl font-bold mb-4 text-gray-800">Confirmă Deconectarea</h2>
+    <p class="text-gray-600 mb-6">Ești sigur că vrei să te deconectezi?</p>
+    <form method="post" action="{% url 'logout' %}" class="space-y-4">
+      {% csrf_token %}
+      <div class="flex gap-3">
+        <button type="submit" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-md font-medium transition">Deconectează-mă</button>
+      </div>
+    </form>
+    <button aria-label="Close" data-close class="absolute top-3 right-3 text-gray-400 hover:text-gray-600">✕</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const modal = document.getElementById('logout-modal');
+  if(!modal) return;
+  function close(){ modal.remove(); }
+  modal.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click', close));
+  document.addEventListener('keydown', function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', esc);} });
+})();
+</script>

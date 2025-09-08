@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -29,8 +28,6 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
-# Application definition
-
 INSTALLED_APPS = [
     'colorfield', 
     'admin_interface',
@@ -40,8 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'App',  # the app
-    'django_htmx',  # HTMX Middleware
+    'App',  
+    'django_htmx', 
     'social_django',
     'ckeditor'
 
@@ -51,7 +48,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django_htmx.middleware.HtmxMiddleware',  # Enable HTMX Middleware
+    'django_htmx.middleware.HtmxMiddleware',  
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -117,12 +114,12 @@ CSRF_COOKIE_HTTPONLY=False
 
 LANGUAGE_CODE = 'en-us'
 
-# Set your desired timezone
+
 TIME_ZONE = 'Europe/Bucharest'
 
 USE_I18N = True
 
-USE_TZ = True  # Ensure timezone support is enabled
+USE_TZ = True  
 
 
 # Static files (CSS, JavaScript, Images)
@@ -140,8 +137,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'App', 'static', 'media')
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -149,9 +144,8 @@ STRIPE_PUBLIC_KEY = "pk_test_51R8NtNRsvYugeMjUdh0qycRIsQ6qcSW2dfu2eZQiPpJ4Jf4k0x
 STRIPE_SECRET_KEY = "sk_test_51R8NtNRsvYugeMjUgWdFox6ISPvTdWIRorWAeeoT7IK6mQHVMntQpUHe4zvCfkLoFmbn788cKDDzLOXQKJJmSjQv00ovGzRovX"
 
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' #for prod
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' 
 
-#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' #for dev
 
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587

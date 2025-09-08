@@ -1,8 +1,6 @@
 <button
     class="btn btn-primary w-full text-xl py-3 rounded-lg shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transform transition-transform duration-200 hover:-translate-y-1"
-    hx-get="{% url 'auction_confirm_popup' product.pk %}"
-    hx-target="#modal-container"
-    hx-swap="innerHTML"
+    hx-post="{% url 'auction_confirm' product.pk %}"
 >
     <span class="mr-2">{{ product.get_auction_price.0|floatformat:2 }} LEI</span>
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -1,7 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
-from django.contrib.admin.widgets import FilteredSelectMultiple
 from .forms import ProductForm
 from .models import Product, CartItem, Order, Flower, BouquetShape, Greenery, WrappingPaper, WrappingColor, WrappingPaperColor, CustomBouquet, ContactMessage, VisitorLog
 
@@ -10,7 +9,7 @@ class ProductAdmin(admin.ModelAdmin):
     form = ProductForm
     list_display = ('name', 'price',  'bid_submited', 'number_of_purcheses', 'stock', 'delete_link')
     list_filter = ('bid_submited', 'in_store', 'is_custom', 'category')
-    readonly_fields = ('is_custom', 'before_auction_price', 'in_store', 'number_of_purcheses')
+    readonly_fields = ('is_custom', 'in_store', 'number_of_purcheses')
 
     class Media:
         js = ('admin/js/admin.js',)  
@@ -24,7 +23,7 @@ class ProductAdmin(admin.ModelAdmin):
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'delivery_type', 'desired_delivery_date', 'delivery_time_slot', 'total_price', 'delivery_fee', 'created_at', 'payment_status_display', 'linked_products')
     list_filter = ('delivery_type', 'payment_status', 'created_at', 'desired_delivery_date')
-    readonly_fields = ('linked_products_table',)  # Make linked_products visible in the detail view
+    readonly_fields = ('linked_products_table',)  
 
     def payment_status_display(self, obj):
         if obj.payment_method == 'cash':

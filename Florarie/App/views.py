@@ -44,10 +44,10 @@ import os
 
 
 def home(request):
-    all_products = Product.objects.all().order_by('-number_of_purcheses', '-created_at')
+    all_products = Product.objects.all().order_by('-number_of_purcheses')
     top_products = []
     for product in all_products:
-        if not product.is_custom and not product.in_store:
+        if not product.is_custom:
             top_products.append(product)
         if len(top_products) == 3:
             break
@@ -135,8 +135,9 @@ def add_to_cart(request, product_id):
     # Daca elementul este nou, seteaza cantitatea la 1 si timpul de rezervare
     if created:
         cart_item.quantity = 1
-        cart_item.reserved_until = timezone.now() + timedelta(minutes=1)
-        cart_item.save()
+        if stock_managed_product:
+            cart_item.reserved_until = timezone.now() + timedelta(minutes=1)
+            cart_item.save()
     else:
         # Daca elementul exista deja,  incrementezi cantitatea
         if product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
@@ -487,8 +488,16 @@ def user_login(request):
     return render(request, "login.html")
 
 def user_logout(request):
-    logout(request)
-    return redirect("home") 
+    if request.method == 'POST':
+        logout(request)
+        return redirect('home')
+    return redirect('logout_confirm')
+
+@login_required
+def logout_confirm(request):
+    if request.headers.get('HX-Request'):
+        return render(request, 'partials/logout_confirm.html')
+    return redirect('home')
 
 def product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk)
@@ -1244,12 +1253,6 @@ def auction_price_partial(request, pk):
 
     return render(request, "partials/auction_price.html", {"product": product})
 
-def  auction_confirm_popup(request, pk):
-    if not request.headers.get("HX-Request"):
-        return HttpResponseBadRequest("Invalid request")
-    product = get_object_or_404(Product, pk=pk)
-    return render(request, "partials/auction_confirm_popup.html", {"product": product})                      
-
 @require_POST
 def auction_confirm(request, pk):
 
@@ -1265,11 +1268,16 @@ def auction_confirm(request, pk):
         auction_price, _, _ = product.get_auction_price()
         cart_item.product.price = auction_price
         cart_item.product.bid_submited = True
-        cart_item.reserved_until = timezone.now() + timedelta(minutes=1)  # rezervare 1 min
-        cart_item.save()
+        cart_item.reserved_until = timezone.now() + timedelta(minutes=15)
         cart_item.product.save()
+        cart_item.save()
 
-    return redirect("auction")
+    if request.headers.get('HX-Request'):
+        response = HttpResponse("")
+        response['HX-Redirect'] = '/cart/'
+        return response
+
+    return redirect('cart')
 
 
 def send_order_email(order, user, email_destination):
@@ -1453,13 +1461,13 @@ def sales_data_api(request):
     top_product_names = [p.name for p in top_products]
     top_product_sold = [p.sold or 0 for p in top_products]
 
-    # Vizite
+    # Vizite 
     visits = (
         VisitorLog.objects
         .filter(timestamp__date__range=(start_date, end_date))
         .annotate(date=TruncDate('timestamp'))
         .values('date')
-        .annotate(count=Count('id'))
+        .annotate(count=Count('session_key', distinct=True))
         .order_by('date')
     )
     visits_data = {v['date'].strftime("%Y-%m-%d"): v['count'] for v in visits}
@@ -1468,10 +1476,7 @@ def sales_data_api(request):
     # Rata conversiei
     conversion_rates = []
     for sales_count, visit_count in zip(counts, visit_counts):
-        if visit_count > 0:
-            conversion_rates.append(round((sales_count / visit_count) * 100, 2))
-        else:
-            conversion_rates.append(0)
+        conversion_rates.append(round((sales_count / visit_count) * 100, 2) if visit_count > 0 else 0)
 
     # Comparare perioade
     compare = None
@@ -1479,6 +1484,10 @@ def sales_data_api(request):
         cs = datetime.strptime(compare_start, "%Y-%m-%d").date()
         ce = datetime.strptime(compare_end, "%Y-%m-%d").date()
         compare_orders = Order.objects.filter(created_at__date__range=(cs, ce))
+        if category:
+            compare_orders = compare_orders.filter(items__product__category=category)
+        if product:
+            compare_orders = compare_orders.filter(items__product__id=product)
         compare_daily_sales = (
             compare_orders.annotate(day=TruncDate("created_at"))
             .values("day")
@@ -1487,29 +1496,12 @@ def sales_data_api(request):
         )
         compare_labels = [d["day"].strftime("%Y-%m-%d") for d in compare_daily_sales]
         compare_totals = [float(d["total"]) for d in compare_daily_sales]
-        compare = {
-            "labels": compare_labels,
-            "totals": compare_totals,
-        }
-
+        compare = {"labels": compare_labels, "totals": compare_totals}
     return JsonResponse({
-        "sales": {
-            "labels": labels,
-            "totals": totals,
-            "counts": counts,
-        },
-        "top_products": {
-            "labels": top_product_names,
-            "data": top_product_sold,
-        },
-        "visits": {
-            "labels": labels,
-            "counts": visit_counts,
-        },
-        "conversion": {
-            "labels": labels,
-            "rates": conversion_rates,
-        },
+        "sales": {"labels": labels, "totals": totals, "counts": counts},
+        "top_products": {"labels": top_product_names, "data": top_product_sold},
+        "visits": {"labels": labels, "counts": visit_counts},
+        "conversion": {"labels": labels, "rates": conversion_rates},
         "compare": compare,
     })
 
@@ -1549,15 +1541,5 @@ def sales_summary_api(request):
         "total_revenue": total_revenue,
         "revenue_growth": revenue_growth,
     })
-
-# functie refresh rezervare cos
-# def refresh_cart_reservation(request):
-#     cart_items = get_cart_items(request)
-    
-#     for item in cart_items:
-#         item.reserved_until = timezone.now() + timedelta(minutes=30)
-#         item.save()
-    
-#     return JsonResponse({"success": True})
 
 

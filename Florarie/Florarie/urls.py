@@ -1,28 +1,12 @@
-"""
-URL configuration for Florarie project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.1/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
 from django.conf import settings
 from django.urls import path, include
 from django.conf.urls.static import static
 from App.views import home, cart_view, add_to_cart, remove_from_cart, update_cart, cart_count, products_by_category
-from App.views import increment_quantity, decrement_quantity, get_total_price, register_partial, login_partial,register, user_login, user_logout
+from App.views import increment_quantity, decrement_quantity, get_total_price, register_partial, login_partial,register, user_login, user_logout, logout_confirm
 from App.views import checkout, product_detail, profile, order_detail, order_history, checkout_step_1, checkout_step_2, checkout_step_3, order_success, update_order_summary
 from App.views import create_custom_bouquet, custom_bouquet_builder, save_custom_bouquet, generate_bouquet_preview
-from App.views import auction_view, auction_price_partial, auction_confirm_popup, auction_confirm, contact_view, contact_success, sales_data_api, admin_dashboard
+from App.views import auction_view, auction_price_partial, auction_confirm, contact_view, contact_success, sales_data_api, admin_dashboard
 from App.views import product_list_api, sales_summary_api
 from django.contrib.auth import views as auth_views
 
@@ -42,6 +26,7 @@ urlpatterns = [
     path('login_page/', login_partial, name='login_page'),
     path("register/", register, name="register"),
     path("login/", user_login, name="login"),
+    path('logout/confirm/', logout_confirm, name='logout_confirm'),
     path("logout/", user_logout, name="logout"),
     path("checkout/", checkout, name="checkout"),   
     path('product/<int:pk>/', product_detail, name='product_detail'),
@@ -60,7 +45,6 @@ urlpatterns = [
     path("save_custom_bouquet", save_custom_bouquet, name="save_custom_bouquet"),
     path("auction/", auction_view, name="auction"),
     path("auction/price/<int:pk>/", auction_price_partial, name="auction_price_partial"),
-    path("auction_confirm_popup/<int:pk>/", auction_confirm_popup, name="auction_confirm_popup"),
     path("auction_confirm/<int:pk>/", auction_confirm, name="auction_confirm"),
     path("contact/", contact_view, name="contact"),
     path("contact/success/", contact_success, name="contact_success"),

@@ -264,6 +264,16 @@ class ContactMessage(models.Model):
 class VisitorLog(models.Model):
     ip = models.GenericIPAddressField()
     path = models.CharField(max_length=255)
+    session_key = models.CharField(max_length=40, db_index=True, null=True, blank=True)  # new
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['timestamp']),
+            models.Index(fields=['path']),
+            models.Index(fields=['session_key', 'timestamp']),
+            models.Index(fields=['session_key', 'path', 'timestamp']),
+        ]
+
     def __str__(self):
-        return self.timestamp.strftime("%Y-%m-%d %H:%M:%S") + " - " + self.ip + " - " + self.path
+        return f"{self.timestamp.strftime('%Y-%m-%d %H:%M:%S')} - {self.session_key or 'no-session'} - {self.path}"
