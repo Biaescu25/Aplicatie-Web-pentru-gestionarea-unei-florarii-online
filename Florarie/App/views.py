@@ -23,6 +23,7 @@ from django.db.models.functions import TruncDate
 from django.db.models import Sum, Count, F
 from django.db import transaction
 from datetime import datetime
+from django.contrib.auth import authenticate
 
 from .models import (
     Product, CartItem, Order, Payment, OrderItem,
@@ -66,14 +67,13 @@ def cart_view(request):
             session_id = request.session.session_key
         base_qs = CartItem.objects.filter(session_id=session_id)
 
-    # Remove expired reservations before showing cart
     expired = base_qs.filter(reserved_until__isnull=False, reserved_until__lte=timezone.now())
     if expired.exists():
         for item in expired:
             remove_from_cart(request, item.product_id)
         expired.delete()
 
-    cart_items = base_qs  # remaining (valid) items
+    cart_items = base_qs  
     total_price = sum(item.total_price() for item in cart_items)
 
     context = {
@@ -136,11 +136,11 @@ def add_to_cart(request, product_id):
     if created:
         cart_item.quantity = 1
         if stock_managed_product:
-            cart_item.reserved_until = timezone.now() + timedelta(minutes=1)
+            cart_item.reserved_until = timezone.now() + timedelta(minutes=15)
             cart_item.save()
     else:
         # Daca elementul exista deja,  incrementezi cantitatea
-        if product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
+        if product.category in ['buchete', 'aranjamente']:
             # Permite doar 10
                 if cart_item.quantity < 10:
                     cart_item.quantity += 1
@@ -159,7 +159,7 @@ def add_to_cart(request, product_id):
                 if total_reserved < product.stock:
                     cart_item.quantity += 1
                     # Recalculeaza rezervarea
-                    cart_item.reserved_until = timezone.now() + timedelta(minutes=1)
+                    cart_item.reserved_until = timezone.now() + timedelta(minutes=15)
                     cart_item.save()
                 else:
                     error_message = f"Ne pare rău, nu se poate adăuga mai mult din produsul '{product.name}'. Toate unitățile sunt momentan rezervate."
@@ -228,7 +228,6 @@ def remove_from_cart(request, product_id):
  
         response = HttpResponse(cart_html)
 
-        #response = HttpResponse("")
         response["HX-Trigger"] = "updateTotalPrice"  # Trigger la total price script
         return response
 
@@ -240,7 +239,7 @@ def update_cart(request, product_id, quantity):
     cart_item = CartItem.objects.filter(product_id=product_id).first()
     if cart_item:
         # Pentru buchete, aranjamente, si custom bouquets pana la 10
-        if cart_item.product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
+        if cart_item.product.category in ['buchete', 'aranjamente']:
             cart_item.quantity = min(quantity, 10)
             cart_item.save()
         else:
@@ -280,7 +279,7 @@ def increment_quantity(request, product_id):
     
     if cart_item:
         # Pentru buchete, aranjamente, si custom bouquets
-        if cart_item.product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
+        if cart_item.product.category in ['buchete', 'aranjamente']:
             if cart_item.quantity < 10:
                 cart_item.quantity += 1
                 cart_item.save()
@@ -463,7 +462,6 @@ def register(request):
         user.save()
 
         # Logheaza utilizatorul automat dupa inregistrare
-        from django.contrib.auth import authenticate
         user = authenticate(request, username=username, password=password1)
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
 
@@ -742,13 +740,13 @@ def checkout_step_3(request): #finalizam plata cu cardul folosind stripe
             # Finalizeaza comanda
             order_id = request.session.get("order_id")
             if not order_id:
-                return JsonResponse({"success": False, "message": "Order ID not found in session."})
+                return JsonResponse({"success": False, "message": "Comanda nu a fost găsită."})
                 
             try:
                 order = Order.objects.get(id=order_id)
                 finish_order(request, order)
             except Order.DoesNotExist:
-                return JsonResponse({"success": False, "message": "Order not found."})
+                return JsonResponse({"success": False, "message": "Comanda nu a fost găsită."})
 
             if request.headers.get("HX-Request"):
                 return render(request, 'checkout_step_3.html')
@@ -788,19 +786,19 @@ def update_order_summary(request):
             'delivery_type': delivery_type
         })
     
-    return JsonResponse({'error': 'Invalid request'})
+    return JsonResponse({'error': 'Invalid request'}, status=400)
 
 
 def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greenery_data=None, wrapping_color_hex="#FFFFFF"):
     # Preia forma buchetului si hartia de ambalaj
-    try:
-        shape = BouquetShape.objects.get(id=shape_id)
-        if wrapping_id is None:
-            wrapping = WrappingPaper.objects.first()  
-        else:
-            wrapping = WrappingPaper.objects.get(id=wrapping_id)
-    except (BouquetShape.DoesNotExist, WrappingPaper.DoesNotExist):
-        return None
+    # try:
+    #     shape = BouquetShape.objects.get(id=shape_id)
+    #     if wrapping_id is None:
+    #         wrapping = WrappingPaper.objects.first()  
+    #     else:
+    #         wrapping = WrappingPaper.objects.get(id=wrapping_id)
+    # except (BouquetShape.DoesNotExist, WrappingPaper.DoesNotExist):
+    #     return None
 
     # Configuram canvasul 
     canvas_size = (500, 500)
@@ -877,17 +875,17 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
             x, y = center[0], center[1] #prima floare in centru
         else:
             
-            angle = i * 137.5 * (math.pi / 180) * spiral_tightness #det unghi in spirala floare curenta, 137.5 = golden angle
+            angle = i * 137.5 * (math.pi / 180) * spiral_tightness #det unghi in spirala floare curenta
             radius = (i ** 0.5) * spacing_factor * 25  #det distanta fata de centru
             
             #transforma coordonate polare in coordonate carteziene
             x = int(center[0] + radius * math.cos(angle)) 
             y = int(center[1] + radius * math.sin(angle))
             
-            max_offset = 180 #limiteaza elementele sa nu iasa din canvas
-            #aplica limitarea 
-            x = max(center[0] - max_offset, min(center[0] + max_offset, x))
-            y = max(center[1] - max_offset, min(center[1] + max_offset, y))
+            # max_offset = 180 #limiteaza elementele sa nu iasa din canvas
+            # #aplica limitarea 
+            # x = max(center[0] - max_offset, min(center[0] + max_offset, x))
+            # y = max(center[1] - max_offset, min(center[1] + max_offset, y))
         
         #salvam pozitia si dim elementului
         item_positions.append((y, x, item, size, item_type))
@@ -906,7 +904,7 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
                 dy = bottom_center_y - y #dif pe axa y intre floare si baza buchetului
                 angle_rad = math.atan2(dx, dy)
                 angle_deg = math.degrees(angle_rad) #transforma unghiul in grade, necesar PIL
-                rotated_img = flower_img.rotate(angle_deg, expand=True) #roteste imaginea
+                rotated_img = flower_img.rotate(angle_deg, expand=True) 
             else:  
                 greenery_img = Image.open(obj.image.path).convert("RGBA")
                 greenery_img = greenery_img.resize((size, size), Image.LANCZOS) #redim imaginea la dim calculata
@@ -1174,12 +1172,11 @@ def generate_bouquet_preview(request):
             return JsonResponse({"error": "Forma sau ambalajul nu există."}, status=400)
 
         canvas_size = (500, 500)
-        center = (canvas_size[0] // 2, canvas_size[1] // 2)
-        base_radius = 120
+        
 
         # cream imaginea de baza
         image = Image.new("RGBA", canvas_size, (255, 255, 255, 0))
-        draw = ImageDraw.Draw(image)
+       
 
         # desenam elipsa ptr ambalaj
         # draw.ellipse([
