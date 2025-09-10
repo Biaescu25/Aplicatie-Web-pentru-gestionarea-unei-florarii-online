@@ -20,6 +20,11 @@ class ProductAdmin(admin.ModelAdmin):
     delete_link.short_description = 'Delete'
 
 
+class CartItemAdmin(admin.ModelAdmin):
+    list_filter = ('user', 'product')
+    readonly_fields = ('quantity', 'user', 'product')
+
+
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'delivery_type', 'desired_delivery_date', 'delivery_time_slot', 'total_price', 'delivery_fee', 'created_at', 'payment_status_display', 'linked_products')
     list_filter = ('delivery_type', 'payment_status', 'created_at', 'desired_delivery_date')
@@ -87,7 +92,7 @@ class WrappingPaperAdmin(admin.ModelAdmin):
 
 admin.site.site_header = "Florarie Admin"
 admin.site.register(Product, ProductAdmin)
-admin.site.register(CartItem)
+admin.site.register(CartItem, CartItemAdmin)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(Flower)
 admin.site.register(BouquetShape)

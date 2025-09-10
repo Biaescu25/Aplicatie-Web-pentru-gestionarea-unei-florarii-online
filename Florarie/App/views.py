@@ -278,41 +278,34 @@ def increment_quantity(request, product_id):
         cart_item = CartItem.objects.filter(product_id=product_id, session_id=session_id).first()
     
     if cart_item:
-        # Pentru buchete, aranjamente, si custom bouquets
-        if cart_item.product.category in ['buchete', 'aranjamente']:
+        if cart_item.product.category in ['buchete', 'aranjamente', 'CustomBouquet']:
             if cart_item.quantity < 10:
                 cart_item.quantity += 1
                 cart_item.save()
+            else:
+                cart_item.error_message = f"Nu se poate adăuga mai mult din '{cart_item.product.name}'. Maxim 10 unități."
         else:
-            # Pentru celelalte produse, verifica impotriva cantitatii totale rezervate
             total_reserved = CartItem.objects.filter(
                 product=cart_item.product, 
                 reserved_until__gt=timezone.now()
-            ).aggregate(
-                total=Sum('quantity') 
-            )['total'] or 0
+            ).aggregate(total=Sum('quantity'))['total'] or 0
             
-            # Verifica stocul
             if total_reserved < cart_item.product.stock:
                 cart_item.quantity += 1
                 cart_item.save()
             else:
-                # Returneaza mesaj de eroare pentru toate tipurile de cereri
-                error_message = f"Nu se poate adăuga mai mult din '{cart_item.product.name}'. Toate unitățile sunt rezervate."
-                return HttpResponse(error_message, status=400)
+                cart_item.error_message = f"Nu se poate adăuga mai mult din '{cart_item.product.name}'. Toate unitățile sunt rezervate."
 
     cart_items = get_cart_items(request)
-    total_price = sum(item.total_price() for item in cart_items)
 
     if request.headers.get('HX-Request'):
         item_html = render_to_string("partials/cart_item.html", {"cart_item": cart_item}, request=request)
-        total_price_html = render_to_string("partials/total_price.html", {"total_price": total_price}, request=request)
-        
         response = HttpResponse(item_html)
-        response["HX-Trigger"] = "updateTotalPrice"  # Trigger total pentru actualizarea pretului
+        response["HX-Trigger"] = "updateTotalPrice"
         return response
 
     return redirect("cart")
+
 
 def decrement_quantity(request, product_id):
     if request.user.is_authenticated:
@@ -788,23 +781,13 @@ def update_order_summary(request):
     
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
-
+#creare imagine buchet
 def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greenery_data=None, wrapping_color_hex="#FFFFFF"):
-    # Preia forma buchetului si hartia de ambalaj
-    # try:
-    #     shape = BouquetShape.objects.get(id=shape_id)
-    #     if wrapping_id is None:
-    #         wrapping = WrappingPaper.objects.first()  
-    #     else:
-    #         wrapping = WrappingPaper.objects.get(id=wrapping_id)
-    # except (BouquetShape.DoesNotExist, WrappingPaper.DoesNotExist):
-    #     return None
-
     # Configuram canvasul 
     canvas_size = (500, 500)
     center = (canvas_size[0] // 2, canvas_size[1] // 2)
-    
-    # Create canvas
+
+    #cream canvasul
     image = Image.new("RGBA", canvas_size, (255, 255, 255, 0))
     
     all_items = []
@@ -861,12 +844,12 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
         min_size = 90
         spiral_tightness = 1.2
     
-    # Cu cat sunt mai multe flori, le distantam mai mult
+    # Cu cat sunt mai multe flori, le distantam mai putin
     spacing_factor = max(0.6, min(1.5, 20 / num_items)) 
     
     for i, (item, item_type) in enumerate(all_items):
-        distance_from_center = i / num_items #florile din centru sunt mai mari, iar cele exterioare mai mici 
-        size_factor = 1.2 - (distance_from_center * 0.3)  #dim element scade odata cu distanta de centru
+        dimension_fraction = i / num_items 
+        size_factor = 1.2 - (dimension_fraction * 0.3)  #dim element scade odata cu distanta de centru
         size = max(min_size, int(base_size * size_factor)) #dim finala element
 
         # Calculam pozitia folosind un model spiralat
@@ -882,11 +865,6 @@ def generate_bouquet_image(shape_id, wrapping_id=None, flowers_data=None, greene
             x = int(center[0] + radius * math.cos(angle)) 
             y = int(center[1] + radius * math.sin(angle))
             
-            # max_offset = 180 #limiteaza elementele sa nu iasa din canvas
-            # #aplica limitarea 
-            # x = max(center[0] - max_offset, min(center[0] + max_offset, x))
-            # y = max(center[1] - max_offset, min(center[1] + max_offset, y))
-        
         #salvam pozitia si dim elementului
         item_positions.append((y, x, item, size, item_type))
 
@@ -937,6 +915,7 @@ def custom_bouquet_builder(request):
             "flowers": flower,
         })
 
+#rezuamt buchet
 def create_custom_bouquet(request):
     if request.method == "POST" and request.headers.get("HX-Request"):
         data = request.POST
@@ -1133,8 +1112,6 @@ def save_custom_bouquet(request):
 
     return JsonResponse({"error": "Invalid request"}, status=400)
 
-
-
 @csrf_exempt
 def generate_bouquet_preview(request):
     if request.method != "POST":
@@ -1177,19 +1154,12 @@ def generate_bouquet_preview(request):
         # cream imaginea de baza
         image = Image.new("RGBA", canvas_size, (255, 255, 255, 0))
        
-
-        # desenam elipsa ptr ambalaj
-        # draw.ellipse([
-        #     (center[0] - base_radius, center[1] - base_radius),
-        #     (center[0] + base_radius, center[1] + base_radius)
-        # ], fill=wrapping_color_hex)
-
-        # Return the placeholder image
+        # Returneaza imaginea
         response = HttpResponse(content_type="image/png")
         image.save(response, "PNG")
         return response
 
-    # Generate the image using the reusable function
+    # Genereaza imaginea buchetului
     image = generate_bouquet_image(
         shape_id=int(shape_id),
         wrapping_id=int(wrapping_id) if wrapping_id else None,  # Pass None if not selected
@@ -1200,7 +1170,7 @@ def generate_bouquet_preview(request):
 
     if image is None:
         print("Failed to generate image - no items found")
-        return HttpResponse(status=400)
+        return HttpResponse(status=400)  
 
     # Return the image
     response = HttpResponse(content_type="image/png")
@@ -1302,7 +1272,7 @@ def send_order_email(order, user, email_destination):
     # Email admin 
     admin_recipients = [e for _, e in getattr(settings, "ADMINS", [])] or [settings.DEFAULT_FROM_EMAIL]
     if admin_recipients:
-        # Construim delivery_info (HTML fragment)
+        # Construim delivery_info 
         delivery_info = ""
         if order.delivery_type == "delivery":
             delivery_info += f"<p><b>Adresa:</b> {order.address or '-'}, {order.city or ''} {order.zip_code or ''}</p>"
@@ -1318,7 +1288,7 @@ def send_order_email(order, user, email_destination):
             'emails/new_order_email.html',
             {
                 'order': order,
-                'delivery_info': delivery_info,  # will be marked safe in template
+                'delivery_info': delivery_info, 
             }
         )
 

@@ -2,11 +2,13 @@
     
    
     <!-- Container pentru mesajele de eroare -->
-    <div id="cart-item-error-{{ cart_item.id }}" class="mt-2 text-sm p-3 rounded-md bg-red-50 text-red-700 border border-red-200 flex items-center gap-2" style="display: none;">
+   <div id="cart-item-error-{{ cart_item.id }}" 
+        class="mt-2 text-sm p-3 rounded-md bg-red-50 text-red-700 border border-red-200 flex items-center gap-2"
+        style="{% if cart_item.error_message %}display: flex;{% else %}display: none;{% endif %}">
         <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
         </svg>
-        <span class="error-text"></span>
+        <span class="error-text">{{ cart_item.error_message }}</span>
     </div>
          
     <div class="flex justify-between items-center">
@@ -40,8 +42,16 @@
         <div class="flex items-center space-x-2">
 
             {% if not cart_item.product.bid_submited and not cart_item.product.is_custom %}
-            <button onclick="decrementQuantity({{ cart_item.product.id }}, {{ cart_item.id }})" 
-               class="btn btn-primary btn-sm center bg-green-600 text-white">-</button>
+            <a 
+                href="{% url 'decrement_quantity' cart_item.product.id %}" 
+                hx-get="{% url 'decrement_quantity' cart_item.product.id %}" 
+                hx-target="#cart-item-{{ cart_item.id }}" 
+                hx-swap="outerHTML" 
+                hx-trigger="click"
+                class="btn btn-primary btn-sm center bg-green-600 text-white"
+            >
+                -
+            </a>
             {%endif %}
 
             <div class="center" style="padding: 0 10px; text-align: center;">
@@ -49,13 +59,21 @@
             </div>
 
             {% if not cart_item.product.bid_submited and not cart_item.product.is_custom %}
-            <button onclick="incrementQuantity({{ cart_item.product.id }}, {{ cart_item.id }})" 
-               class="btn btn-primary btn-sm center bg-green-600 text-white 
-               {% if cart_item.product.category in 'buchete,aranjamente' %}
-                   {% if cart_item.quantity >= 10 %}opacity-50 cursor-not-allowed pointer-events-none{% endif %}
-               {% else %}
-                   {% if cart_item.quantity >= cart_item.product.stock %}opacity-50 cursor-not-allowed pointer-events-none{% endif %}
-               {% endif %}">+</button>
+            <a 
+                href="{% url 'increment_quantity' cart_item.product.id %}" 
+                hx-get="{% url 'increment_quantity' cart_item.product.id %}" 
+                hx-target="#cart-item-{{ cart_item.id }}" 
+                hx-swap="outerHTML" 
+                hx-trigger="click"
+                class="btn btn-primary btn-sm center bg-green-600 text-white
+                {% if cart_item.product.category in 'buchete,aranjamente' %}
+                    {% if cart_item.quantity >= 10 %}opacity-50 cursor-not-allowed pointer-events-none{% endif %}
+                {% else %}
+                    {% if cart_item.quantity >= cart_item.product.stock %}opacity-50 cursor-not-allowed pointer-events-none{% endif %}
+                {% endif %}"
+            >
+                +
+            </a>
             {%endif %}
 
              
@@ -73,115 +91,3 @@
         </div>
     </div>
 </div>
-
-<script>
-function incrementQuantity(productId, cartItemId) {
-    const errorContainer = document.getElementById(`cart-item-error-${cartItemId}`);
-    const cartItemElement = document.getElementById(`cart-item-${cartItemId}`);
-
-    // Sterge mesajele de eroare existente
-    if (errorContainer) {
-        errorContainer.style.display = 'none';
-        errorContainer.innerHTML = '';
-    }
-    
-    fetch(`/cart/increment/${productId}/`, {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'HX-Request': 'true'  // Adauga header-ul HTMX pentru a obtine raspuns HTMX
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.text().then(errorText => {
-                throw new Error(errorText);
-            });
-        }
-        return response.text();
-    })
-    .then(html => {
-        // Inlocuieste doar elementul cosului cu noul HTML
-        cartItemElement.outerHTML = html;
-
-        // Update trigger pentru pretul total
-        document.body.dispatchEvent(new CustomEvent('updateTotalPrice'));
-    })
-    .catch(error => {
-        console.error("Eroare la incrementare:", error.message);
-        // Afiseaza mesajul de eroare
-        if (errorContainer) {
-            const errorTextSpan = errorContainer.querySelector('.error-text');
-            if (errorTextSpan) {
-                errorTextSpan.innerHTML = error.message;
-            } else {
-                errorContainer.innerHTML = error.message;
-            }
-            errorContainer.style.display = 'block';
-            
-            // Auto-hide dupa 5 sec
-            setTimeout(() => {
-                errorContainer.style.display = 'none';
-            }, 5000);
-        }
-    });
-}
-
-function decrementQuantity(productId, cartItemId) {
-    const errorContainer = document.getElementById(`cart-item-error-${cartItemId}`);
-    const cartItemElement = document.getElementById(`cart-item-${cartItemId}`);
-    
-    // Sterge mesajele de eroare existente
-    if (errorContainer) {
-        errorContainer.style.display = 'none';
-        errorContainer.innerHTML = '';
-    }
-    
-    fetch(`/cart/decrement/${productId}/`, {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'HX-Request': 'true'  // Adauga header-ul HTMX pentru a obtine raspuns HTMX
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.text().then(errorText => {
-                throw new Error(errorText);
-            });
-        }
-        return response.text();
-    })
-    .then(html => {
-        // Verifica daca HTML-ul este gol (elementul ar fi putut fi sters)
-        if (html.trim() === "") {
-            // Elementul a fost sters, reincarca pagina pentru a actualiza totul
-            window.location.reload();
-        } else {
-            // Inlocuieste doar elementul cosului cu noul HTML
-            cartItemElement.outerHTML = html;
-
-            // Update trigger pentru pretul total
-            document.body.dispatchEvent(new CustomEvent('updateTotalPrice'));
-        }
-    })
-    .catch(error => {
-        console.error("Eroare la decrementare:", error.message);
-        // Afiseaza mesajul de eroare
-        if (errorContainer) {
-            const errorTextSpan = errorContainer.querySelector('.error-text');
-            if (errorTextSpan) {
-                errorTextSpan.innerHTML = error.message;
-            } else {
-                errorContainer.innerHTML = error.message;
-            }
-            errorContainer.style.display = 'block';
-
-            // Auto-hide dupa 5 sec
-            setTimeout(() => {
-                errorContainer.style.display = 'none';
-            }, 5000);
-        }
-    });
-}
-</script>

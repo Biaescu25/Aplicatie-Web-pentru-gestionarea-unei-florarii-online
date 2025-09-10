@@ -45,8 +45,6 @@
                 if (timeRemaining <= 0) {
                     // Ofertă expirată
                     timer.textContent = "Ofertă expirată";
-                    timer.classList.add('text-gray-500');
-                    timer.classList.remove('text-red-600');
                 } else {
                     // Calculeaza orele, minutele, secundele ramase
                     const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
@@ -59,10 +57,7 @@
                         (minutes < 10 ? '0' + minutes : minutes) + ':' +
                         (seconds < 10 ? '0' + seconds : seconds);
                     
-                    // Adauga stiluri de urgenta cand ramane mai putin de 1 ora
-                    if (timeRemaining < 3600000) { // less than 1 hour
-                        timer.classList.add('text-red-600', 'animate-pulse');
-                    }
+                    
                 }
             });
         }

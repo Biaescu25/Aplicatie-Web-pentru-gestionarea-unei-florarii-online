@@ -5,7 +5,7 @@ from datetime import timedelta
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 from ckeditor.fields import RichTextField
-
+from django.db.models import Sum
 
 class Product(models.Model):
     name = models.CharField(max_length=100, null=False, blank=False)
@@ -69,13 +69,13 @@ class Product(models.Model):
         if not self.is_in_auction():
             return self.price, 0, 0 
  
-        minutes_passed = (timezone.now() - self.auction_start_time).total_seconds() / 60
+        minutes_passed = (timezone.now() - self.auction_start_time).total_seconds() / 60  #calculează minutele trecute
         total_drops = max(1, int(minutes_passed / self.auction_interval_minutes))  # numărul minim de scăderi este 1
-        discount = min(self.auction_drop_amount * total_drops, self.price - self.auction_floor_price)
+        discount = min(self.auction_drop_amount * total_drops, self.price - self.auction_floor_price) #calculeaza discountul total
 
-        auction_bid_price = self.price - Decimal(discount)  # Calculează prețul licitației
+        auction_bid_price = self.price - Decimal(discount)  # Calculează prețul curent din licitatie
 
-        # Calculează procentajul pe baza before_auction_price pentru consistență cu UI
+        # Calculează procentajul pe baza before_auction_price
         if self.before_auction_price == 0:
             percentage_reduction = Decimal(0)
         else:
@@ -88,8 +88,7 @@ class Product(models.Model):
         return self.name
 
     def get_available_stock(self):
-        from django.db.models import Sum
-        
+         
         # Skip calcule pentru produse care nu sunt gestionate prin inventar
         if self.category in ['buchete', 'aranjamente', 'CustomBouquet']:
             return 10  
@@ -99,7 +98,6 @@ class Product(models.Model):
             reserved_until__gt=timezone.now()
         ).aggregate(total=Sum('quantity'))['total'] or 0
         
-        # returneaza stocul disponibil
         return max(0, self.stock - reserved)
 
 class CartItem(models.Model):
