@@ -64,8 +64,8 @@ class OrderAdmin(admin.ModelAdmin):
     linked_products.short_description = "Products"    
 
 class CustomBouquetAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'shape', 'wrapping', 'created_at', 'related_flowers')
-    readonly_fields = ('related_flowers',)
+    list_display = ('id', 'user', 'shape', 'created_at', 'related_flowers')
+    readonly_fields = ('related_flowers', 'wrapping')
 
 
 class ContactMessageAdmin(admin.ModelAdmin):

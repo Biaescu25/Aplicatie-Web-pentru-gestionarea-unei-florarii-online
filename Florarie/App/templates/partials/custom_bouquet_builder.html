@@ -206,6 +206,7 @@
 <script>
    
 function updateBouquetPreview() {
+  //colectare optiuni buchet
   const flowerInputs = document.querySelectorAll("input[name^='flower_']");
   const wrappingColor = document.querySelector('input[name="wrapping_color"]:checked')?.value||null;
   const flowers = Array.from(flowerInputs).map(input => ({
@@ -242,7 +243,7 @@ function updateBouquetPreview() {
   });
 }
 
-//  atașează manual pe toate inputurile relevante
+
 function attachPreviewListeners() {
   const inputs = document.querySelectorAll(
     "input[name^='flower_'], input[name='shape'], input[name='wrapping'], input[name='greens']"
@@ -278,10 +279,12 @@ function attachPreviewListeners() {
   });
 }
 
-// rulează după ce HTMX reîncarcă părți de pagină
+
+
 document.addEventListener("DOMContentLoaded", attachPreviewListeners);
 document.addEventListener("htmx:afterSwap", attachPreviewListeners);
 
+//selectare ambalaj si culori disponibile
 document.addEventListener("DOMContentLoaded", () => {
   const wrappingRadios = document.querySelectorAll('input[name="wrapping"]');
 

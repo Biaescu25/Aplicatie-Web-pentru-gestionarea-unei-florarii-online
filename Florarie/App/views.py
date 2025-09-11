@@ -980,6 +980,7 @@ def create_custom_bouquet(request):
     return JsonResponse({"error": "Invalid request"}, status=400)
 
 @csrf_exempt
+#salveaza buchetul personalizat si creeaza produsul in DB
 def save_custom_bouquet(request):
     if request.method == "POST":
         data = request.POST
@@ -987,7 +988,6 @@ def save_custom_bouquet(request):
         try:
             shape = BouquetShape.objects.get(id=data.get("shape"))
         except BouquetShape.DoesNotExist:
-            print(f"Forma buchet Invalida: {data.get('shape')}")
             return JsonResponse({"error": "Forma buchetului selectată nu este validă."}, status=400)
 
         # Wrapping
@@ -1127,7 +1127,7 @@ def generate_bouquet_preview(request):
         return JsonResponse({"error": "Forma buchetului este invalidă."}, status=400)
 
     flowers_data = data.get("flowers", [])
-    greens = data.get("greens", [])  # Frontendul trimite 'greens' nu 'greenery'
+    greens = data.get("greens", [])  # Frontendul trimite 'greens' 
     wrapping_color_hex = data.get("wrapping_color", "#FFFFFF")
 
     # Convertim arrayul de 'greens' in formatul 'greenery_data'
@@ -1162,7 +1162,7 @@ def generate_bouquet_preview(request):
     # Genereaza imaginea buchetului
     image = generate_bouquet_image(
         shape_id=int(shape_id),
-        wrapping_id=int(wrapping_id) if wrapping_id else None,  # Pass None if not selected
+        wrapping_id=int(wrapping_id) if wrapping_id else None,  
         flowers_data=flowers_data,
         greenery_data=greenery_data,
         wrapping_color_hex=wrapping_color_hex

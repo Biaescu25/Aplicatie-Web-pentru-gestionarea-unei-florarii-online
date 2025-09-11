@@ -515,8 +515,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.querySelectorAll('.chart-filter-btn').forEach(btn => {
     btn.addEventListener('click', function () {
-      document.querySelectorAll('.chart-filter-btn').forEach(b => b.classList.remove('bg-blue-200', 'font-bold'));
-      this.classList.add('bg-blue-200', 'font-bold');
       const selected = this.dataset.chart;
       // afiseaza sumarul pentru graficul selectat
       const summary = document.getElementById('sales-summary-cards');
@@ -600,8 +598,8 @@ document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll('.chart-filter-btn').forEach(btn=>{
     btn.addEventListener('click', function(){
       // hilight ptr buton
-      document.querySelectorAll('.chart-filter-btn').forEach(b=>b.classList.remove('bg-blue-200','font-bold'));
-      this.classList.add('bg-blue-200','font-bold');
+      // document.querySelectorAll('.chart-filter-btn').forEach(b=>b.classList.remove('bg-blue-200','font-bold'));
+      // this.classList.add('bg-blue-200','font-bold');
       // show/hide charts
       const sel = this.dataset.chart;
       Object.entries(chartMap).forEach(([k,id])=>{
@@ -626,12 +624,14 @@ function updateSalesSummary(start, end) {
     .then(data => {
       // comenzi
       document.querySelector('#sales-summary-cards .orders-value').textContent = data.total_orders ?? "0";
+      // ascunde sau afiseaza rata de crestere 
       let og = document.querySelector('#sales-summary-cards .orders-growth');
       if (og) {
         if (data.orders_growth === null) {
           og.style.display = "none";
         } else {
           og.style.display = "";
+          //calculare si afisare procent
           const growth = Number(data.orders_growth);
           og.innerHTML =
             (growth >= 0
